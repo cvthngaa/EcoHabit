@@ -1,0 +1,7 @@
+export enum RedemptionStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  FULFILLED = 'FULFILLED',
+  CANCELED = 'CANCELED',
+}
