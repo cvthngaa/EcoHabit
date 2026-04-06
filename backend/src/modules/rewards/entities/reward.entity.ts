@@ -46,6 +46,7 @@ export class Reward extends BaseEntity {
   })
   status?: RewardStatus | null;
 
+
   @OneToMany(() => Redemption, (redemption) => redemption.reward)
   redemptions: Redemption[];
 }

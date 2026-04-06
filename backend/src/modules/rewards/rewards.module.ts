@@ -11,4 +11,4 @@ import { Redemption } from './entities/redemption.entity';
   controllers: [RewardsController],
   providers: [RewardsService]
 })
-export class RewardsModule {}
+export class RewardsModule { }

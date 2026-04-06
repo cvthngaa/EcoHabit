@@ -9,6 +9,6 @@ import { PointTransaction } from './entities/point-transaction.entity';
   imports: [TypeOrmModule.forFeature([PointRule, PointTransaction])],
   controllers: [PointsController],
   providers: [PointsService],
-  exports: [TypeOrmModule],
+  exports: [TypeOrmModule, PointsService],
 })
 export class PointsModule {}

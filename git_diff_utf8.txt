@@ -1,0 +1,281 @@
+﻿diff --git a/backend/src/modules/points/points.controller.ts b/backend/src/modules/points/points.controller.ts
+index 4b98422..5b5f0f7 100644
+--- a/backend/src/modules/points/points.controller.ts
++++ b/backend/src/modules/points/points.controller.ts
+@@ -1,4 +1,20 @@
+-import { Controller } from '@nestjs/common';
++import { Controller, Get, Req, UseGuards } from '@nestjs/common';
++import { AuthGuard } from '@nestjs/passport';
++import { PointsService } from './points.service';
+ 
++@UseGuards(AuthGuard('jwt'))
+ @Controller('points')
+-export class PointsController {}
++export class PointsController {
++    constructor(private readonly pointsService: PointsService) { }
++
++    @Get('balance')
++    async getBalance(@Req() req) {
++        const balance = await this.pointsService.getBalanceByUserId(req.user.userId);
++        return { balance };
++    }
++
++    @Get('history')
++    getHistory(@Req() req) {
++        return this.pointsService.getPoint(req.user.userId);
++    }
++}
+diff --git a/backend/src/modules/points/points.module.ts b/backend/src/modules/points/points.module.ts
+index 8994d78..f73f82d 100644
+--- a/backend/src/modules/points/points.module.ts
++++ b/backend/src/modules/points/points.module.ts
+@@ -9,6 +9,6 @@ import { PointTransaction } from './entities/point-transaction.entity';
+   imports: [TypeOrmModule.forFeature([PointRule, PointTransaction])],
+   controllers: [PointsController],
+   providers: [PointsService],
+-  exports: [TypeOrmModule],
++  exports: [TypeOrmModule, PointsService],
+ })
+ export class PointsModule {}
+diff --git a/backend/src/modules/points/points.service.ts b/backend/src/modules/points/points.service.ts
+index 04732d7..00735ee 100644
+--- a/backend/src/modules/points/points.service.ts
++++ b/backend/src/modules/points/points.service.ts
+@@ -1,4 +1,109 @@
+-import { Injectable } from '@nestjs/common';
++import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
++import { InjectRepository } from '@nestjs/typeorm';
++import { Repository } from 'typeorm';
++import { PointTransaction } from './entities/point-transaction.entity';
++import { PointRule } from './entities/point-rule.entity';
++import { PointTransactionType } from './enums/point-transaction-type.enum';
++import { PointSourceType } from './enums/point-source-type.enum';
+ 
+ @Injectable()
+-export class PointsService {}
++export class PointsService {
++    constructor(
++        @InjectRepository(PointTransaction)
++        private readonly transactionRepo: Repository<PointTransaction>,
++
++        @InjectRepository(PointRule)
++        private readonly ruleRepo: Repository<PointRule>,
++    ) { }
++
++    async addPoint(
++        userId: string,
++        amount: number,
++        type: PointTransactionType,
++        sourceType?: PointSourceType,
++        sourceId?: string,
++        reasonCode?: string,
++        note?: string,
++    ): Promise<PointTransaction> {
++        if (amount === 0) {
++            throw new BadRequestException('Amount must not be zero');
++        }
++
++        const currentBalance = await this.getBalanceByUserId(userId);
++
++        const transaction = this.transactionRepo.create({
++            user: { id: userId },
++            type,
++            points: amount,
++            balanceAfter: currentBalance + amount,
++            sourceType,
++            sourceId,
++            reasonCode,
++            note,
++        });
++
++        return this.transactionRepo.save(transaction);
++    }
++
++    async getBalanceByUserId(userId: string): Promise<number> {
++        const result = await this.transactionRepo
++            .createQueryBuilder('pt')
++            .innerJoin('pt.user', 'u')
++            .select('SUM(pt.points)', 'total')
++            .where('u.id = :userId', { userId })
++            .getRawOne();
++
++        return parseInt(result?.total ?? '0', 10);
++    }
++
++    async getPoint(userId: string): Promise<PointTransaction[]> {
++        return this.transactionRepo.find({
++            where: { user: { id: userId } },
++            order: { createdAt: 'DESC' },
++        });
++    }
++
++    async updatePoint(ruleId: string, data: Partial<PointRule>): Promise<PointRule> {
++        const rule = await this.ruleRepo.findOne({ where: { id: ruleId } });
++        if (!rule) throw new NotFoundException(`Rule ${ruleId} not found`);
++
++        Object.assign(rule, data);
++        return this.ruleRepo.save(rule);
++    }
++
++    async deductPoints(
++        userId: string,
++        amount: number,
++        sourceType?: PointSourceType,
++        sourceId?: string,
++        reasonCode?: string,
++        note?: string,
++    ): Promise<PointTransaction> {
++        const currentBalance = await this.getBalanceByUserId(userId);
++
++        if (currentBalance < amount) {
++            throw new BadRequestException('Not enough points');
++        }
++
++        return this.addPoint(
++            userId,
++            -amount,
++            PointTransactionType.SPEND,
++            sourceType,
++            sourceId,
++            reasonCode,
++            note,
++        );
++    }
++
++    async deletePoint(transactionId: string): Promise<void> {
++        const transaction = await this.transactionRepo.findOne({
++            where: { id: transactionId },
++        });
++        if (!transaction) throw new NotFoundException(`Transaction ${transactionId} not found`);
++
++        await this.transactionRepo.remove(transaction);
++    }
++
++
++}
+diff --git a/backend/src/modules/rewards/entities/reward.entity.ts b/backend/src/modules/rewards/entities/reward.entity.ts
+index 55675cb..7925051 100644
+--- a/backend/src/modules/rewards/entities/reward.entity.ts
++++ b/backend/src/modules/rewards/entities/reward.entity.ts
+@@ -46,6 +46,7 @@ export class Reward extends BaseEntity {
+   })
+   status?: RewardStatus | null;
+ 
++
+   @OneToMany(() => Redemption, (redemption) => redemption.reward)
+   redemptions: Redemption[];
+ }
+diff --git a/backend/src/modules/rewards/rewards.controller.ts b/backend/src/modules/rewards/rewards.controller.ts
+index 87cd4c5..bdc997c 100644
+--- a/backend/src/modules/rewards/rewards.controller.ts
++++ b/backend/src/modules/rewards/rewards.controller.ts
+@@ -1,4 +1,35 @@
+-import { Controller } from '@nestjs/common';
+-
++import { Controller, Get, Post, Put, Delete, Body, Param } from '@nestjs/common';
++import { RewardsService } from './rewards.service';
++import { CreateRewardDto } from './dto/create-reward.dto';
++import { UpdateRewardDto } from './dto/update-reward.dto';
+ @Controller('rewards')
+-export class RewardsController {}
++export class RewardsController {
++    constructor(
++        private readonly rewardsService: RewardsService,
++    ) { }
++
++    @Get()
++    async getAllRewards() {
++        return this.rewardsService.getAllRewards();
++    }
++
++    @Get(':id')
++    async getRewards(@Param('id') id: string) {
++        return this.rewardsService.getRewards(id);
++    }
++
++    @Post()
++    async createRewards(@Body() data: CreateRewardDto) {
++        return this.rewardsService.createRewards(data);
++    }
++
++    @Put(':id')
++    async updateRewards(@Param('id') id: string, @Body() data: UpdateRewardDto) {
++        return this.rewardsService.updateRewards(id, data);
++    }
++
++    @Delete(':id')
++    async deleteRewards(@Param('id') id: string) {
++        return this.rewardsService.deleteRewards(id);
++    }
++}
+diff --git a/backend/src/modules/rewards/rewards.module.ts b/backend/src/modules/rewards/rewards.module.ts
+index d025af0..505c302 100644
+--- a/backend/src/modules/rewards/rewards.module.ts
++++ b/backend/src/modules/rewards/rewards.module.ts
+@@ -11,4 +11,4 @@ import { Redemption } from './entities/redemption.entity';
+   controllers: [RewardsController],
+   providers: [RewardsService]
+ })
+-export class RewardsModule {}
++export class RewardsModule { }
+diff --git a/backend/src/modules/rewards/rewards.service.ts b/backend/src/modules/rewards/rewards.service.ts
+index 3437d29..491f057 100644
+--- a/backend/src/modules/rewards/rewards.service.ts
++++ b/backend/src/modules/rewards/rewards.service.ts
+@@ -1,4 +1,42 @@
+-import { Injectable } from '@nestjs/common';
++import { Injectable, NotFoundException } from '@nestjs/common';
++import { InjectRepository } from '@nestjs/typeorm';
++import { Reward } from './entities/reward.entity';
++import { Repository } from 'typeorm';
++import { CreateRewardDto } from './dto/create-reward.dto';
++import { UpdateRewardDto } from './dto/update-reward.dto';
+ 
+ @Injectable()
+-export class RewardsService {}
++export class RewardsService {
++    constructor(
++        @InjectRepository(Reward)
++        private readonly rewardRepo: Repository<Reward>,
++    ) { }
++
++    async getAllRewards() {
++        return this.rewardRepo.find();
++    }
++
++    async getRewards(id: string) {
++        return this.rewardRepo.findOne(
++            { where: { id: id } }
++        )
++    }
++
++    async createRewards(data: CreateRewardDto) {
++        const reward = this.rewardRepo.create(data);
++        return this.rewardRepo.save(reward);
++    }
++
++    async updateRewards(id: string, data: UpdateRewardDto) {
++        const reward = await this.rewardRepo.findOne({ where: { id: id } });
++        if (!reward) throw new NotFoundException(`Reward ${id} not found`);
++        Object.assign(reward, data);
++        return this.rewardRepo.save(reward);
++    }
++
++    async deleteRewards(id: string) {
++        const reward = await this.rewardRepo.findOne({ where: { id: id } });
++        if (!reward) throw new NotFoundException(`Reward ${id} not found`);
++        return this.rewardRepo.remove(reward);
++    }
++}
+diff --git a/backend/uploads/1775190917923-225172.jpg b/backend/uploads/1775190917923-225172.jpg
+deleted file mode 100644
+index 4feb1ac..0000000
+Binary files a/backend/uploads/1775190917923-225172.jpg and /dev/null differ
+diff --git a/backend/uploads/1775191032167-842898442.jpg b/backend/uploads/1775191032167-842898442.jpg
+deleted file mode 100644
+index 4feb1ac..0000000
+Binary files a/backend/uploads/1775191032167-842898442.jpg and /dev/null differ
+diff --git a/backend/uploads/1775191070937-822077913.jpg b/backend/uploads/1775191070937-822077913.jpg
+deleted file mode 100644
+index 4feb1ac..0000000
+Binary files a/backend/uploads/1775191070937-822077913.jpg and /dev/null differ
