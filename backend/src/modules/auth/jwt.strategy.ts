@@ -7,7 +7,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: 'secret_key',
+      secretOrKey: 'secretKey',
     });
   }
 
@@ -15,6 +15,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return {
       userId: payload.sub,
       role: payload.role,
+      fullName: payload.fullName,
     };
   }
 }

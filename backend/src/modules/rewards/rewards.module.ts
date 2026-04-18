@@ -5,9 +5,10 @@ import { RewardsService } from './rewards.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Reward } from './entities/reward.entity';
 import { Redemption } from './entities/redemption.entity';
+import { PointsModule } from '../points/points.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Reward, Redemption])],
+  imports: [TypeOrmModule.forFeature([Reward, Redemption]), PointsModule],
   controllers: [RewardsController],
   providers: [RewardsService]
 })

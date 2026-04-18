@@ -16,10 +16,22 @@ import { SubmitFeedbackDto } from './dto/submit-feedback.dto';
 import { ClassificationStatus } from './enums/classification-status.enum';
 import { WasteType } from './enums/waste-type.enum';
 import { BinType } from './enums/bin-type.enum';
+import { PointsService } from '../points/points.service';
+import { PointSourceType } from '../points/enums/point-source-type.enum';
+import { PointTransactionType } from '../points/enums/point-transaction-type.enum';
 
 @Injectable()
 export class AiService {
   private readonly aiServiceUrl: string;
+  private readonly classificationAwardThreshold = 0.5;
+  private readonly classificationPointsByWasteType: Record<WasteType, number> = {
+    [WasteType.PLASTIC]: 20,
+    [WasteType.PAPER]: 15,
+    [WasteType.BATTERY]: 30,
+    [WasteType.GLASS]: 18,
+    [WasteType.METAL]: 25,
+    [WasteType.OTHER]: 12,
+  };
 
   constructor(
     @InjectRepository(TrashClassification)
@@ -27,6 +39,7 @@ export class AiService {
     @InjectRepository(AiFeedback)
     private readonly feedbackRepo: Repository<AiFeedback>,
     private readonly configService: ConfigService,
+    private readonly pointsService: PointsService,
   ) {
     this.aiServiceUrl =
       this.configService.get<string>('AI_SERVICE_URL') ||
@@ -121,6 +134,35 @@ export class AiService {
     });
 
     const saved = await this.classificationRepo.save(classification);
+    const pointsEarned = this.calculateClassificationPoints(
+      saved.predictedWasteType ?? null,
+      Number(saved.confidence),
+    );
+    let balanceAfter = await this.pointsService.getBalanceByUserId(userId);
+    let awarded = false;
+
+    if (pointsEarned > 0) {
+      const alreadyAwarded = await this.pointsService.hasTransactionForSource(
+        userId,
+        PointSourceType.TRASH_CLASSIFICATION,
+        saved.id,
+        PointTransactionType.EARN,
+      );
+
+      if (!alreadyAwarded) {
+        const transaction = await this.pointsService.addPoint(
+          userId,
+          pointsEarned,
+          PointTransactionType.EARN,
+          PointSourceType.TRASH_CLASSIFICATION,
+          saved.id,
+          'CLASSIFICATION_CORRECT',
+          `Awarded for trash classification ${saved.id}`,
+        );
+        balanceAfter = transaction.balanceAfter;
+        awarded = true;
+      }
+    }
 
     return {
       classificationId: saved.id,
@@ -133,6 +175,9 @@ export class AiService {
       instruction: aiResult.instruction,
       modelName: aiResult.modelName,
       modelVersion: aiResult.modelVersion,
+      pointsEarned,
+      awarded,
+      balanceAfter,
     };
   }
 
@@ -189,5 +234,20 @@ export class AiService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  private calculateClassificationPoints(
+    wasteType?: WasteType | null,
+    confidence?: number,
+  ): number {
+    if (!wasteType) {
+      return 0;
+    }
+
+    if ((confidence ?? 0) < this.classificationAwardThreshold) {
+      return 0;
+    }
+
+    return this.classificationPointsByWasteType[wasteType] ?? 0;
   }
 }

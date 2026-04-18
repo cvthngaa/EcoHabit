@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { PointTransaction } from './entities/point-transaction.entity';
 import { PointRule } from './entities/point-rule.entity';
 import { PointTransactionType } from './enums/point-transaction-type.enum';
@@ -16,6 +16,18 @@ export class PointsService {
         private readonly ruleRepo: Repository<PointRule>,
     ) { }
 
+    private getTransactionRepository(manager?: EntityManager) {
+        return manager
+            ? manager.getRepository(PointTransaction)
+            : this.transactionRepo;
+    }
+
+    private getRuleRepository(manager?: EntityManager) {
+        return manager
+            ? manager.getRepository(PointRule)
+            : this.ruleRepo;
+    }
+
     async addPoint(
         userId: string,
         amount: number,
@@ -24,14 +36,16 @@ export class PointsService {
         sourceId?: string,
         reasonCode?: string,
         note?: string,
+        manager?: EntityManager,
     ): Promise<PointTransaction> {
         if (amount === 0) {
             throw new BadRequestException('Amount must not be zero');
         }
 
-        const currentBalance = await this.getBalanceByUserId(userId);
+        const transactionRepo = this.getTransactionRepository(manager);
+        const currentBalance = await this.getBalanceByUserId(userId, manager);
 
-        const transaction = this.transactionRepo.create({
+        const transaction = transactionRepo.create({
             user: { id: userId },
             type,
             points: amount,
@@ -42,11 +56,13 @@ export class PointsService {
             note,
         });
 
-        return this.transactionRepo.save(transaction);
+        return transactionRepo.save(transaction);
     }
 
-    async getBalanceByUserId(userId: string): Promise<number> {
-        const result = await this.transactionRepo
+    async getBalanceByUserId(userId: string, manager?: EntityManager): Promise<number> {
+        const transactionRepo = this.getTransactionRepository(manager);
+
+        const result = await transactionRepo
             .createQueryBuilder('pt')
             .innerJoin('pt.user', 'u')
             .select('SUM(pt.points)', 'total')
@@ -63,12 +79,30 @@ export class PointsService {
         });
     }
 
-    async updatePoint(ruleId: string, data: Partial<PointRule>): Promise<PointRule> {
-        const rule = await this.ruleRepo.findOne({ where: { id: ruleId } });
+    async hasTransactionForSource(
+        userId: string,
+        sourceType: PointSourceType,
+        sourceId: string,
+        type?: PointTransactionType,
+        manager?: EntityManager,
+    ): Promise<boolean> {
+        return this.getTransactionRepository(manager).exists({
+            where: {
+                user: { id: userId },
+                sourceType,
+                sourceId,
+                ...(type ? { type } : {}),
+            },
+        });
+    }
+
+    async updatePoint(ruleId: string, data: Partial<PointRule>, manager?: EntityManager): Promise<PointRule> {
+        const ruleRepo = this.getRuleRepository(manager);
+        const rule = await ruleRepo.findOne({ where: { id: ruleId } });
         if (!rule) throw new NotFoundException(`Rule ${ruleId} not found`);
 
         Object.assign(rule, data);
-        return this.ruleRepo.save(rule);
+        return ruleRepo.save(rule);
     }
 
     async deductPoints(
@@ -78,8 +112,9 @@ export class PointsService {
         sourceId?: string,
         reasonCode?: string,
         note?: string,
+        manager?: EntityManager,
     ): Promise<PointTransaction> {
-        const currentBalance = await this.getBalanceByUserId(userId);
+        const currentBalance = await this.getBalanceByUserId(userId, manager);
 
         if (currentBalance < amount) {
             throw new BadRequestException('Not enough points');
@@ -93,6 +128,7 @@ export class PointsService {
             sourceId,
             reasonCode,
             note,
+            manager,
         );
     }
 
