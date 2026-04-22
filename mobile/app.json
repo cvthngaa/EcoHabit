@@ -32,7 +32,19 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow EcoHabit to access your location to show nearby collection points."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow EcoHabit to use your camera to scan QR codes."
+        }
+      ]
     ]
   }
 }

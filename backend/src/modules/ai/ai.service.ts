@@ -52,11 +52,7 @@ export class AiService {
     });
   }
 
-  // -------------------------------------------------------------------------
-  // Upload ảnh lên Cloudinary → gọi AI → lưu DB
-  // -------------------------------------------------------------------------
   async classifyImage(file: Express.Multer.File, userId: string) {
-    // 1. Upload ảnh lên Cloudinary
     let imageUrl: string;
     try {
       const uploadResult = await new Promise<{ secure_url: string }>(
@@ -72,13 +68,12 @@ export class AiService {
         },
       );
       imageUrl = uploadResult.secure_url;
-    } catch (err) {
+    } catch {
       throw new InternalServerErrorException(
-        'Không thể upload ảnh lên Cloudinary',
+        'Khong the upload anh len Cloudinary',
       );
     }
 
-    // 2. Gọi AI Service
     let aiResult: {
       label: string;
       displayLabel: string;
@@ -91,35 +86,31 @@ export class AiService {
     };
 
     try {
-      // Ưu tiên gửi URL để AI service download & classify
       const response = await axios.post(
         `${this.aiServiceUrl}/predict-url`,
         { imageUrl },
         { timeout: 15000 },
       );
       aiResult = response.data;
-    } catch (err) {
-      // Fallback: gửi file buffer dưới dạng multipart
+    } catch {
       try {
         const form = new FormData();
         form.append('file', file.buffer, {
           filename: file.originalname,
           contentType: file.mimetype,
         });
-        const response = await axios.post(
-          `${this.aiServiceUrl}/predict`,
-          form,
-          { headers: form.getHeaders(), timeout: 15000 },
-        );
+        const response = await axios.post(`${this.aiServiceUrl}/predict`, form, {
+          headers: form.getHeaders(),
+          timeout: 15000,
+        });
         aiResult = response.data;
-      } catch (fallbackErr) {
+      } catch {
         throw new InternalServerErrorException(
-          'Không thể kết nối đến AI Service',
+          'Khong the ket noi den AI Service',
         );
       }
     }
 
-    // 3. Lưu kết quả vào DB
     const classification = this.classificationRepo.create({
       user: { id: userId } as any,
       imageUrl,
@@ -181,9 +172,6 @@ export class AiService {
     };
   }
 
-  // -------------------------------------------------------------------------
-  // Lưu feedback của user
-  // -------------------------------------------------------------------------
   async submitFeedback(
     classificationId: string,
     userId: string,
@@ -193,7 +181,7 @@ export class AiService {
       where: { id: classificationId },
     });
     if (!classification) {
-      throw new NotFoundException('Không tìm thấy kết quả phân loại');
+      throw new NotFoundException('Khong tim thay ket qua phan loai');
     }
 
     const feedback = this.feedbackRepo.create({
@@ -208,17 +196,13 @@ export class AiService {
 
     await this.feedbackRepo.save(feedback);
 
-    // Cập nhật trạng thái thành REVIEWED
     await this.classificationRepo.update(classificationId, {
       status: ClassificationStatus.REVIEWED,
     });
 
-    return { message: 'Cảm ơn bạn đã phản hồi!' };
+    return { message: 'Cam on ban da phan hoi!' };
   }
 
-  // -------------------------------------------------------------------------
-  // Lịch sử phân loại của user
-  // -------------------------------------------------------------------------
   async getHistory(userId: string, limit = 20, page = 1) {
     const [data, total] = await this.classificationRepo.findAndCount({
       where: { user: { id: userId } },

@@ -5,35 +5,42 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import HomeScreen    from '../screens/HomeScreen';
-import ScanScreen    from '../screens/ScanScreen';
-import MapScreen     from '../screens/MapScreen';
-import RewardsScreen from '../screens/RewardsScreen';
-import WalletScreen  from '../screens/WalletScreen';
-import Colors        from '../theme/colors';
+import HomeScreen from '../screens/home/HomeScreen';
+import ScanScreen from '../screens/scan/ScanScreen';
+import MapScreen from '../screens/map/MapScreen';
+import RewardsScreen from '../screens/rewards/RewardsScreen';
+import ProfileScreen from '../screens/profile/ProfileScreen';
+import Colors from '../theme/colors';
 
 export type MainTabParamList = {
-  Home:    undefined;
-  Map:     undefined;
-  Scan:    undefined;
+  Home: undefined;
+  Scan: undefined;
+  Map: undefined;
   Rewards: undefined;
-  Wallet:  undefined;
+  Profile: undefined;
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const TAB_CONFIG = [
-  { name: 'Home' as const,    label: 'Trang chủ', icon: 'home',    iconO: 'home-outline' },
-  { name: 'Map' as const,     label: 'Bản đồ',    icon: 'map',     iconO: 'map-outline' },
-  { name: 'Scan' as const,    label: 'Quét',       icon: 'scan',    iconO: 'scan-outline' },
-  { name: 'Rewards' as const, label: 'Thưởng',    icon: 'gift',    iconO: 'gift-outline' },
-  { name: 'Wallet' as const,  label: 'Ví điểm',   icon: 'wallet',  iconO: 'wallet-outline' },
+  { name: 'Home' as const, label: 'Trang chủ', icon: 'home', iconO: 'home-outline' },
+  { name: 'Map' as const, label: 'Bản đồ', icon: 'map', iconO: 'map-outline' },
+  { name: 'Scan' as const, label: 'Quét', icon: 'scan', iconO: 'scan-outline' },
+  { name: 'Rewards' as const, label: 'Đổi quà', icon: 'gift', iconO: 'gift-outline' },
+  { name: 'Profile' as const, label: 'Cá nhân', icon: 'person', iconO: 'person-outline' },
 ];
 
 // ── Custom tab bar ────────────────────────────────────────────────────────────
 
 function CustomTabBar({ state, descriptors, navigation }: any) {
   const insets = useSafeAreaInsets();
+  const focusedRoute = state.routes[state.index];
+  const focusedOptions = descriptors[focusedRoute.key]?.options;
+  const tabBarStyle = focusedOptions?.tabBarStyle;
+
+  if (tabBarStyle?.display === 'none') {
+    return null;
+  }
 
   return (
     <View style={[styles.tabBar, { paddingBottom: insets.bottom + 6 }]}>
@@ -93,11 +100,11 @@ const MainNavigator: React.FC = () => (
     tabBar={props => <CustomTabBar {...props} />}
     screenOptions={{ headerShown: false }}
   >
-    <Tab.Screen name="Home"    component={HomeScreen} />
-    <Tab.Screen name="Map"     component={MapScreen} />
-    <Tab.Screen name="Scan"    component={ScanScreen} />
+    <Tab.Screen name="Home" component={HomeScreen} />
+    <Tab.Screen name="Map" component={MapScreen} />
+    <Tab.Screen name="Scan" component={ScanScreen} />
     <Tab.Screen name="Rewards" component={RewardsScreen} />
-    <Tab.Screen name="Wallet"  component={WalletScreen} />
+    <Tab.Screen name="Profile" component={ProfileScreen} />
   </Tab.Navigator>
 );
 
@@ -138,7 +145,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     marginTop: 3,
   },
-  tabDotActive:   { backgroundColor: Colors.primaryLight },
+  tabDotActive: { backgroundColor: Colors.primaryLight },
   tabDotInactive: { backgroundColor: 'transparent' },
 
   // Scan (center)
@@ -165,3 +172,4 @@ const styles = StyleSheet.create({
 });
 
 export default MainNavigator;
+

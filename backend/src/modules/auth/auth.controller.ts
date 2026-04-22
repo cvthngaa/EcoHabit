@@ -5,12 +5,28 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { UserRole } from '../users/enums/user-role.enum';
 import { LoginDto } from './dto/login.dto';
-import { ApiBody } from '@nestjs/swagger';
+import { ApiBody, ApiOperation } from '@nestjs/swagger';
 import { RegisterDto } from './dto/register.dto';
+import { SendOtpDto } from './dto/send-otp.dto';
+import { VerifyOtpDto } from './dto/verify-otp.dto';
 
 @Controller('auth')
 export class AuthController {
     constructor(private authService: AuthService) { }
+
+    @Post('send-otp')
+    @ApiOperation({ summary: 'Gửi mã OTP để đăng ký' })
+    @ApiBody({ type: SendOtpDto })
+    sendOtp(@Body() body: SendOtpDto) {
+        return this.authService.sendOtp(body.email);
+    }
+
+    @Post('verify-otp')
+    @ApiOperation({ summary: 'Xác nhận mã OTP' })
+    @ApiBody({ type: VerifyOtpDto })
+    verifyOtp(@Body() body: VerifyOtpDto) {
+        return this.authService.verifyOtp(body.email, body.otp);
+    }
 
     @Post('register')
     @ApiBody({ type: RegisterDto })
@@ -26,8 +42,9 @@ export class AuthController {
 
     @UseGuards(AuthGuard('jwt'))
     @Get('me')
-    me(@Request() req) {
-        return req.user;
+    async me(@Request() req) {
+        // req.user.userId is populated by JwtStrategy
+        return this.authService.getProfile(req.user.userId);
     }
 
     @UseGuards(AuthGuard('jwt'), RolesGuard)

@@ -1,4 +1,8 @@
-import { mockUser, mockTransactions, WalletTransaction } from './mockData';
+import {
+  mockUser,
+  mockTransactions,
+  WalletTransaction,
+} from './mockData';
 
 // ── Wallet State ──────────────────────────────────────────────────────────────
 

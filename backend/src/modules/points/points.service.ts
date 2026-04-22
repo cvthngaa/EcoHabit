@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { PointTransaction } from './entities/point-transaction.entity';
@@ -45,18 +46,23 @@ export class PointsService {
         const transactionRepo = this.getTransactionRepository(manager);
         const currentBalance = await this.getBalanceByUserId(userId, manager);
 
-        const transaction = transactionRepo.create({
-            user: { id: userId },
-            type,
-            points: amount,
-            balanceAfter: currentBalance + amount,
-            sourceType,
-            sourceId,
-            reasonCode,
-            note,
-        });
+        const balanceAfter = currentBalance + amount;
 
-        return transactionRepo.save(transaction);
+        // Dùng raw query để bypass TypeORM tự động chèn các cột không tồn tại (reason_code, note)
+        const id = randomUUID();
+        const res = await transactionRepo.query(
+            `INSERT INTO point_transactions (id, user_id, type, points, balance_after, source_type, source_id)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [id, userId, type, amount, balanceAfter, sourceType, sourceId]
+        );
+
+        // Update the points_balance directly on the users table
+        await transactionRepo.query(
+            `UPDATE users SET points_balance = points_balance + $1 WHERE id = $2`,
+            [amount, userId]
+        );
+
+        return res[0] as PointTransaction;
     }
 
     async getBalanceByUserId(userId: string, manager?: EntityManager): Promise<number> {
@@ -72,11 +78,47 @@ export class PointsService {
         return parseInt(result?.total ?? '0', 10);
     }
 
-    async getPoint(userId: string): Promise<PointTransaction[]> {
-        return this.transactionRepo.find({
-            where: { user: { id: userId } },
-            order: { createdAt: 'DESC' },
-        });
+    async getPoint(userId: string): Promise<any[]> {
+        const transactions = await this.transactionRepo.createQueryBuilder('pt')
+            .select([
+                'pt.id',
+                'pt.type',
+                'pt.points',
+                'pt.balanceAfter',
+                'pt.sourceType',
+                'pt.sourceId',
+                'pt.createdAt'
+            ])
+            .innerJoin('pt.user', 'user')
+            .where('user.id = :userId', { userId })
+            .orderBy('pt.createdAt', 'DESC')
+            .getMany();
+
+        const result: any[] = [];
+        for (const tx of transactions) {
+            let title = '';
+            if (tx.sourceType === PointSourceType.TRASH_CLASSIFICATION && tx.sourceId) {
+                const res = await this.transactionRepo.manager.query(
+                    `SELECT predicted_label FROM trash_classifications WHERE id = $1`,
+                    [tx.sourceId]
+                );
+                if (res && res.length > 0) {
+                    title = res[0].predicted_label;
+                }
+            } else if (tx.sourceType === PointSourceType.REDEMPTION) {
+                title = 'Đổi quà';
+            } else if (tx.sourceType === PointSourceType.DROPOFF_TRANSACTION) {
+                title = 'Điểm thu gom';
+            } else if (tx.sourceType === PointSourceType.ADMIN) {
+                title = 'Hệ thống thưởng';
+            }
+
+            result.push({
+                ...tx,
+                title: title || 'Hoạt động',
+            });
+        }
+        return result;
     }
 
     async hasTransactionForSource(

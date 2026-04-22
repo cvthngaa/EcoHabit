@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards, Request, Query } from '@nestjs/common';
 import { LocationsService } from './locations.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -14,6 +14,11 @@ export class CollectionPointsController {
   @Get()
   async getAllCollectionPoints() {
     return this.locationsService.getAllCollectionPoints();
+  }
+
+  @Get('address-suggestions')
+  async getAddressSuggestions(@Query('q') query: string) {
+    return this.locationsService.getAddressSuggestions(query);
   }
 
   @Get(':id')

@@ -6,9 +6,17 @@ import urllib.request
 import json
 import io
 import sys
+import os
+import tempfile
+import threading
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+from contextlib import contextmanager
 
 AI_URL = "http://localhost:8000"
 BACKEND_URL = "http://localhost:3000"
+
+VALID_WASTE_TYPES = {"PLASTIC", "PAPER", "BATTERY", "GLASS", "METAL", "OTHER"}
+VALID_BIN_TYPES = {"BIN", "CENTER", "COLLECTION_POINT"}
 
 DIVIDER = "=" * 55
 
@@ -17,6 +25,50 @@ def print_result(label, data, ok=True):
     icon = "✅" if ok else "❌"
     print(f"\n{icon} {label}")
     print(json.dumps(data, ensure_ascii=False, indent=2))
+
+
+def assert_backend_enum_compatible(data: dict):
+    waste_type = data.get("wasteType")
+    suggested_bin = data.get("suggestedBin")
+
+    if waste_type not in VALID_WASTE_TYPES:
+        raise AssertionError(
+            f"wasteType không hợp lệ: {waste_type}. Expected one of {sorted(VALID_WASTE_TYPES)}"
+        )
+
+    if suggested_bin not in VALID_BIN_TYPES:
+        raise AssertionError(
+            f"suggestedBin không hợp lệ: {suggested_bin}. Expected one of {sorted(VALID_BIN_TYPES)}"
+        )
+
+
+@contextmanager
+def temporary_image_url():
+    """Tạo URL local tạm thời cho ảnh để test /predict-url không cần internet."""
+    from PIL import Image
+
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        image_path = os.path.join(tmp_dir, "test.jpg")
+        img = Image.new("RGB", (320, 320), color=(40, 140, 210))
+        img.save(image_path, format="JPEG")
+
+        class QuietHandler(SimpleHTTPRequestHandler):
+            def log_message(self, format, *args):
+                return
+
+        old_cwd = os.getcwd()
+        os.chdir(tmp_dir)
+        server = ThreadingHTTPServer(("127.0.0.1", 0), QuietHandler)
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        try:
+            host, port = server.server_address
+            yield f"http://{host}:{port}/test.jpg"
+        finally:
+            server.shutdown()
+            server.server_close()
+            os.chdir(old_cwd)
 
 
 def test_ai_health():
@@ -57,32 +109,34 @@ def test_ai_predict_file():
     )
     with urllib.request.urlopen(req, timeout=10) as r:
         data = json.loads(r.read())
+    assert_backend_enum_compatible(data)
     print_result("POST /predict", data)
     return data
 
 
 def test_ai_predict_url():
-    """Test /predict-url với Cloudinary URL mẫu (dùng local fallback)"""
+    """Test /predict-url với URL local tạm thời và assert enum backend."""
     print(f"\n{DIVIDER}")
     print("TEST 3: AI /predict-url (JSON body với imageUrl)")
     print(DIVIDER)
 
-    # Tạo data URI thay thế vì Wikipedia bị block
-    # Gửi URL của ảnh local server nếu có, hoặc skip
-    payload = json.dumps({"imageUrl": "http://localhost:8000/static/test.jpg"}).encode()
-    req = urllib.request.Request(
-        f"{AI_URL}/predict-url",
-        data=payload,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
     try:
-        with urllib.request.urlopen(req, timeout=10) as r:
-            data = json.loads(r.read())
+        with temporary_image_url() as img_url:
+            payload = json.dumps({"imageUrl": img_url}).encode()
+            req = urllib.request.Request(
+                f"{AI_URL}/predict-url",
+                data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with urllib.request.urlopen(req, timeout=10) as r:
+                data = json.loads(r.read())
+        assert_backend_enum_compatible(data)
         print_result("POST /predict-url", data)
+        return data
     except Exception as e:
-        print(f"⚠️  /predict-url cần URL công khai (bị chặn trong test local): {e}")
-        print("   → Trong production, Cloudinary URL sẽ hoạt động bình thường")
+        print(f"❌ Lỗi /predict-url: {e}")
+        raise
 
 
 def test_ai_predict_cardboard():
@@ -112,6 +166,7 @@ def test_ai_predict_cardboard():
     )
     with urllib.request.urlopen(req, timeout=10) as r:
         data = json.loads(r.read())
+    assert_backend_enum_compatible(data)
     print_result("POST /predict (cardboard)", data)
 
 
@@ -142,6 +197,7 @@ def test_ai_predict_metal():
     )
     with urllib.request.urlopen(req, timeout=10) as r:
         data = json.loads(r.read())
+    assert_backend_enum_compatible(data)
     print_result("POST /predict (metal)", data)
 
 

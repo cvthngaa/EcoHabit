@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Colors from '../theme/colors';
-import { getConfidenceLevel, getConfidenceLabel } from '../services/aiService';
 
 interface Props {
   confidence: number; // 0.0 – 1.0
@@ -10,6 +9,24 @@ interface Props {
 }
 
 const ConfidenceBadge: React.FC<Props> = ({ confidence, size = 'md' }) => {
+  const getConfidenceLevel = (value: number) => {
+    if (value >= 0.8) return 'high' as const;
+    if (value >= 0.5) return 'medium' as const;
+    return 'low' as const;
+  };
+
+  const getConfidenceLabel = (value: number) => {
+    const level = getConfidenceLevel(value);
+    switch (level) {
+      case 'high':
+        return 'Tin cậy cao';
+      case 'medium':
+        return 'Tin cậy trung bình';
+      default:
+        return 'Tin cậy thấp';
+    }
+  };
+
   const level = getConfidenceLevel(confidence);
   const label = getConfidenceLabel(confidence);
   const percent = Math.round(confidence * 100);

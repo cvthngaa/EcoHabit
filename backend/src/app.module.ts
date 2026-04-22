@@ -12,6 +12,7 @@ import { PointsModule } from './modules/points/points.module';
 import { RewardsModule } from './modules/rewards/rewards.module';
 import { LocationsModule } from './modules/locations/locations.module';
 import { ForumModule } from './modules/forum/forum.module';
+import { QuizModule } from './modules/quiz/quiz.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ForumModule } from './modules/forum/forum.module';
     RewardsModule,
     LocationsModule,
     ForumModule,
+    QuizModule,
   ],
   controllers: [AppController],
   providers: [AppService],

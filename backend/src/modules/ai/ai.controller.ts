@@ -1,27 +1,27 @@
 import {
+  Body,
   Controller,
-  Post,
+  DefaultValuePipe,
   Get,
   Param,
-  Body,
+  ParseIntPipe,
+  Post,
+  Query,
+  Request,
+  UploadedFile,
   UseGuards,
   UseInterceptors,
-  UploadedFile,
-  Request,
-  Query,
-  ParseIntPipe,
-  DefaultValuePipe,
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import {
-  ApiTags,
   ApiBearerAuth,
-  ApiConsumes,
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiQuery,
+  ApiTags,
 } from '@nestjs/swagger';
 import { AiService } from './ai.service';
 import { SubmitFeedbackDto } from './dto/submit-feedback.dto';
@@ -33,16 +33,13 @@ import { SubmitFeedbackDto } from './dto/submit-feedback.dto';
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 
-  // ---------------------------------------------------------------------------
-  // POST /ai/classify — upload ảnh rác để AI nhận diện
-  // ---------------------------------------------------------------------------
   @Post('classify')
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+      limits: { fileSize: 10 * 1024 * 1024 },
       fileFilter: (_, file, cb) => {
         if (!file.mimetype.startsWith('image/')) {
-          return cb(new BadRequestException('Chỉ chấp nhận file ảnh'), false);
+          return cb(new BadRequestException('Chi chap nhan file anh'), false);
         }
         cb(null, true);
       },
@@ -54,26 +51,27 @@ export class AiController {
       type: 'object',
       required: ['file'],
       properties: {
-        file: { type: 'string', format: 'binary', description: 'Ảnh rác cần phân loại' },
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Anh rac can phan loai',
+        },
       },
     },
   })
-  @ApiOperation({ summary: 'Phân loại rác từ ảnh' })
+  @ApiOperation({ summary: 'Phan loai rac tu anh' })
   async classify(
     @UploadedFile() file: Express.Multer.File,
     @Request() req: any,
   ) {
     if (!file) {
-      throw new BadRequestException('Vui lòng upload một file ảnh');
+      throw new BadRequestException('Vui long upload mot file anh');
     }
     return this.aiService.classifyImage(file, req.user.userId);
   }
 
-  // ---------------------------------------------------------------------------
-  // POST /ai/feedback/:classificationId — gửi feedback về kết quả AI
-  // ---------------------------------------------------------------------------
   @Post('feedback/:classificationId')
-  @ApiOperation({ summary: 'Gửi phản hồi về kết quả phân loại' })
+  @ApiOperation({ summary: 'Gui phan hoi ve ket qua phan loai' })
   async submitFeedback(
     @Param('classificationId') classificationId: string,
     @Body() dto: SubmitFeedbackDto,
@@ -82,11 +80,8 @@ export class AiController {
     return this.aiService.submitFeedback(classificationId, req.user.userId, dto);
   }
 
-  // ---------------------------------------------------------------------------
-  // GET /ai/history — lịch sử phân loại của user
-  // ---------------------------------------------------------------------------
   @Get('history')
-  @ApiOperation({ summary: 'Lịch sử phân loại rác của user' })
+  @ApiOperation({ summary: 'Lich su phan loai rac cua user' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getHistory(

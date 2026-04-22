@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reorganize Codebase"
+  short_description: "Analyze repos and plan file reorganization"
+  default_prompt: "Use $reorganize-codebase to audit this repo, map data flow, and propose a target structure."

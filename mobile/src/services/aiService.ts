@@ -10,6 +10,8 @@ export interface AIClassificationResult {
   confidence: number; // 0.0 – 1.0
   disposalTip: string;
   pointsEarned: number;
+  classificationId?: string;
+  awarded?: boolean;
 }
 
 interface BackendClassificationResponse {
@@ -23,6 +25,9 @@ interface BackendClassificationResponse {
   instruction: string;
   modelName?: string;
   modelVersion?: string;
+  pointsEarned?: number;
+  awarded?: boolean;
+  balanceAfter?: number;
 }
 
 const wasteTypeToCategory: Record<BackendClassificationResponse['wasteType'], WasteCategory> = {
@@ -66,8 +71,9 @@ export async function classifyWaste(imageUri: string): Promise<AIClassificationR
   });
 
   console.log('classify response:', response.data);
-
   const data = response.data;
+  console.log(`[AI Service] Points Earned: ${data.pointsEarned}, Awarded: ${data.awarded}, Balance After: ${data.balanceAfter}`);
+
   const category = wasteTypeToCategory[data.wasteType] ?? wasteCategories[6];
   const confidence = Number.isFinite(data.confidence) ? Number(data.confidence) : 0;
 
@@ -77,7 +83,9 @@ export async function classifyWaste(imageUri: string): Promise<AIClassificationR
     category,
     confidence,
     disposalTip: data.instruction || category.disposalTip,
-    pointsEarned: confidence >= 0.5 ? category.points : 0,
+    pointsEarned: data.pointsEarned || 0,
+    classificationId: data.classificationId,
+    awarded: data.awarded || false,
   };
 }
 

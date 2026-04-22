@@ -1,0 +1,8 @@
+# AI service
+/ai-service/venv/
+/ai-service/__pycache__/
+/ai-service/dataset/
+/ai-service/*.pyc
+/ai-service/*.pt
+/ai-service/.env
+/ai-service/.env.*

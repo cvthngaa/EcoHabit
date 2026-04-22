@@ -1,6 +1,7 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import axios from 'axios';
 import { Location } from './entities/location.entity';
 import { DropoffTransaction } from './entities/dropoff-transaction.entity';
 import { CreateCollectionPointDto } from './dto/create-collection-point.dto';
@@ -9,6 +10,30 @@ import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { UserRole } from '../users/enums/user-role.enum';
 import { LocationStatus } from './enums/location-status.enum';
 import { DropoffStatus } from './enums/dropoff-status.enum';
+
+type NominatimSuggestion = {
+  id: string;
+  title: string;
+  subtitle: string;
+  latitude: number;
+  longitude: number;
+};
+
+type NominatimItem = {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+  name?: string;
+  address?: {
+    road?: string;
+    suburb?: string;
+    city?: string;
+    town?: string;
+    state?: string;
+    country?: string;
+  };
+};
 
 @Injectable()
 export class LocationsService {
@@ -19,11 +44,87 @@ export class LocationsService {
     private readonly dropoffRepo: Repository<DropoffTransaction>,
   ) {}
 
+  private toSuggestionSubtitle(address?: NominatimItem['address']) {
+    if (!address) {
+      return '';
+    }
+
+    return [
+      address.road,
+      address.suburb,
+      address.city || address.town,
+      address.state,
+      address.country,
+    ]
+      .filter(Boolean)
+      .join(', ');
+  }
+
   async getAllCollectionPoints() {
     return this.locationRepo.find({
       where: { status: LocationStatus.APPROVED },
-      relations: ['createdBy'],
+      select: {
+        id: true,
+        name: true,
+        type: true,
+        address: true,
+        latitude: true,
+        longitude: true,
+        status: true,
+      },
+      order: {
+        createdAt: 'DESC',
+      },
     });
+  }
+
+  async getAddressSuggestions(query: string): Promise<NominatimSuggestion[]> {
+    const trimmed = query?.trim();
+
+    if (!trimmed || trimmed.length < 3) {
+      return [];
+    }
+
+    const response = await axios.get<NominatimItem[]>(
+      'https://nominatim.openstreetmap.org/search',
+      {
+        params: {
+          q: trimmed,
+          format: 'jsonv2',
+          addressdetails: 1,
+          limit: 5,
+          countrycodes: 'vn',
+        },
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'EcoHabit/1.0 (address autocomplete)',
+        },
+        timeout: 10000,
+      },
+    );
+
+    if (!Array.isArray(response.data)) {
+      throw new BadRequestException('Invalid address suggestion response');
+    }
+
+    return response.data
+      .map((item) => {
+        const latitude = Number(item.lat);
+        const longitude = Number(item.lon);
+
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+          return null;
+        }
+
+        return {
+          id: String(item.place_id),
+          title: item.name?.trim() || item.display_name.split(',')[0]?.trim() || 'Dia diem',
+          subtitle: this.toSuggestionSubtitle(item.address) || item.display_name,
+          latitude,
+          longitude,
+        };
+      })
+      .filter((item): item is NominatimSuggestion => item !== null);
   }
 
   async getCollectionPoint(id: string) {
