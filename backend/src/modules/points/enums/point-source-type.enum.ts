@@ -3,4 +3,5 @@ export enum PointSourceType {
   DROPOFF_TRANSACTION = 'DROPOFF_TRANSACTION',
   REDEMPTION = 'REDEMPTION',
   ADMIN = 'ADMIN',
+  QUIZ = 'QUIZ',
 }

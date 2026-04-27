@@ -1,12 +1,6 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-} from 'typeorm';
-import { BaseEntity } from 'src/common/database/base.entity';
-import { User } from 'src/modules/users/entities/user.entity';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
+import { BaseEntity } from '../../../common/database/base.entity';
+import { User } from '../../users/entities/user.entity';
 import { ForumPost } from './forum-post.entity';
 import { CommentStatus } from '../enums/comment-status.enum';
 import { ForumReport } from './forum-report.entity';

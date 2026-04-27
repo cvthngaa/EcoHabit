@@ -1,38 +1,30 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { TouchableOpacity, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Colors, Shadows } from '../../theme';
 
 interface Props {
   onPress: () => void;
   color?: string;
   style?: ViewStyle;
+  className?: string;
 }
 
-const BackButton: React.FC<Props> = ({ onPress, color = '#2E5D3A', style }) => (
+const BackButton: React.FC<Props> = ({ onPress, color = Colors.primary, style, className = '' }) => (
   <TouchableOpacity
-    style={[styles.btn, style]}
+    className={`h-12 w-12 items-center justify-center rounded-lg bg-base-canvas/90 ${className}`}
+    style={[
+      {
+        ...Shadows.sm,
+      },
+      style,
+    ]}
     onPress={onPress}
-    activeOpacity={0.7}
+    activeOpacity={0.72}
     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
   >
     <Ionicons name="chevron-back" size={22} color={color} />
   </TouchableOpacity>
 );
-
-const styles = StyleSheet.create({
-  btn: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.85)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-});
 
 export default BackButton;

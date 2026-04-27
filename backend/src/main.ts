@@ -34,7 +34,9 @@ async function bootstrap() {
   // Swagger
   const config = new DocumentBuilder()
     .setTitle('EcoHabit API')
-    .setDescription('API cho hệ thống AI phân loại rác và khuyến khích bảo vệ môi trường')
+    .setDescription(
+      'API cho hệ thống AI phân loại rác và khuyến khích bảo vệ môi trường',
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();

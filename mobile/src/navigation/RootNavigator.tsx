@@ -6,7 +6,11 @@ import MainNavigator from './MainNavigator';
 import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
-import QuizScreen from '../screens/quiz/QuizScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
+import QuizIntroScreen from '../screens/quiz/QuizIntroScreen';
+import QuizPlayScreen from '../screens/quiz/QuizPlayScreen';
+import QuizResultScreen from '../screens/quiz/QuizResultScreen';
 import QRScannerScreen from '../screens/scan/QRScannerScreen';
 import ScanAnalysisScreen from '../screens/scan/ScanAnalysisScreen';
 import RewardDetailScreen from '../screens/rewards/RewardDetailScreen';
@@ -29,20 +33,31 @@ import { useAuth } from '../context/AuthContext';
 const Stack = createStackNavigator();
 
 const screenTransition = {
-  cardStyleInterpolator: ({ current, layouts }: any) => ({
-    cardStyle: {
-      transform: [{
-        translateX: current.progress.interpolate({
+  cardStyleInterpolator: ({ current, next, layouts }: any) => {
+    const screenWidth = layouts.screen.width;
+    const pushTranslateX = current.progress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [screenWidth, 0],
+    });
+    const backRevealTranslateX = next
+      ? next.progress.interpolate({
           inputRange: [0, 1],
-          outputRange: [layouts.screen.width, 0],
+          outputRange: [0, -screenWidth * 0.28],
+        })
+      : 0;
+
+    return {
+      cardStyle: {
+        transform: [{
+          translateX: next ? backRevealTranslateX : pushTranslateX,
+        }],
+        opacity: current.progress.interpolate({
+          inputRange: [0, 0.5, 1],
+          outputRange: [0, 0.85, 1],
         }),
-      }],
-      opacity: current.progress.interpolate({
-        inputRange: [0, 0.5, 1],
-        outputRange: [0, 0.85, 1],
-      }),
-    },
-  }),
+      },
+    };
+  },
   transitionSpec: {
     open: { animation: 'spring' as const, config: { stiffness: 280, damping: 28, mass: 1, overshootClamping: false, restDisplacementThreshold: 0.01, restSpeedThreshold: 0.01 } },
     close: { animation: 'spring' as const, config: { stiffness: 280, damping: 28, mass: 1, overshootClamping: false, restDisplacementThreshold: 0.01, restSpeedThreshold: 0.01 } },
@@ -75,7 +90,9 @@ const RootNavigator: React.FC = () => {
           }}
         >
           <Stack.Screen name="MainTabs" component={MainNavigator} />
-          <Stack.Screen name="Quiz" component={QuizScreen} />
+          <Stack.Screen name="QuizIntro" component={QuizIntroScreen} />
+          <Stack.Screen name="QuizPlay" component={QuizPlayScreen} />
+          <Stack.Screen name="QuizResult" component={QuizResultScreen} />
           <Stack.Screen name="QRScanner" component={QRScannerScreen} />
           <Stack.Screen name="ScanAnalysis" component={ScanAnalysisScreen} />
           <Stack.Screen name="RewardDetail" component={RewardDetailScreen} />
@@ -114,13 +131,34 @@ const RootNavigator: React.FC = () => {
               <LoginScreen
                 onLogin={() => login()}
                 onGoRegister={() => navigation.navigate('Register' as never)}
+                onGoForgotPassword={() => navigation.navigate('ForgotPassword' as never)}
                 onGoBack={() => navigation.goBack()}
               />
             )}
           </Stack.Screen>
           <Stack.Screen name="Register">
             {({ navigation }) => (
-              <RegisterScreen onGoLogin={() => navigation.navigate('Login' as never)} />
+              <RegisterScreen
+                onGoLogin={() => navigation.navigate('Login' as never)}
+                onGoBack={() => navigation.goBack()}
+              />
+            )}
+          </Stack.Screen>
+          <Stack.Screen name="ForgotPassword">
+            {({ navigation }) => (
+              <ForgotPasswordScreen
+                onGoBack={() => navigation.goBack()}
+                onVerified={(email) => navigation.navigate('ResetPassword' as never, { email } as never)}
+              />
+            )}
+          </Stack.Screen>
+          <Stack.Screen name="ResetPassword">
+            {({ navigation, route }: any) => (
+              <ResetPasswordScreen
+                email={route.params?.email}
+                onGoBack={() => navigation.goBack()}
+                onSuccess={() => navigation.navigate('Login' as never)}
+              />
             )}
           </Stack.Screen>
         </Stack.Navigator>

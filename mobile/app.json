@@ -28,6 +28,9 @@
       "android",
       "web"
     ],
+    "extra": {
+      "googleRoutesApiKey": ""
+    },
     "web": {
       "favicon": "./assets/favicon.png"
     },

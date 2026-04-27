@@ -41,9 +41,9 @@ describe('AiService', () => {
   });
 
   it('awards points only when confidence reaches threshold', () => {
-    expect(service['calculateClassificationPoints'](WasteType.PLASTIC, 0.5)).toBe(
-      20,
-    );
+    expect(
+      service['calculateClassificationPoints'](WasteType.PLASTIC, 0.5),
+    ).toBe(20);
     expect(
       service['calculateClassificationPoints'](WasteType.PLASTIC, 0.49),
     ).toBe(0);

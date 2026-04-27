@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Colors from '../../theme/colors';
+import { Colors, FontFamily, Shadows, Tokens } from '../../theme';
 
 interface Props {
   onFacebook?: () => void;
@@ -14,80 +14,78 @@ const SocialLoginRow: React.FC<Props> = ({
   onGoogle,
   onApple,
 }) => (
-  <View style={styles.container}>
+  <View style={{ marginTop: Tokens.space[2] }}>
     {/* Divider */}
-    <View style={styles.dividerRow}>
-      <View style={styles.dividerLine} />
-      <Text style={styles.dividerText}>Hoặc tiếp tục với</Text>
-      <View style={styles.dividerLine} />
+    <View
+      className="flex-row items-center"
+      style={{ marginBottom: Tokens.space[5] }}
+    >
+      <View className="flex-1" style={{ height: 1, backgroundColor: Colors.border }} />
+      <Text
+        style={{
+          marginHorizontal: Tokens.space[3],
+          fontFamily: FontFamily.medium,
+          fontSize: 13,
+          fontWeight: '500',
+          color: Colors.textMuted,
+        }}
+      >
+        Hoặc tiếp tục với
+      </Text>
+      <View className="flex-1" style={{ height: 1, backgroundColor: Colors.border }} />
     </View>
 
     {/* Social icons */}
-    <View style={styles.iconsRow}>
+    <View
+      className="flex-row justify-center"
+      style={{ gap: Tokens.space[5] }}
+    >
       <TouchableOpacity
-        style={[styles.iconBtn, { backgroundColor: '#E8F0FE' }]}
+        className="items-center justify-center rounded-lg"
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: Tokens.radius.lg,
+          backgroundColor: '#EAF2FF',
+          ...Shadows.sm,
+        }}
         onPress={onFacebook}
-        activeOpacity={0.7}
+        activeOpacity={0.72}
       >
-        <Ionicons name="logo-facebook" size={24} color="#1877F2" />
+        <Ionicons name="logo-facebook" size={24} color={Colors.facebook} />
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.iconBtn, { backgroundColor: '#FEF0E8' }]}
+        className="items-center justify-center rounded-lg"
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: Tokens.radius.lg,
+          backgroundColor: '#FDECEC',
+          ...Shadows.sm,
+        }}
         onPress={onGoogle}
-        activeOpacity={0.7}
+        activeOpacity={0.72}
       >
-        <Ionicons name="logo-google" size={24} color="#DB4437" />
+        <Ionicons name="logo-google" size={24} color={Colors.google} />
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={[styles.iconBtn, { backgroundColor: '#F0F0F0' }]}
+        className="items-center justify-center rounded-lg"
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: Tokens.radius.lg,
+          backgroundColor: Tokens.color.gray[100],
+          ...Shadows.sm,
+        }}
         onPress={onApple}
-        activeOpacity={0.7}
+        activeOpacity={0.72}
       >
-        <Ionicons name="logo-apple" size={24} color="#000000" />
+        <Ionicons name="logo-apple" size={24} color={Colors.textPrimary} />
       </TouchableOpacity>
     </View>
   </View>
 );
-
-const styles = StyleSheet.create({
-  container: {
-    marginTop: 8,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#E0E8E0',
-  },
-  dividerText: {
-    marginHorizontal: 14,
-    fontSize: 13,
-    color: Colors.textMuted,
-    fontWeight: '500',
-  },
-  iconsRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
-  },
-  iconBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-});
 
 export default SocialLoginRow;

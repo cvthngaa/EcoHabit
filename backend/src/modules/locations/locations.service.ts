@@ -1,4 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import axios from 'axios';
@@ -10,30 +15,11 @@ import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { UserRole } from '../users/enums/user-role.enum';
 import { LocationStatus } from './enums/location-status.enum';
 import { DropoffStatus } from './enums/dropoff-status.enum';
-
-type NominatimSuggestion = {
-  id: string;
-  title: string;
-  subtitle: string;
-  latitude: number;
-  longitude: number;
-};
-
-type NominatimItem = {
-  place_id: number;
-  display_name: string;
-  lat: string;
-  lon: string;
-  name?: string;
-  address?: {
-    road?: string;
-    suburb?: string;
-    city?: string;
-    town?: string;
-    state?: string;
-    country?: string;
-  };
-};
+import {
+  NominatimAddress,
+  NominatimItem,
+  NominatimSuggestion,
+} from './types/nominatim.types';
 
 @Injectable()
 export class LocationsService {
@@ -44,7 +30,20 @@ export class LocationsService {
     private readonly dropoffRepo: Repository<DropoffTransaction>,
   ) {}
 
-  private toSuggestionSubtitle(address?: NominatimItem['address']) {
+  private toCoordinateNumber(value?: string | number | null) {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string') {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    return null;
+  }
+
+  private toSuggestionSubtitle(address?: NominatimAddress) {
     if (!address) {
       return '';
     }
@@ -109,17 +108,21 @@ export class LocationsService {
 
     return response.data
       .map((item) => {
-        const latitude = Number(item.lat);
-        const longitude = Number(item.lon);
+        const latitude = this.toCoordinateNumber(item.lat);
+        const longitude = this.toCoordinateNumber(item.lon);
 
-        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        if (latitude === null || longitude === null) {
           return null;
         }
 
         return {
           id: String(item.place_id),
-          title: item.name?.trim() || item.display_name.split(',')[0]?.trim() || 'Dia diem',
-          subtitle: this.toSuggestionSubtitle(item.address) || item.display_name,
+          title:
+            item.name?.trim() ||
+            item.display_name.split(',')[0]?.trim() ||
+            'Dia diem',
+          subtitle:
+            this.toSuggestionSubtitle(item.address) || item.display_name,
           latitude,
           longitude,
         };
@@ -132,7 +135,8 @@ export class LocationsService {
       where: { id },
       relations: ['createdBy', 'acceptedWasteTypes'],
     });
-    if (!location) throw new NotFoundException(`Collection point ${id} not found`);
+    if (!location)
+      throw new NotFoundException(`Collection point ${id} not found`);
     return location;
   }
 
@@ -145,21 +149,31 @@ export class LocationsService {
     return this.locationRepo.save(location);
   }
 
-  async updateCollectionPoint(id: string, userId: string, role: UserRole, data: UpdateCollectionPointDto) {
+  async updateCollectionPoint(
+    id: string,
+    userId: string,
+    role: UserRole,
+    data: UpdateCollectionPointDto,
+  ) {
     const location = await this.locationRepo.findOne({
       where: { id },
       relations: ['createdBy'],
     });
-    
-    if (!location) throw new NotFoundException(`Collection point ${id} not found`);
-    
+
+    if (!location)
+      throw new NotFoundException(`Collection point ${id} not found`);
+
     if (role !== UserRole.ADMIN && location.createdBy?.id !== userId) {
-      throw new ForbiddenException('You can only update your own collection points');
+      throw new ForbiddenException(
+        'You can only update your own collection points',
+      );
     }
 
     // Role check for status update
     if (data.status && role !== UserRole.ADMIN) {
-        throw new ForbiddenException('Only admins can update the status of a collection point');
+      throw new ForbiddenException(
+        'Only admins can update the status of a collection point',
+      );
     }
 
     Object.assign(location, data);
@@ -167,13 +181,20 @@ export class LocationsService {
   }
 
   async createCheckin(userId: string, data: CreateCheckinDto) {
-    const location = await this.locationRepo.findOne({ where: { id: data.locationId } });
-    if (!location) throw new NotFoundException(`Collection point ${data.locationId} not found`);
+    const location = await this.locationRepo.findOne({
+      where: { id: data.locationId },
+    });
+    if (!location)
+      throw new NotFoundException(
+        `Collection point ${data.locationId} not found`,
+      );
 
     const dropoff = this.dropoffRepo.create({
       user: { id: userId },
       location: { id: data.locationId },
-      acceptedWasteType: data.acceptedWasteTypeId ? { id: data.acceptedWasteTypeId } : null,
+      acceptedWasteType: data.acceptedWasteTypeId
+        ? { id: data.acceptedWasteTypeId }
+        : null,
       quantityValue: data.quantityValue,
       quantityUnit: data.quantityUnit,
       status: DropoffStatus.PENDING,

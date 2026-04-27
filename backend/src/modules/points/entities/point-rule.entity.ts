@@ -1,13 +1,7 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  Index,
-} from 'typeorm';
-import { BaseEntity } from 'src/common/database/base.entity';
+import { Column, Entity, JoinColumn, ManyToOne, Index } from 'typeorm';
+import { BaseEntity } from '../../../common/database/base.entity';
 import { PointEventType } from '../enums/point-event-type.enum';
-import { User } from 'src/modules/users/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
 
 @Entity('point_rules')
 export class PointRule extends BaseEntity {

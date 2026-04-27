@@ -2,7 +2,6 @@ import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
   Image,
@@ -17,13 +16,14 @@ import { getProfile } from '../../services/api/auth.service';
 import { getDailyTip, type DailyTipResponse } from '../../services/api/gemini.service';
 import { getPointHistory } from '../../services/api/points.service';
 import { getTopRewards } from '../../services/api/rewards.service';
+import { Shadows, Tokens } from '../../theme';
 
-const PRIMARY_COLOR = '#1F8505';
-const BACKGROUND_COLOR = '#F9FAF8';
+const PRIMARY_COLOR = Tokens.color.green.primary;
+
 const DAILY_TIP_FALLBACK: DailyTipResponse = {
-  title: 'Meo xanh de lam',
+  title: 'Mẹo xanh dễ làm',
   content:
-    'Giu rieng chai, lon va giay kho trong mot tui hoac hop nho o nha de de gom va mang di tai che.',
+    'Giữ riêng chai, lon và giấy khô trong một túi hoặc hộp nhỏ ở nhà để dễ gom và mang đi tái chế.',
   emoji: '🌿',
   source: 'fallback',
 };
@@ -60,16 +60,16 @@ const getActivityDetails = (activity: any) => {
   }
 };
 
-const mockQuickActions = [
+const quickActions = [
   { id: '1', label: 'Phân loại rác', icon: 'scan-outline' as const, route: 'ScanTab', color: PRIMARY_COLOR },
   { id: '2', label: 'Điểm thu gom', icon: 'location-outline' as const, route: 'MapTab', color: '#2196F3' },
   { id: '3', label: 'Đổi quà', icon: 'gift-outline' as const, route: 'RewardsTab', color: '#E65100' },
-  { id: '4', label: 'Quiz', icon: 'bulb-outline' as const, route: 'Quiz', color: '#FF9800' },
+  { id: '4', label: 'Quiz', icon: 'bulb-outline' as const, route: 'QuizIntro', color: '#FF9800' },
   { id: '5', label: 'Ví điểm', icon: 'wallet-outline' as const, route: 'Wallet', color: '#6A1B9A' },
   { id: '6', label: 'Cộng đồng', icon: 'people-outline' as const, route: 'Community', color: '#9C27B0' },
 ];
 
-const mockDailyMissions = [
+const dailyMissions = [
   { id: '1', title: 'Phân loại 1 vật phẩm', completed: true, rewardPoints: 50 },
   { id: '2', title: 'Check-in điểm thu gom', completed: false, rewardPoints: 100 },
   { id: '3', title: 'Làm 1 quiz', completed: false, rewardPoints: 20 },
@@ -82,6 +82,14 @@ const rewardPalette = [
   { color: '#6A1B9A', bg: '#F3E5F5', icon: 'book-outline' as const, emoji: '📚', category: 'Giáo dục' },
   { color: '#00838F', bg: '#E0F7FA', icon: 'gift-outline' as const, emoji: '🎁', category: 'Ưu đãi' },
 ];
+
+const cardShadow = {
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.04,
+  shadowRadius: 10,
+  elevation: 2,
+};
 
 const mapFeaturedReward = (reward: any, index: number) => {
   const palette = rewardPalette[index % rewardPalette.length];
@@ -170,26 +178,33 @@ const HomeScreen: React.FC = () => {
     loadData();
   }, []);
 
+  const goQuickAction = (route: string) => {
+    if (route === 'ScanTab') navigation.navigate('Scan');
+    else if (route === 'MapTab') navigation.navigate('Map');
+    else if (route === 'RewardsTab') navigation.navigate('Rewards');
+    else navigation.navigate(route);
+  };
+
   const renderSkeleton = () => (
     <View
-      style={[
-        styles.root,
-        { paddingTop: insets.top + 20, paddingHorizontal: 20 },
-      ]}
+      className="flex-1 bg-canvas px-5"
+      style={{ paddingTop: insets.top + Tokens.space[5] }}
     >
-      <View style={styles.headerSkeleton}>
-        <View style={styles.avatarSkeleton} />
-        <View style={styles.textSkeletonContainer}>
-          <View style={styles.textSkeletonLine1} />
-          <View style={styles.textSkeletonLine2} />
+      <View className="mb-[30px] flex-row items-center">
+        <View className="mr-4 h-11 w-11 rounded-full bg-[#EBEBEB]" />
+        <View className="flex-1">
+          <View className="mb-2.5 h-[18px] w-3/5 rounded-full bg-[#EBEBEB]" />
+          <View className="h-[14px] w-2/5 rounded-full bg-[#EBEBEB]" />
         </View>
       </View>
-      <View style={styles.cardSkeleton} />
-      <View style={styles.actionSkeleton} />
-      <View style={styles.actionSkeleton} />
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View className="mb-6 h-40 rounded-[20px] bg-[#EBEBEB]" />
+      <View className="mb-4 h-[90px] rounded-[20px] bg-[#EBEBEB]" />
+      <View className="mb-4 h-[90px] rounded-[20px] bg-[#EBEBEB]" />
+      <View className="flex-1 items-center justify-center">
         <ActivityIndicator size="large" color={PRIMARY_COLOR} />
-        <Text style={styles.loadingText}>Đang tải dữ liệu...</Text>
+        <Text className="mt-4 text-[14px] font-semibold text-text-muted">
+          Đang tải dữ liệu...
+        </Text>
       </View>
     </View>
   );
@@ -197,13 +212,11 @@ const HomeScreen: React.FC = () => {
   if (loading || !userProfile) return renderSkeleton();
 
   return (
-    <View style={styles.root}>
+    <View className="flex-1 bg-canvas">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: insets.top + 20 },
-        ]}
+        contentContainerClassName="pb-5"
+        contentContainerStyle={{ paddingTop: insets.top + Tokens.space[5] }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -212,13 +225,13 @@ const HomeScreen: React.FC = () => {
           />
         }
       >
-        <View style={styles.header}>
-          <View style={styles.headerLeft}>
+        <View className="mb-6 flex-row items-center justify-between px-5">
+          <View className="flex-1 items-start">
             {userProfile?.avatarUrl ? (
-              <Image source={{ uri: userProfile.avatarUrl }} style={styles.avatar} />
+              <Image source={{ uri: userProfile.avatarUrl }} className="h-11 w-11 rounded-full" />
             ) : (
-              <View style={styles.avatarFallback}>
-                <Text style={styles.avatarFallbackText}>
+              <View className="h-11 w-11 items-center justify-center rounded-full bg-primary">
+                <Text className="text-[18px] font-bold text-white">
                   {userProfile?.fullName
                     ? userProfile.fullName.charAt(0).toUpperCase()
                     : 'U'}
@@ -226,89 +239,103 @@ const HomeScreen: React.FC = () => {
               </View>
             )}
           </View>
-          <View style={styles.headerCenter}>
-            <Text style={styles.greetingText}>
+          <View className="flex-[4] items-center">
+            <Text className="mb-1 text-center text-[17px] font-extrabold text-text">
               Chào buổi sáng, {userProfile?.fullName} 👋
             </Text>
-            <Text style={styles.subGreetingText}>
+            <Text className="text-center text-[13px] font-medium text-text-muted">
               Hôm nay bạn đã sống xanh chưa?
             </Text>
           </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.bellButton}>
+          <View className="flex-1 items-end">
+            <TouchableOpacity
+              className="h-[42px] w-[42px] items-center justify-center rounded-full bg-surface"
+              style={Shadows.sm}
+            >
               <Ionicons name="notifications-outline" size={24} color="#333" />
-              <View style={styles.badge} />
+              <View className="absolute right-3 top-2.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-white bg-[#FF3B30]" />
             </TouchableOpacity>
           </View>
         </View>
 
         <LinearGradient
-          colors={['#28A710', PRIMARY_COLOR, '#156103']}
+          colors={['#28A710', PRIMARY_COLOR, Tokens.color.green[600]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={styles.pointsCard}
+          style={{
+            marginHorizontal: Tokens.space[5],
+            borderRadius: 20,
+            padding: Tokens.space[5],
+            shadowColor: PRIMARY_COLOR,
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.35,
+            shadowRadius: 16,
+            elevation: 8,
+            marginBottom: Tokens.space[6],
+            overflow: 'hidden',
+          }}
         >
-          <View style={styles.pointsCardDecor} />
-          <View style={styles.pointsCardTop}>
+          <View className="absolute right-[-30px] top-[-50px] h-[150px] w-[150px] rounded-full bg-white/10" />
+          <View className="mb-5 flex-row items-start justify-between">
             <View>
-              <Text style={styles.pointsTitle}>
+              <Text className="mb-1 text-[26px] font-extrabold text-white">
                 ⭐ {(userProfile?.pointsBalance || 0).toLocaleString()} điểm
               </Text>
-              <Text style={styles.pointsToday}>+0 hôm nay</Text>
+              <Text className="text-[14px] font-semibold text-white/90">
+                +0 hôm nay
+              </Text>
             </View>
             <TouchableOpacity
-              style={styles.giftBtn}
+              className="rounded-lg bg-white/25 px-[14px] py-2"
               onPress={() => navigation.navigate('Rewards')}
             >
-              <Text style={styles.giftBtnText}>Đổi quà 🎁</Text>
+              <Text className="text-[13px] font-bold text-white">Đổi quà 🎁</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.progressContainer}>
-            <View style={styles.progressHeader}>
-              <Text style={styles.progressText}>Tháng này: 1/30 ngày</Text>
-            </View>
-            <View style={styles.progressBarBg}>
-              <View style={[styles.progressBarFill, { width: '10%' }]} />
+          <View className="mt-2">
+            <Text className="mb-2 text-[13px] font-semibold text-white/90">
+              Tháng này: 1/30 ngày
+            </Text>
+            <View className="h-2 overflow-hidden rounded-full bg-white/30">
+              <View className="h-full w-[10%] rounded-full bg-white" />
             </View>
           </View>
         </LinearGradient>
 
-        <View style={styles.quickActionsGrid}>
-          {mockQuickActions.map((action) => (
+        <View className="mb-6 flex-row flex-wrap justify-between px-5">
+          {quickActions.map((action) => (
             <TouchableOpacity
               key={action.id}
-              style={styles.quickActionCard}
-              onPress={() => {
-                if (action.route === 'ScanTab') navigation.navigate('Scan');
-                else if (action.route === 'MapTab') navigation.navigate('Map');
-                else if (action.route === 'RewardsTab')
-                  navigation.navigate('Rewards');
-                else if (action.route === 'Quiz') navigation.navigate('Quiz');
-                else if (action.route === 'Wallet') navigation.navigate('Wallet');
-                else if (action.route === 'Community') navigation.navigate('Community');
-              }}
+              className="mb-4 w-[47.5%] flex-row items-center rounded-lg bg-surface p-[14px]"
+              style={cardShadow}
+              onPress={() => goQuickAction(action.route)}
               activeOpacity={0.8}
             >
               <View
-                style={[
-                  styles.quickActionIconBg,
-                  { backgroundColor: `${action.color}15` },
-                ]}
+                className="mr-3 h-11 w-11 items-center justify-center rounded-[14px]"
+                style={{ backgroundColor: `${action.color}15` }}
               >
                 <Ionicons name={action.icon} size={24} color={action.color} />
               </View>
-              <Text style={styles.quickActionLabel}>{action.label}</Text>
+              <Text className="flex-1 text-[14px] font-semibold text-text">
+                {action.label}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Hoạt động gần đây</Text>
-          <View style={styles.recentActivityCard}>
+        <View className="mb-6">
+          <Text className="mx-5 mb-4 text-[18px] font-extrabold text-text">
+            Hoạt động gần đây
+          </Text>
+          <View
+            className="mx-5 rounded-[20px] bg-surface px-4"
+            style={cardShadow}
+          >
             {recentActivities.length === 0 ? (
-              <View style={{ padding: 20, alignItems: 'center' }}>
+              <View className="items-center p-5">
                 <Ionicons name="leaf-outline" size={32} color="#CCC" />
-                <Text style={{ marginTop: 8, color: '#888' }}>
+                <Text className="mt-2 text-[14px] text-text-muted">
                   Chưa có hoạt động nào
                 </Text>
               </View>
@@ -319,12 +346,10 @@ const HomeScreen: React.FC = () => {
 
                 return (
                   <View key={activity.id}>
-                    <View style={styles.recentActivityItem}>
+                    <View className="flex-row items-center py-4">
                       <View
-                        style={[
-                          styles.recentActivityIcon,
-                          { backgroundColor: `${details.color}15` },
-                        ]}
+                        className="mr-3 h-11 w-11 items-center justify-center rounded-[14px]"
+                        style={{ backgroundColor: `${details.color}15` }}
                       >
                         <Ionicons
                           name={details.icon}
@@ -332,27 +357,21 @@ const HomeScreen: React.FC = () => {
                           color={details.color}
                         />
                       </View>
-                      <View style={styles.recentActivityInfo}>
-                        <Text style={styles.recentActivityLabel}>
+                      <View className="flex-1">
+                        <Text className="mb-1 text-[15px] font-bold capitalize text-text">
                           {details.label}
                         </Text>
-                        <Text style={styles.recentActivityTime}>
+                        <Text className="text-[12px] font-medium text-text-muted">
                           {timeAgo(activity.createdAt)}
                         </Text>
                       </View>
                       <View
-                        style={[
-                          styles.confidenceBadge,
-                          {
-                            backgroundColor: isEarn ? '#E8F5E9' : '#FFEBEE',
-                          },
-                        ]}
+                        className="rounded-[10px] px-2.5 py-1.5"
+                        style={{ backgroundColor: isEarn ? '#E8F5E9' : '#FFEBEE' }}
                       >
                         <Text
-                          style={[
-                            styles.confidenceText,
-                            { color: isEarn ? PRIMARY_COLOR : '#FF5252' },
-                          ]}
+                          className="text-[12px] font-extrabold"
+                          style={{ color: isEarn ? PRIMARY_COLOR : '#FF5252' }}
                         >
                           {isEarn ? '+' : '-'}
                           {Math.abs(activity.points)} đ
@@ -360,7 +379,7 @@ const HomeScreen: React.FC = () => {
                       </View>
                     </View>
                     {index < recentActivities.length - 1 && (
-                      <View style={styles.divider} />
+                      <View className="h-px bg-border-subtle/60" />
                     )}
                   </View>
                 );
@@ -369,30 +388,50 @@ const HomeScreen: React.FC = () => {
           </View>
         </View>
 
-        <View style={styles.sectionContainer}>
-          <View style={styles.dailyTipCard}>
-            <View style={styles.dailyTipHeader}>
-              <View style={styles.dailyTipBadge}>
-                <Text style={styles.dailyTipBadgeText}>Mẹo vặt hôm nay</Text>
+        <View className="mb-6">
+          <View
+            className="mx-5 rounded-xl border border-green-200 bg-green-100 p-[18px]"
+            style={{
+              shadowColor: '#86A95C',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.08,
+              shadowRadius: 12,
+              elevation: 2,
+            }}
+          >
+            <View className="mb-3 flex-row items-center justify-between">
+              <View className="rounded-full bg-green-200 px-2.5 py-1.5">
+                <Text className="text-[11px] font-extrabold uppercase tracking-[0.3px] text-green-700">
+                  Mẹo vặt hôm nay
+                </Text>
               </View>
-              <Text style={styles.dailyTipEmoji}>{dailyTip.emoji}</Text>
+              <Text className="text-[26px]">{dailyTip.emoji}</Text>
             </View>
-            <Text style={styles.dailyTipTitle}>{dailyTip.title}</Text>
-            <Text style={styles.dailyTipContent}>{dailyTip.content}</Text>
+            <Text className="mb-2 text-[18px] font-extrabold text-green-800">
+              {dailyTip.title}
+            </Text>
+            <Text className="text-[14px] font-medium leading-[21px] text-text-muted">
+              {dailyTip.content}
+            </Text>
           </View>
         </View>
 
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Quà nổi bật</Text>
+        <View className="mb-6">
+          <Text className="mx-5 mb-4 text-[18px] font-extrabold text-text">
+            Quà nổi bật
+          </Text>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.rewardsScroll}
+            contentContainerClassName="pl-5 pr-2"
           >
             {featuredRewards.length === 0 ? (
-              <View style={[styles.rewardCard, styles.rewardCardEmpty]}>
+              <View
+                className="mr-3 w-[180px] items-center justify-center rounded-[18px] bg-surface p-4"
+                style={cardShadow}
+              >
                 <Ionicons name="gift-outline" size={28} color="#B0B0B0" />
-                <Text style={styles.rewardEmptyText}>
+                <Text className="mt-2.5 text-center text-[13px] font-semibold text-text-muted">
                   Chưa có quà đổi thành công
                 </Text>
               </View>
@@ -400,21 +439,22 @@ const HomeScreen: React.FC = () => {
               featuredRewards.map((reward) => (
                 <TouchableOpacity
                   key={reward.id}
-                  style={styles.rewardCard}
+                  className="mr-3 w-[130px] items-center rounded-[18px] bg-surface p-4"
+                  style={cardShadow}
                   onPress={() =>
                     navigation.navigate('RewardDetail', { reward })
                   }
                 >
                   {reward.tag && (
-                    <View style={styles.rewardBadge}>
-                      <Text style={styles.rewardBadgeText}>{reward.tag}</Text>
+                    <View className="absolute right-2.5 top-2.5 z-10 rounded-sm bg-[#FF3B30] px-2 py-1">
+                      <Text className="text-[9px] font-extrabold text-white">
+                        {reward.tag}
+                      </Text>
                     </View>
                   )}
                   <View
-                    style={[
-                      styles.rewardIconBg,
-                      { backgroundColor: `${reward.color}15` },
-                    ]}
+                    className="mb-3 h-14 w-14 items-center justify-center rounded-[18px]"
+                    style={{ backgroundColor: `${reward.color}15` }}
                   >
                     <Ionicons
                       name={reward.icon}
@@ -422,26 +462,33 @@ const HomeScreen: React.FC = () => {
                       color={reward.color}
                     />
                   </View>
-                  <Text style={styles.rewardTitle} numberOfLines={1}>
+                  <Text className="mb-1.5 text-center text-[14px] font-bold text-text" numberOfLines={1}>
                     {reward.title}
                   </Text>
-                  <Text style={styles.rewardMeta}>
+                  <Text className="mb-1.5 text-[11px] font-semibold text-text-muted">
                     {reward.redeemCount} lượt đổi
                   </Text>
-                  <Text style={styles.rewardCost}>{reward.pointCost} điểm</Text>
+                  <Text className="text-[13px] font-extrabold text-primary">
+                    {reward.pointCost} điểm
+                  </Text>
                 </TouchableOpacity>
               ))
             )}
           </ScrollView>
         </View>
 
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Nhiệm vụ hôm nay</Text>
-          <View style={styles.missionCard}>
-            {mockDailyMissions.map((mission, index) => (
+        <View className="mb-6">
+          <Text className="mx-5 mb-4 text-[18px] font-extrabold text-text">
+            Nhiệm vụ hôm nay
+          </Text>
+          <View
+            className="mx-5 rounded-[20px] bg-surface px-4"
+            style={cardShadow}
+          >
+            {dailyMissions.map((mission, index) => (
               <View key={mission.id}>
-                <View style={styles.missionItem}>
-                  <TouchableOpacity style={styles.checkbox}>
+                <View className="flex-row items-center py-4">
+                  <TouchableOpacity className="mr-[14px]">
                     {mission.completed ? (
                       <Ionicons
                         name="checkmark-circle"
@@ -456,488 +503,31 @@ const HomeScreen: React.FC = () => {
                       />
                     )}
                   </TouchableOpacity>
-                  <View style={styles.missionInfo}>
+                  <View className="flex-1 flex-row items-center justify-between">
                     <Text
-                      style={[
-                        styles.missionTitle,
-                        mission.completed && styles.missionCompletedText,
-                      ]}
+                      className={`flex-1 text-[15px] font-semibold ${
+                        mission.completed ? 'text-[#A0A0A0] line-through' : 'text-text'
+                      }`}
                     >
                       {mission.title}
                     </Text>
-                    <Text style={styles.missionReward}>
+                    <Text className="ml-2.5 text-[14px] font-extrabold text-primary">
                       +{mission.rewardPoints} điểm
                     </Text>
                   </View>
                 </View>
-                {index < mockDailyMissions.length - 1 && (
-                  <View style={styles.divider} />
+                {index < dailyMissions.length - 1 && (
+                  <View className="h-px bg-border-subtle/60" />
                 )}
               </View>
             ))}
           </View>
         </View>
 
-        <View style={{ height: 120 }} />
+        <View className="h-[120px]" />
       </ScrollView>
     </View>
   );
 };
 
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: BACKGROUND_COLOR,
-  },
-  scrollContent: {
-    paddingBottom: 20,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  headerLeft: {
-    flex: 1,
-    alignItems: 'flex-start',
-  },
-  headerCenter: {
-    flex: 4,
-    alignItems: 'center',
-  },
-  headerRight: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  avatarFallback: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: PRIMARY_COLOR,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarFallbackText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  greetingText: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  subGreetingText: {
-    fontSize: 13,
-    color: '#666',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  bellButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#FFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  badge: {
-    position: 'absolute',
-    top: 10,
-    right: 12,
-    backgroundColor: '#FF3B30',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 1.5,
-    borderColor: '#FFF',
-  },
-  pointsCard: {
-    marginHorizontal: 20,
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: PRIMARY_COLOR,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 8,
-    marginBottom: 24,
-    overflow: 'hidden',
-  },
-  pointsCardDecor: {
-    position: 'absolute',
-    top: -50,
-    right: -30,
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  pointsCardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  pointsTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#FFF',
-    marginBottom: 4,
-  },
-  pointsToday: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    fontWeight: '600',
-  },
-  giftBtn: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-  },
-  giftBtnText: {
-    color: '#FFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  progressContainer: {
-    marginTop: 8,
-  },
-  progressHeader: {
-    marginBottom: 8,
-  },
-  progressText: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  progressBarBg: {
-    height: 8,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#FFF',
-    borderRadius: 4,
-  },
-  quickActionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  quickActionCard: {
-    width: '47.5%',
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  quickActionIconBg: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  quickActionLabel: {
-    fontSize: 14,
-    color: '#333',
-    fontWeight: '600',
-    flex: 1,
-  },
-  sectionContainer: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    marginHorizontal: 20,
-    marginBottom: 16,
-  },
-  recentActivityCard: {
-    backgroundColor: '#FFF',
-    marginHorizontal: 20,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  recentActivityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  recentActivityIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  recentActivityInfo: {
-    flex: 1,
-  },
-  recentActivityLabel: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 4,
-    textTransform: 'capitalize',
-  },
-  recentActivityTime: {
-    fontSize: 12,
-    color: '#888',
-    fontWeight: '500',
-  },
-  confidenceBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
-  },
-  confidenceText: {
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#F2F2F2',
-  },
-  dailyTipCard: {
-    marginHorizontal: 20,
-    borderRadius: 24,
-    padding: 18,
-    backgroundColor: '#F1F8E9',
-    borderWidth: 1,
-    borderColor: '#DCECC8',
-    shadowColor: '#86A95C',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 2,
-  },
-  dailyTipHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  dailyTipBadge: {
-    backgroundColor: '#DFF0C7',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  dailyTipBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#4E7A18',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-  dailyTipEmoji: {
-    fontSize: 26,
-  },
-  dailyTipTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#2E4B14',
-    marginBottom: 8,
-  },
-  dailyTipContent: {
-    fontSize: 14,
-    lineHeight: 21,
-    color: '#4F5F41',
-    fontWeight: '500',
-  },
-  rewardsScroll: {
-    paddingLeft: 20,
-    paddingRight: 8,
-  },
-  rewardCard: {
-    width: 130,
-    backgroundColor: '#FFF',
-    borderRadius: 18,
-    padding: 16,
-    marginRight: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  rewardCardEmpty: {
-    width: 180,
-    justifyContent: 'center',
-  },
-  rewardEmptyText: {
-    marginTop: 10,
-    color: '#888',
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  rewardIconBg: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  rewardBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: '#FF3B30',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    zIndex: 1,
-  },
-  rewardBadgeText: {
-    color: '#FFF',
-    fontSize: 9,
-    fontWeight: '800',
-  },
-  rewardTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  rewardMeta: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#777',
-    marginBottom: 6,
-  },
-  rewardCost: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: PRIMARY_COLOR,
-  },
-  missionCard: {
-    backgroundColor: '#FFF',
-    marginHorizontal: 20,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-    elevation: 2,
-  },
-  missionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  checkbox: {
-    marginRight: 14,
-  },
-  missionInfo: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  missionTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#333',
-    flex: 1,
-  },
-  missionCompletedText: {
-    color: '#A0A0A0',
-    textDecorationLine: 'line-through',
-  },
-  missionReward: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: PRIMARY_COLOR,
-    marginLeft: 10,
-  },
-  loadingText: {
-    marginTop: 16,
-    color: '#888',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  headerSkeleton: {
-    flexDirection: 'row',
-    marginBottom: 30,
-    alignItems: 'center',
-  },
-  avatarSkeleton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: '#EBEBEB',
-    marginRight: 16,
-  },
-  textSkeletonContainer: {
-    flex: 1,
-  },
-  textSkeletonLine1: {
-    width: '60%',
-    height: 18,
-    backgroundColor: '#EBEBEB',
-    borderRadius: 9,
-    marginBottom: 10,
-  },
-  textSkeletonLine2: {
-    width: '40%',
-    height: 14,
-    backgroundColor: '#EBEBEB',
-    borderRadius: 7,
-  },
-  cardSkeleton: {
-    height: 160,
-    backgroundColor: '#EBEBEB',
-    borderRadius: 20,
-    marginBottom: 24,
-  },
-  actionSkeleton: {
-    height: 90,
-    backgroundColor: '#EBEBEB',
-    borderRadius: 20,
-    marginBottom: 16,
-  },
-});
-
 export default HomeScreen;
-

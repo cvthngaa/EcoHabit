@@ -6,12 +6,12 @@ import {
   OneToMany,
   Index,
 } from 'typeorm';
-import { BaseEntity } from 'src/common/database/base.entity';
-import { User } from 'src/modules/users/entities/user.entity';
+import { BaseEntity } from '../../../common/database/base.entity';
+import { User } from '../../users/entities/user.entity';
 import { WasteType } from '../enums/waste-type.enum';
 import { BinType } from '../enums/bin-type.enum';
 import { ClassificationStatus } from '../enums/classification-status.enum';
-import { AiFeedback } from 'src/modules/ai/entities/ai-feedback.entity';
+import { AiFeedback } from './ai-feedback.entity';
 
 @Entity('trash_classifications')
 export class TrashClassification extends BaseEntity {

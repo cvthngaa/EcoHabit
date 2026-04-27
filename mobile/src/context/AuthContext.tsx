@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useEffect,
 } from 'react';
-import { getToken, logout as clearStoredToken } from '../store/auth.store';
+import { clearSessionIfNotRemembered, logout as clearStoredToken } from '../store/auth.store';
 
 interface AuthContextType {
   isLoggedIn: boolean;
@@ -30,8 +30,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        const token = await getToken();
-        setIsLoggedIn(Boolean(token));
+        // Nếu user không tick "Ghi nhớ" → token bị xoá → phải đăng nhập lại
+        const hasValidSession = await clearSessionIfNotRemembered();
+        setIsLoggedIn(hasValidSession);
       } finally {
         setIsHydrating(false);
       }

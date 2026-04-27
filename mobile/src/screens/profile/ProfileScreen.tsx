@@ -48,77 +48,77 @@ const menuItems: Array<{
   color: string;
   group: 'account' | 'app' | 'support';
 }> = [
-  {
-    route: 'PersonalInfo',
-    icon: 'person-outline',
-    label: 'Thông tin cá nhân',
-    color: Colors.primary,
-    group: 'account',
-  },
-  {
-    route: 'Wallet',
-    icon: 'wallet-outline',
-    label: 'Lịch sử điểm',
-    color: '#6A1B9A',
-    group: 'account',
-  },
-  {
-    route: 'NotificationsSettings',
-    icon: 'notifications-outline',
-    label: 'Thông báo',
-    color: '#1565C0',
-    group: 'account',
-  },
-  {
-    route: 'PrivacySecurity',
-    icon: 'shield-checkmark-outline',
-    label: 'Bảo mật & quyền riêng tư',
-    color: '#6A1B9A',
-    group: 'account',
-  },
-  {
-    route: 'LanguageSettings',
-    icon: 'language-outline',
-    label: 'Ngôn ngữ',
-    color: '#00838F',
-    group: 'app',
-  },
-  {
-    route: 'AppearanceSettings',
-    icon: 'color-palette-outline',
-    label: 'Giao diện',
-    color: '#F57F17',
-    group: 'app',
-  },
-  {
-    route: 'LocationSettings',
-    icon: 'location-outline',
-    label: 'Vị trí & bản đồ',
-    color: '#E65100',
-    group: 'app',
-  },
-  {
-    route: 'HelpFaq',
-    icon: 'help-circle-outline',
-    label: 'Trợ giúp & FAQ',
-    color: '#546E7A',
-    group: 'support',
-  },
-  {
-    route: 'RateApp',
-    icon: 'star-outline',
-    label: 'Đánh giá ứng dụng',
-    color: '#F57F17',
-    group: 'support',
-  },
-  {
-    route: 'ShareEcoHabit',
-    icon: 'share-social-outline',
-    label: 'Chia sẻ EcoHabit',
-    color: Colors.primary,
-    group: 'support',
-  },
-];
+    {
+      route: 'PersonalInfo',
+      icon: 'person-outline',
+      label: 'Thông tin cá nhân',
+      color: Colors.primary,
+      group: 'account',
+    },
+    {
+      route: 'Wallet',
+      icon: 'wallet-outline',
+      label: 'Lịch sử điểm',
+      color: '#6A1B9A',
+      group: 'account',
+    },
+    {
+      route: 'NotificationsSettings',
+      icon: 'notifications-outline',
+      label: 'Thông báo',
+      color: '#1565C0',
+      group: 'account',
+    },
+    {
+      route: 'PrivacySecurity',
+      icon: 'shield-checkmark-outline',
+      label: 'Bảo mật & quyền riêng tư',
+      color: '#6A1B9A',
+      group: 'account',
+    },
+    {
+      route: 'LanguageSettings',
+      icon: 'language-outline',
+      label: 'Ngôn ngữ',
+      color: '#00838F',
+      group: 'app',
+    },
+    {
+      route: 'AppearanceSettings',
+      icon: 'color-palette-outline',
+      label: 'Giao diện',
+      color: '#F57F17',
+      group: 'app',
+    },
+    {
+      route: 'LocationSettings',
+      icon: 'location-outline',
+      label: 'Vị trí & bản đồ',
+      color: '#E65100',
+      group: 'app',
+    },
+    {
+      route: 'HelpFaq',
+      icon: 'help-circle-outline',
+      label: 'Trợ giúp & FAQ',
+      color: '#546E7A',
+      group: 'support',
+    },
+    {
+      route: 'RateApp',
+      icon: 'star-outline',
+      label: 'Đánh giá ứng dụng',
+      color: '#F57F17',
+      group: 'support',
+    },
+    {
+      route: 'ShareEcoHabit',
+      icon: 'share-social-outline',
+      label: 'Chia sẻ EcoHabit',
+      color: Colors.primary,
+      group: 'support',
+    },
+  ];
 
 const ProfileScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -207,10 +207,10 @@ const ProfileScreen: React.FC = () => {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-            <TouchableOpacity
-              style={styles.settingsBtn}
-              onPress={() => openProfileDetail('AppearanceSettings')}
-            >
+          <TouchableOpacity
+            style={styles.settingsBtn}
+            onPress={() => openProfileDetail('AppearanceSettings')}
+          >
             <Ionicons name="settings-outline" size={22} color={Colors.white} />
           </TouchableOpacity>
 
@@ -299,7 +299,7 @@ const ProfileScreen: React.FC = () => {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <Text style={styles.impactTitle}>🌍 Tác động môi trường của bạn</Text>
+          <Text style={styles.impactTitle}>🌍 TÃ¡c Ä‘á»™ng mÃ´i trÆ°á»ng cá»§a báº¡n</Text>
           <View style={styles.impactRow}>
             {[
               { emoji: '🌳', value: '3', label: 'Cây đã trồng' },
@@ -578,4 +578,3 @@ const styles = StyleSheet.create({
 });
 
 export default ProfileScreen;
-

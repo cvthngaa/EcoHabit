@@ -1,9 +1,5 @@
-import {
-  Column,
-  Entity,
-  OneToMany,
-} from 'typeorm';
-import { BaseEntity } from 'src/common/database/base.entity';
+import { Column, Entity, OneToMany } from 'typeorm';
+import { BaseEntity } from '../../../common/database/base.entity';
 import { RewardStatus } from '../enums/reward-status.enum';
 import { Redemption } from './redemption.entity';
 
@@ -45,7 +41,6 @@ export class Reward extends BaseEntity {
     nullable: true,
   })
   status?: RewardStatus | null;
-
 
   @OneToMany(() => Redemption, (redemption) => redemption.reward)
   redemptions: Redemption[];

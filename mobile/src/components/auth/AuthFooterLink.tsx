@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import Colors from '../../theme/colors';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { Colors, FontFamily, Tokens } from '../../theme';
 
 interface Props {
   message: string;
@@ -10,39 +10,35 @@ interface Props {
 }
 
 const AuthFooterLink: React.FC<Props> = ({ message, linkText, onPress, light = false }) => (
-  <View style={styles.row}>
+  <View
+    className="flex-row justify-center items-center"
+    style={{ marginTop: Tokens.space[5] }}
+  >
     {!!message && (
-      <Text style={[styles.message, light && styles.messageLight]}>{message}</Text>
+      <Text
+        style={{
+          fontFamily: FontFamily.regular,
+          fontSize: 14,
+          color: light ? 'rgba(252,251,250,0.68)' : Colors.textSecondary,
+        }}
+      >
+        {message}
+      </Text>
     )}
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-      <Text style={[styles.link, light && styles.linkLight]}>{linkText}</Text>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.72}>
+      <Text
+        style={{
+          fontFamily: FontFamily.bold,
+          fontSize: 14,
+          fontWeight: '700',
+          textDecorationLine: 'underline',
+          color: light ? Colors.textInverse : Colors.primary,
+        }}
+      >
+        {linkText}
+      </Text>
     </TouchableOpacity>
   </View>
 );
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  message: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-  },
-  messageLight: {
-    color: 'rgba(255,255,255,0.6)',
-  },
-  link: {
-    fontSize: 14,
-    color: Colors.primary,
-    fontWeight: '700',
-    textDecorationLine: 'underline',
-  },
-  linkLight: {
-    color: '#FFFFFF',
-  },
-});
 
 export default AuthFooterLink;

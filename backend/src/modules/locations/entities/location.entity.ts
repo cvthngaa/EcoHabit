@@ -1,12 +1,6 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  OneToMany,
-} from 'typeorm';
-import { BaseEntity } from 'src/common/database/base.entity';
-import { User } from 'src/modules/users/entities/user.entity';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
+import { BaseEntity } from '../../../common/database/base.entity';
+import { User } from '../../users/entities/user.entity';
 import { LocationType } from '../enums/location-type.enum';
 import { LocationStatus } from '../enums/location-status.enum';
 import { AcceptedWasteType } from './accepted-waste-type.entity';

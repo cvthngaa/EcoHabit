@@ -7,9 +7,11 @@ import { LocationsService } from './locations.service';
 import { CollectionPointsController } from './collection-points.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Location, AcceptedWasteType, DropoffTransaction])],
+  imports: [
+    TypeOrmModule.forFeature([Location, AcceptedWasteType, DropoffTransaction]),
+  ],
   controllers: [CollectionPointsController],
   providers: [LocationsService],
   exports: [TypeOrmModule, LocationsService],
 })
-export class LocationsModule { }
+export class LocationsModule {}

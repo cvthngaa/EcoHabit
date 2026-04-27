@@ -18,6 +18,6 @@ import { extname } from 'path';
     }),
   ],
   controllers: [UploadsController],
-  providers: [UploadsService]
+  providers: [UploadsService],
 })
 export class UploadsModule {}

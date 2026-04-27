@@ -25,6 +25,7 @@ import {
 } from '@nestjs/swagger';
 import { AiService } from './ai.service';
 import { SubmitFeedbackDto } from './dto/submit-feedback.dto';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request.type';
 
 @ApiTags('AI Classification')
 @ApiBearerAuth()
@@ -62,7 +63,7 @@ export class AiController {
   @ApiOperation({ summary: 'Phan loai rac tu anh' })
   async classify(
     @UploadedFile() file: Express.Multer.File,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
     if (!file) {
       throw new BadRequestException('Vui long upload mot file anh');
@@ -75,9 +76,13 @@ export class AiController {
   async submitFeedback(
     @Param('classificationId') classificationId: string,
     @Body() dto: SubmitFeedbackDto,
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
   ) {
-    return this.aiService.submitFeedback(classificationId, req.user.userId, dto);
+    return this.aiService.submitFeedback(
+      classificationId,
+      req.user.userId,
+      dto,
+    );
   }
 
   @Get('history')
@@ -85,7 +90,7 @@ export class AiController {
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getHistory(
-    @Request() req: any,
+    @Request() req: AuthenticatedRequest,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {

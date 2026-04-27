@@ -6,7 +6,7 @@ import {
   Column,
 } from 'typeorm';
 import { Location } from './location.entity';
-import { WasteType } from 'src/modules/ai/enums/waste-type.enum';
+import { WasteType } from '../../ai/enums/waste-type.enum';
 
 @Entity('accepted_waste_types')
 export class AcceptedWasteType {

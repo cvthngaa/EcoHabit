@@ -1,3 +1,41 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* -------------------------------------- */
+    /* Mặc định là Light Theme (Sáng)         */
+    /* -------------------------------------- */
+    --color-canvas: #FCFBFA; /* Creme-White */
+    --color-surface: #FFFFFF;
+    --color-surface-alt: #DAEDD5; /* Green 100 */
+    
+    --color-text: #141514; /* Dark */
+    --color-text-muted: #6E726E; /* Gray 500 */
+    
+    --color-primary: #1F8505; /* Primary */
+    --color-primary-pressed: #155A03; /* Green 600 */
+    
+    --color-border: #6E726E; /* Gray 500 */
+    --color-border-subtle: #CECFCD; /* Gray 200 */
+  }
+
+  .dark {
+    /* -------------------------------------- */
+    /* Cấu hình cho Dark Theme (Tối)          */
+    /* -------------------------------------- */
+    --color-canvas: #141514; /* Dark */
+    --color-surface: #3B3D3B; /* Gray 600 */
+    --color-surface-alt: #0B2E02; /* Green 800 */
+    
+    --color-text: #FCFBFA; /* Creme-White */
+    --color-text-muted: #AAAAAA; /* Gray 400 */
+    
+    --color-primary: #79B669; /* Green 400 - Sáng hơn để nổi bật trên nền tối */
+    --color-primary-pressed: #1F8505; /* Primary */
+    
+    --color-border: #CECFCD; /* Gray 200 */
+    --color-border-subtle: #6E726E; /* Gray 500 */
+  }
+}

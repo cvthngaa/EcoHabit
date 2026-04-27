@@ -5,26 +5,33 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class UsersService {
-    constructor(
-        @InjectRepository(User)
-        private readonly userRepository: Repository<User>,
-    ) { }
+  constructor(
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+  ) {}
 
-    findAll() {
-        return this.userRepository.find();
-    }
+  findAll() {
+    return this.userRepository.find();
+  }
 
-    async create(data: Partial<User>) {
-        const user = this.userRepository.create(data);
-        return this.userRepository.save(user);
-    }
+  async create(data: Partial<User>) {
+    const user = this.userRepository.create(data);
+    return this.userRepository.save(user);
+  }
 
-    async findByEmail(email: string) {
-        return this.userRepository.findOne({ where: { email } });
-    }
+  async findByEmail(email: string) {
+    return this.userRepository.findOne({ where: { email } });
+  }
 
-    async findById(id: string) {
-        return this.userRepository.findOne({ where: { id } });
-    }
+  async findById(id: string) {
+    return this.userRepository.findOne({ where: { id } });
+  }
+
+  async updatePassword(id: string, passwordHash: string) {
+    return this.userRepository.update(id, { passwordHash });
+  }
+
+  async updatePoints(id: string, pointsBalance: number) {
+    return this.userRepository.update(id, { pointsBalance });
+  }
 }
-

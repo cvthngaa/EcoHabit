@@ -14,18 +14,19 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { Roles } from 'src/common/decorators/roles.decorator';
-import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../common/guards/roles.guard';
 import { RewardsService } from './rewards.service';
 import { CreateRewardDto } from './dto/create-reward.dto';
 import { UpdateRewardDto } from './dto/update-reward.dto';
 import { RedeemDto } from './dto/redeem.dto';
 import { UpdateRedemptionStatusDto } from './dto/update-redemption-status.dto';
 import { UserRole } from '../users/enums/user-role.enum';
+import type { AuthenticatedRequest } from '../../common/types/authenticated-request.type';
 
 @Controller('rewards')
 export class RewardsController {
-  constructor(private readonly rewardsService: RewardsService) { }
+  constructor(private readonly rewardsService: RewardsService) {}
 
   @Get()
   async getAllRewards() {
@@ -46,7 +47,10 @@ export class RewardsController {
 
   @UseGuards(AuthGuard('jwt'))
   @Post('redeem')
-  async redeemReward(@Body() data: RedeemDto, @Request() req: any) {
+  async redeemReward(
+    @Body() data: RedeemDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
     return this.rewardsService.redeemReward(req.user.userId, data);
   }
 

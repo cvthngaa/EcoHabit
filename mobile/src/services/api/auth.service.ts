@@ -44,3 +44,20 @@ export const getProfile = async () => {
     const res = await api.get('/auth/me');
     return res.data;
 };
+
+export const sendPasswordResetOtp = async (email: string) => {
+    const res = await api.post('/auth/forgot-password/send-otp', {
+        email,
+    });
+
+    return res.data;
+};
+
+export const resetPassword = async (email: string, newPassword: string) => {
+    const res = await api.post('/auth/reset-password', {
+        email,
+        newPassword,
+    });
+
+    return res.data;
+};

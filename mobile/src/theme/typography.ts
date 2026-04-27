@@ -1,12 +1,22 @@
+import { Semantic, Tokens } from './tokens';
+
+export const FontFamily = {
+  regular: `${Tokens.font.family}_400Regular`,
+  medium: `${Tokens.font.family}_500Medium`,
+  semibold: `${Tokens.font.family}_600SemiBold`,
+  bold: `${Tokens.font.family}_700Bold`,
+  extrabold: `${Tokens.font.family}_800ExtraBold`,
+};
+
 export const FontSize = {
   xs: 11,
-  sm: 13,
-  md: 15,
-  base: 16,
-  lg: 18,
+  sm: 12,
+  md: Semantic.type.bodyMd.fontSize,
+  base: Semantic.type.bodyLg.fontSize,
+  lg: Semantic.type.titleMd.fontSize,
   xl: 22,
-  '2xl': 26,
-  '3xl': 32,
+  '2xl': Semantic.type.headingMd.fontSize,
+  '3xl': Semantic.type.displayLg.fontSize,
   '4xl': 40,
   '5xl': 48,
 };
@@ -25,5 +35,7 @@ export const LineHeight = {
   relaxed: 1.6,
   loose: 1.8,
 };
+
+export const Type = Semantic.type;
 
 export default FontSize;

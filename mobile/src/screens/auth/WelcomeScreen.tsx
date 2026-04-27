@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   Animated,
   Dimensions,
   StatusBar,
@@ -12,8 +11,9 @@ import { Ionicons } from '@expo/vector-icons';
 
 import AuthButton from '../../components/auth/AuthButton';
 import AuthFooterLink from '../../components/auth/AuthFooterLink';
+import { Colors, Semantic, Tokens } from '../../theme';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 interface Props {
   onGoLogin?: () => void;
@@ -26,7 +26,6 @@ const WelcomeScreen: React.FC<Props> = ({ onGoLogin, onGoRegister }) => {
   const btnFade = useRef(new Animated.Value(0)).current;
   const btnSlide = useRef(new Animated.Value(30)).current;
 
-  // Leaf floating animations
   const leaf1Y = useRef(new Animated.Value(0)).current;
   const leaf2Y = useRef(new Animated.Value(0)).current;
   const leaf3Y = useRef(new Animated.Value(0)).current;
@@ -34,7 +33,6 @@ const WelcomeScreen: React.FC<Props> = ({ onGoLogin, onGoRegister }) => {
   const leaf2Rotate = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Main content animation
     Animated.sequence([
       Animated.delay(300),
       Animated.parallel([
@@ -47,7 +45,6 @@ const WelcomeScreen: React.FC<Props> = ({ onGoLogin, onGoRegister }) => {
       ]),
     ]).start();
 
-    // Floating leaf animations
     const floatLeaf = (anim: Animated.Value, duration: number) =>
       Animated.loop(
         Animated.sequence([
@@ -69,7 +66,7 @@ const WelcomeScreen: React.FC<Props> = ({ onGoLogin, onGoRegister }) => {
     floatLeaf(leaf3Y, 3500);
     rotateLeaf(leaf1Rotate, 4000);
     rotateLeaf(leaf2Rotate, 3500);
-  }, []);
+  }, [btnFade, btnSlide, fadeAnim, leaf1Rotate, leaf1Y, leaf2Rotate, leaf2Y, leaf3Y, slideAnim]);
 
   const leaf1RotateStr = leaf1Rotate.interpolate({
     inputRange: [0, 1],
@@ -81,109 +78,105 @@ const WelcomeScreen: React.FC<Props> = ({ onGoLogin, onGoRegister }) => {
   });
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1">
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Background gradient */}
       <LinearGradient
-        colors={['#1a3c2a', '#1B5E20', '#2E7D32', '#1a3c2a']}
-        locations={[0, 0.3, 0.6, 1]}
-        style={StyleSheet.absoluteFill}
+        colors={[Tokens.color.green[800], Tokens.color.green[700], Semantic.color.action.primary, Tokens.color.green[800]]}
+        locations={[0, 0.34, 0.68, 1]}
+        style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
       />
 
       <Animated.View
-        style={[
-          styles.leafDecor,
-          styles.leaf1,
-          { transform: [{ translateY: leaf1Y }, { rotate: leaf1RotateStr }] },
-        ]}
+        className="absolute right-[-10px]"
+        style={{
+          top: height * 0.08,
+          transform: [{ translateY: leaf1Y }, { rotate: leaf1RotateStr }],
+        }}
       >
-        <Ionicons name="leaf" size={80} color="rgba(76, 175, 80, 0.15)" />
+        <Ionicons name="leaf" size={80} color="rgba(252,251,250,0.14)" />
       </Animated.View>
 
       <Animated.View
-        style={[
-          styles.leafDecor,
-          styles.leaf2,
-          { transform: [{ translateY: leaf2Y }, { rotate: leaf2RotateStr }] },
-        ]}
+        className="absolute left-[-30px]"
+        style={{
+          top: height * 0.25,
+          transform: [{ translateY: leaf2Y }, { rotate: leaf2RotateStr }],
+        }}
       >
-        <Ionicons name="leaf" size={120} color="rgba(76, 175, 80, 0.1)" />
+        <Ionicons name="leaf" size={120} color="rgba(252,251,250,0.1)" />
       </Animated.View>
 
       <Animated.View
-        style={[
-          styles.leafDecor,
-          styles.leaf3,
-          { transform: [{ translateY: leaf3Y }] },
-        ]}
+        className="absolute right-5"
+        style={{
+          top: height * 0.55,
+          transform: [{ translateY: leaf3Y }],
+        }}
       >
-        <Ionicons name="leaf" size={60} color="rgba(76, 175, 80, 0.12)" />
+        <Ionicons name="leaf" size={60} color="rgba(252,251,250,0.12)" />
       </Animated.View>
 
-      {/* Additional decorative circles */}
-      <View style={[styles.circle, styles.circle1]} />
-      <View style={[styles.circle, styles.circle2]} />
-      <View style={[styles.circle, styles.circle3]} />
+      <View className="absolute right-[-60px] top-[-40px] h-[200px] w-[200px] rounded-full border border-base-canvas/10" />
+      <View
+        className="absolute left-[-50px] h-[150px] w-[150px] rounded-full border border-base-canvas/10"
+        style={{ top: height * 0.4 }}
+      />
+      <View
+        className="absolute right-[-30px] h-[100px] w-[100px] rounded-full border border-base-canvas/10"
+        style={{ bottom: height * 0.15 }}
+      />
 
-      {/* Content */}
-      <View style={styles.content}>
-        {/* Top section - logo + text */}
-        <View style={styles.topSection}>
+      <View
+        className="flex-1 justify-between px-8 pb-12"
+        style={{ paddingTop: height * 0.12 }}
+      >
+        <View className="flex-1 justify-center">
           <Animated.View
-            style={[
-              styles.logoContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
+            className="mb-6"
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
           >
-            <View style={styles.logoCircle}>
-              <Ionicons name="leaf" size={32} color="#fff" />
+            <View className="h-14 w-14 items-center justify-center rounded-lg border border-base-canvas/25 bg-base-canvas/15">
+              <Ionicons name="leaf" size={32} color={Colors.textInverse} />
             </View>
           </Animated.View>
 
           <Animated.Text
-            style={[
-              styles.mainTitle,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
+            className="mb-4 font-bold text-[44px] leading-[52px] text-base-canvas"
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
           >
             {'Sống xanh\nmỗi ngày\ncùng\nEcoHabit'}
           </Animated.Text>
 
           <Animated.Text
-            style={[
-              styles.subText,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
+            className="font-semibold text-[16px] leading-6 text-base-canvas/75"
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
           >
-            Hãy bắt đầu hành trình bảo vệ môi trường 🌱
+            Hãy bắt đầu hành trình bảo vệ môi trường cùng những thói quen nhỏ.
           </Animated.Text>
         </View>
 
-        {/* Bottom section - buttons */}
         <Animated.View
-          style={[
-            styles.bottomSection,
-            {
-              opacity: btnFade,
-              transform: [{ translateY: btnSlide }],
-            },
-          ]}
+          className="pb-5"
+          style={{
+            opacity: btnFade,
+            transform: [{ translateY: btnSlide }],
+          }}
         >
           <AuthButton
             label="Đăng nhập"
             onPress={() => onGoLogin?.()}
             variant="outline"
-            style={styles.signInBtn}
+            style={{ marginBottom: Tokens.space[1] }}
           />
 
           <AuthFooterLink
@@ -198,105 +191,4 @@ const WelcomeScreen: React.FC<Props> = ({ onGoLogin, onGoRegister }) => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-
-  // Leaf decorations
-  leafDecor: {
-    position: 'absolute',
-  },
-  leaf1: {
-    top: height * 0.08,
-    right: -10,
-  },
-  leaf2: {
-    top: height * 0.25,
-    left: -30,
-  },
-  leaf3: {
-    top: height * 0.55,
-    right: 20,
-  },
-
-  // Decorative circles
-  circle: {
-    position: 'absolute',
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(76, 175, 80, 0.08)',
-  },
-  circle1: {
-    width: 200,
-    height: 200,
-    top: -40,
-    right: -60,
-  },
-  circle2: {
-    width: 150,
-    height: 150,
-    top: height * 0.4,
-    left: -50,
-  },
-  circle3: {
-    width: 100,
-    height: 100,
-    bottom: height * 0.15,
-    right: -30,
-  },
-
-  content: {
-    flex: 1,
-    paddingHorizontal: 32,
-    justifyContent: 'space-between',
-    paddingTop: height * 0.12,
-    paddingBottom: 50,
-  },
-
-  topSection: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-
-  logoContainer: {
-    marginBottom: 24,
-  },
-  logoCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: 'rgba(76, 175, 80, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(76, 175, 80, 0.3)',
-  },
-
-  mainTitle: {
-    fontSize: 44,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    lineHeight: 52,
-    letterSpacing: -1,
-    marginBottom: 16,
-  },
-
-  subText: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.65)',
-    fontWeight: '500',
-    lineHeight: 24,
-  },
-
-  bottomSection: {
-    paddingBottom: 20,
-  },
-
-  signInBtn: {
-    marginBottom: 4,
-  },
-});
-
 export default WelcomeScreen;
-

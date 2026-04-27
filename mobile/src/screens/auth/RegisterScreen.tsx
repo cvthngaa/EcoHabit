@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, KeyboardAvoidingView,
+  View, Text, ScrollView, KeyboardAvoidingView,
   Platform, Animated, Alert, Dimensions, StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,18 +11,18 @@ import SocialLoginRow from '../../components/auth/SocialLoginRow';
 import AuthFooterLink from '../../components/auth/AuthFooterLink';
 import BackButton from '../../components/auth/BackButton';
 import DraggableBottomSheet from '../../components/DraggableBottomSheet';
-import Colors from '../../theme/colors';
+import { Colors, Semantic, Tokens } from '../../theme';
 import { register, sendOtp, verifyOtp } from '../../services/api/auth.service';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 const isValid = (v: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || /^(0|\+84)[3-9]\d{8}$/.test(v);
 
 interface Errors { fullName?: string; email?: string; password?: string }
-interface Props { onGoLogin?: () => void }
+interface Props { onGoLogin?: () => void; onGoBack?: () => void }
 
-const RegisterScreen: React.FC<Props> = ({ onGoLogin }) => {
+const RegisterScreen: React.FC<Props> = ({ onGoLogin, onGoBack }) => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -57,15 +57,12 @@ const RegisterScreen: React.FC<Props> = ({ onGoLogin }) => {
   const handleRegister = async () => {
     if (!validate()) return;
     setLoading(true);
-    
-    // 1. Hiển thị BottomSheet ngay lập tức để người dùng có thể test/chuẩn bị nhập
     setIsOtpSheetVisible(true);
 
     try {
-      // 2. Gửi OTP ngầm
       await sendOtp(email);
     } catch (error: any) {
-      setIsOtpSheetVisible(false); // Ẩn đi nếu lỗi
+      setIsOtpSheetVisible(false);
       Alert.alert('Lỗi', error?.response?.data?.message || 'Có lỗi xảy ra.');
     } finally {
       setLoading(false);
@@ -79,10 +76,7 @@ const RegisterScreen: React.FC<Props> = ({ onGoLogin }) => {
     }
     setVerifying(true);
     try {
-      // 2. Verify OTP
       await verifyOtp(email, otp);
-      
-      // 3. Tạo tài khoản
       await register(email, password, fullName);
       setIsOtpSheetVisible(false);
       Alert.alert('Thành công', 'Tạo tài khoản thành công! Vui lòng đăng nhập.', [
@@ -99,30 +93,45 @@ const RegisterScreen: React.FC<Props> = ({ onGoLogin }) => {
   const emailValid = email.length > 0 && isValid(email);
 
   return (
-    <View style={s.root}>
+    <View className="flex-1 bg-canvas">
       <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-
-          {/* Header row */}
-          <View style={s.headerRow}>
-            <BackButton onPress={() => onGoLogin?.()} color="#2E5D3A" />
-            <View style={s.leafCorner}>
-              <Ionicons name="leaf" size={48} color="rgba(76,175,80,0.18)" style={{ transform: [{ rotate: '-40deg' }] }} />
-              <Ionicons name="leaf" size={28} color="rgba(76,175,80,0.12)" style={{ position: 'absolute', top: 20, right: 8, transform: [{ rotate: '30deg' }] }} />
+      <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          contentContainerClassName="flex-grow px-7 pb-12"
+          contentContainerStyle={{ paddingTop: Platform.OS === 'ios' ? 60 : 48 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View className="mb-6 flex-row items-start justify-between">
+            <BackButton onPress={() => onGoBack?.()} color={Colors.primary} />
+            <View className="relative h-[60px] w-[60px]">
+              <Ionicons
+                name="leaf"
+                size={48}
+                color={`${Semantic.color.action.brand}30`}
+                style={{ transform: [{ rotate: '-40deg' }] }}
+              />
+              <Ionicons
+                name="leaf"
+                size={28}
+                color={`${Semantic.color.action.brand}22`}
+                style={{ position: 'absolute', top: Tokens.space[5], right: Tokens.space[2], transform: [{ rotate: '30deg' }] }}
+              />
             </View>
           </View>
 
-          {/* Title */}
-          <Text style={s.title}>Đăng kí</Text>
-          <Text style={s.subtitle}>Tạo tài khoản mới của bạn</Text>
+          <Text className="mb-2 text-center font-bold text-[32px] text-text">
+            Đăng ký
+          </Text>
+          <Text className="mb-8 text-center font-semibold text-[14px] text-text-muted">
+            Tạo tài khoản mới của bạn
+          </Text>
 
-          {/* Form */}
-          <Animated.View style={[s.formWrap, { transform: [{ translateX: shakeAnim }] }]}>
+          <Animated.View className="mb-5" style={{ transform: [{ translateX: shakeAnim }] }}>
             <AuthInput
               iconName="person-outline"
-              placeholder="Họ và Tên"
+              placeholder="Họ và tên"
               value={fullName}
               onChangeText={t => { setFullName(t); clr('fullName'); }}
               error={errors.fullName}
@@ -139,7 +148,7 @@ const RegisterScreen: React.FC<Props> = ({ onGoLogin }) => {
             />
             <AuthInput
               iconName="lock-closed-outline"
-              placeholder="••••••••"
+              placeholder="Mật khẩu"
               isPassword
               value={password}
               onChangeText={t => { setPassword(t); clr('password'); }}
@@ -147,7 +156,7 @@ const RegisterScreen: React.FC<Props> = ({ onGoLogin }) => {
             />
           </Animated.View>
 
-          <AuthButton label="Đăng kí" onPress={handleRegister} loading={loading} />
+          <AuthButton label="Đăng ký" onPress={handleRegister} loading={loading} />
 
           <RememberForgotRow
             remembered={remember}
@@ -166,10 +175,8 @@ const RegisterScreen: React.FC<Props> = ({ onGoLogin }) => {
             linkText="Đăng nhập"
             onPress={() => onGoLogin?.()}
           />
-
         </ScrollView>
 
-        {/* Draggable Bottom Sheet for OTP */}
         <DraggableBottomSheet
           visible={isOtpSheetVisible}
           collapsedHeight={height * 0.4}
@@ -179,10 +186,14 @@ const RegisterScreen: React.FC<Props> = ({ onGoLogin }) => {
           animateOnMount={true}
           enableBackdropPress={false}
         >
-          <View style={{ paddingHorizontal: 28, paddingTop: 10 }}>
-            <Text style={s.title}>Xác thực OTP</Text>
-            <Text style={s.subtitle}>Nhập mã 6 số được gửi tới {email}</Text>
-            
+          <View className="px-7 pt-3">
+            <Text className="mb-2 text-center font-bold text-[32px] text-text">
+              Xác thực OTP
+            </Text>
+            <Text className="mb-8 text-center font-semibold text-[14px] text-text-muted">
+              Nhập mã 6 số được gửi tới {email}
+            </Text>
+
             <AuthInput
               iconName="key-outline"
               placeholder="Nhập mã OTP (6 số)"
@@ -192,26 +203,14 @@ const RegisterScreen: React.FC<Props> = ({ onGoLogin }) => {
               maxLength={6}
             />
 
-            <View style={{ marginTop: 20 }}>
+            <View className="mt-5">
               <AuthButton label="Xác nhận & Đăng ký" onPress={handleVerifyAndRegister} loading={verifying} />
             </View>
           </View>
         </DraggableBottomSheet>
-
       </KeyboardAvoidingView>
     </View>
   );
 };
 
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#FFFFFF' },
-  scroll: { flexGrow: 1, paddingHorizontal: 28, paddingTop: Platform.OS === 'ios' ? 60 : 48, paddingBottom: 40 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-  leafCorner: { position: 'relative', width: 60, height: 60 },
-  title: { fontSize: 32, fontWeight: '800', color: '#1B3A1E', textAlign: 'center', marginBottom: 6, letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, color: '#8FA892', textAlign: 'center', marginBottom: 28, fontWeight: '500' },
-  formWrap: { marginBottom: 20 },
-});
-
 export default RegisterScreen;
-

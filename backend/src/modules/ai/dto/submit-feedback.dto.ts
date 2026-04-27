@@ -13,7 +13,10 @@ export class SubmitFeedbackDto {
   @IsString()
   correctedLabel?: string;
 
-  @ApiPropertyOptional({ enum: WasteType, description: 'Loại rác đúng nếu AI sai' })
+  @ApiPropertyOptional({
+    enum: WasteType,
+    description: 'Loại rác đúng nếu AI sai',
+  })
   @IsOptional()
   @IsEnum(WasteType)
   correctedWasteType?: WasteType;

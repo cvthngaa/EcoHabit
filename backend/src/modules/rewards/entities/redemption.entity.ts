@@ -1,11 +1,6 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-} from 'typeorm';
-import { BaseEntity } from 'src/common/database/base.entity';
-import { User } from 'src/modules/users/entities/user.entity';
+import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { BaseEntity } from '../../../common/database/base.entity';
+import { User } from '../../users/entities/user.entity';
 import { Reward } from './reward.entity';
 import { RedemptionStatus } from '../enums/redemption-status.enum';
 

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, KeyboardAvoidingView,
+  View, Text, ScrollView, KeyboardAvoidingView,
   Platform, Animated, Alert, Dimensions, StatusBar, Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,20 +11,32 @@ import RememberForgotRow from '../../components/auth/RememberForgotRow';
 import SocialLoginRow from '../../components/auth/SocialLoginRow';
 import AuthFooterLink from '../../components/auth/AuthFooterLink';
 import BackButton from '../../components/auth/BackButton';
+import { Colors, Semantic, Tokens } from '../../theme';
 import { login } from '../../services/api/auth.service';
 import { saveToken } from '../../store/auth.store';
 
 const { width, height } = Dimensions.get('window');
 const TOP_H = height * 0.32;
+const CURVE_HEIGHT = 186;
 
 const isValidEmail = (v: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || /^(0|\+84)[3-9]\d{8}$/.test(v);
 
 interface FormErrors { email?: string; password?: string }
-interface Props { onLogin?: () => void; onGoRegister?: () => void; onGoBack?: () => void }
+interface Props { 
+  onLogin?: () => void; 
+  onGoRegister?: () => void; 
+  onGoForgotPassword?: () => void;
+  onGoBack?: () => void; 
+}
 
 const LoginWave = () => (
-  <Svg width={width} height={CURVE_HEIGHT} viewBox={`0 0 ${width} ${CURVE_HEIGHT}`} style={s.waveSvg}>
+  <Svg
+    width={width}
+    height={CURVE_HEIGHT}
+    viewBox={`0 0 ${width} ${CURVE_HEIGHT}`}
+    style={{ position: 'absolute', bottom: 0, left: 0 }}
+  >
     <Path
       d={`
         M 0 ${CURVE_HEIGHT * 0.78}
@@ -38,12 +50,12 @@ const LoginWave = () => (
         L 0 ${CURVE_HEIGHT}
         Z
       `}
-      fill="#FFFFFF"
+      fill={Colors.background}
     />
   </Svg>
 );
 
-const LoginScreen: React.FC<Props> = ({ onLogin, onGoRegister, onGoBack }) => {
+const LoginScreen: React.FC<Props> = ({ onLogin, onGoRegister, onGoForgotPassword, onGoBack }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
@@ -76,7 +88,7 @@ const LoginScreen: React.FC<Props> = ({ onLogin, onGoRegister, onGoBack }) => {
     try {
       const data = await login(email, password);
       if (data.access_token || data.token) {
-        await saveToken(data.access_token || data.token);
+        await saveToken(data.access_token || data.token, remember);
       }
       onLogin?.();
     } catch (error: any) {
@@ -87,48 +99,86 @@ const LoginScreen: React.FC<Props> = ({ onLogin, onGoRegister, onGoBack }) => {
   };
 
   return (
-    <View style={s.root}>
+    <View className="flex-1 bg-canvas">
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Photo background top */}
-      <View style={s.top}>
+      <View className="overflow-hidden" style={{ height: TOP_H + CURVE_HEIGHT }}>
         <Image
           source={{ uri: 'https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=800&auto=format&fit=crop' }}
-          style={StyleSheet.absoluteFill}
+          className="absolute inset-0"
           resizeMode="cover"
         />
-        {/* Dark overlay to make back button visible */}
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.2)' }]} />
+        <View className="absolute inset-0 bg-green-800/35" />
 
-        <View style={s.backWrap}>
-          <BackButton onPress={() => onGoBack?.()} color="#fff" style={{ backgroundColor: 'rgba(255,255,255,0.25)' }} />
+        <View
+          className="absolute z-10"
+          style={{ top: Platform.OS === 'ios' ? 56 : 44, left: Tokens.space[5] }}
+        >
+          <BackButton
+            onPress={() => onGoBack?.()}
+            color={Colors.textInverse}
+            className="bg-base-canvas/20"
+          />
         </View>
       </View>
 
-      {/* White card with curved top */}
-      <KeyboardAvoidingView style={s.cardWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        {/* Broad wave transition like the reference */}
-        <View style={s.curveContainer}>
-          <View style={s.waveShadow} />
+      <KeyboardAvoidingView
+        className="flex-1"
+        style={{ marginTop: -CURVE_HEIGHT - 150 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View className="relative z-[5] overflow-hidden" style={{ height: CURVE_HEIGHT }}>
           <LoginWave />
-          <View style={s.waveLeaf}>
-            <Ionicons name="leaf" size={34} color="#5F9751" style={s.waveLeafLarge} />
-            <Ionicons name="leaf" size={26} color="#78AF69" style={s.waveLeafSmall} />
+          <View className="absolute right-5 top-8 z-10 h-[54px] w-16">
+            <Ionicons
+              name="leaf"
+              size={34}
+              color={Semantic.color.action.brand}
+              style={{ position: 'absolute', right: 0, top: Tokens.space[2], transform: [{ rotate: '22deg' }] }}
+            />
+            <Ionicons
+              name="leaf"
+              size={26}
+              color={Tokens.color.green[400]}
+              style={{ position: 'absolute', left: 0, top: 0, transform: [{ rotate: '-25deg' }] }}
+            />
           </View>
         </View>
 
-        <ScrollView style={s.scroll} contentContainerStyle={s.scrollInner} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} bounces={false}>
-          <Text style={s.title}>Chào mừng trở lại</Text>
-          <Text style={s.subtitle}>Đăng nhập tài khoản của bạn</Text>
+        <ScrollView
+          className="-mt-px flex-1 bg-canvas"
+          contentContainerClassName="px-7 pb-8 pt-1"
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
+          <Text className="mb-2 text-center font-bold text-[30px] text-text">
+            Chào mừng trở lại
+          </Text>
+          <Text className="mb-8 text-center font-semibold text-[14px] text-text-muted">
+            Đăng nhập tài khoản của bạn
+          </Text>
+
           <Animated.View style={{ transform: [{ translateX: shakeAnim }] }}>
-            <AuthInput iconName="person-outline" placeholder="Email hoặc SĐT" value={email}
+            <AuthInput
+              iconName="person-outline"
+              placeholder="Email hoặc SĐT"
+              value={email}
               onChangeText={t => { setEmail(t); if (errors.email) setErrors(e => ({ ...e, email: undefined })); }}
-              error={errors.email} keyboardType="email-address" />
-            <AuthInput iconName="lock-closed-outline" placeholder="Mật khẩu" isPassword value={password}
+              error={errors.email}
+              keyboardType="email-address"
+            />
+            <AuthInput
+              iconName="lock-closed-outline"
+              placeholder="Mật khẩu"
+              isPassword
+              value={password}
               onChangeText={t => { setPassword(t); if (errors.password) setErrors(e => ({ ...e, password: undefined })); }}
-              error={errors.password} />
+              error={errors.password}
+            />
           </Animated.View>
-          <RememberForgotRow remembered={remember} onToggleRemember={() => setRemember(v => !v)} onForgotPassword={() => { }} />
+
+          <RememberForgotRow remembered={remember} onToggleRemember={() => setRemember(v => !v)} onForgotPassword={() => onGoForgotPassword?.()} />
           <AuthButton label="Đăng nhập" onPress={handleLogin} loading={loading} />
           <SocialLoginRow />
           <AuthFooterLink message="Bạn chưa có tài khoản?  " linkText="Đăng ký" onPress={() => onGoRegister?.()} />
@@ -138,61 +188,4 @@ const LoginScreen: React.FC<Props> = ({ onLogin, onGoRegister, onGoBack }) => {
   );
 };
 
-const CURVE_HEIGHT = 186;
-
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#fff' },
-  top: { height: TOP_H + CURVE_HEIGHT, overflow: 'hidden' },
-  backWrap: { position: 'absolute', top: Platform.OS === 'ios' ? 56 : 44, left: 20, zIndex: 10 },
-  cardWrap: { flex: 1, marginTop: -CURVE_HEIGHT - 150 },
-  curveContainer: {
-    height: CURVE_HEIGHT,
-    position: 'relative',
-    zIndex: 5,
-    overflow: 'hidden',
-  },
-  waveSvg: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-  },
-  waveShadow: {
-    // position: 'absolute',
-    // left: 0,
-    // right: 0,
-    // bottom: 6,
-    // height: CURVE_HEIGHT,
-    // shadowColor: '#173C21',
-    // shadowOffset: { width: 0, height: -8 },
-    // shadowOpacity: 0.05,
-    // shadowRadius: 16,
-    // elevation: 2,
-  },
-  waveLeaf: {
-    position: 'absolute',
-    top: 34,
-    right: 22,
-    zIndex: 10,
-    width: 64,
-    height: 54,
-  },
-  waveLeafLarge: {
-    position: 'absolute',
-    right: 0,
-    top: 8,
-    transform: [{ rotate: '22deg' }],
-  },
-  waveLeafSmall: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    transform: [{ rotate: '-25deg' }],
-  },
-  scroll: { flex: 1, backgroundColor: '#fff', marginTop: -1 },
-  scrollInner: { paddingHorizontal: 28, paddingTop: 2, paddingBottom: 30 },
-  title: { fontSize: 30, fontWeight: '800', color: '#1B3A1E', textAlign: 'center', marginBottom: 6, letterSpacing: -0.5 },
-  subtitle: { fontSize: 14, color: '#8FA892', textAlign: 'center', marginBottom: 28, fontWeight: '500' },
-});
-
 export default LoginScreen;
-

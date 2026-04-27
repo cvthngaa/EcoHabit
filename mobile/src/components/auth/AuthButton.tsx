@@ -2,13 +2,12 @@ import React, { useRef } from 'react';
 import {
   TouchableOpacity,
   Text,
-  StyleSheet,
   Animated,
   ActivityIndicator,
   View,
   ViewStyle,
 } from 'react-native';
-import Colors from '../../theme/colors';
+import { Colors, FontFamily, Semantic, Tokens } from '../../theme';
 
 interface Props {
   label: string;
@@ -30,35 +29,75 @@ const AuthButton: React.FC<Props> = ({
   const scale = useRef(new Animated.Value(1)).current;
 
   const pressIn = () =>
-    Animated.spring(scale, { toValue: 0.96, useNativeDriver: true, speed: 30 }).start();
+    Animated.spring(scale, { toValue: 0.98, useNativeDriver: true, speed: 30 }).start();
   const pressOut = () =>
     Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 20 }).start();
 
   const isPrimary = variant === 'primary';
 
   return (
-    <Animated.View style={[styles.wrap, { transform: [{ scale }] }, style]}>
+    <Animated.View
+      className="rounded-full"
+      style={[{ transform: [{ scale }] }, style]}
+    >
       <TouchableOpacity
         onPress={onPress}
         onPressIn={pressIn}
         onPressOut={pressOut}
-        activeOpacity={0.85}
+        activeOpacity={0.86}
         disabled={disabled || loading}
+        className="items-center justify-center rounded-full"
         style={[
-          styles.btn,
-          isPrimary ? styles.btnPrimary : styles.btnOutline,
-          (disabled || loading) && styles.btnDisabled,
+          {
+            minHeight: 56,
+            paddingHorizontal: Tokens.space[6],
+          },
+          isPrimary
+            ? {
+                backgroundColor: Semantic.color.action.primary,
+                shadowColor: Semantic.color.action.primaryPressed,
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.24,
+                shadowRadius: 12,
+                elevation: 8,
+              }
+            : {
+                backgroundColor: 'rgba(252,251,250,0.18)',
+                borderWidth: 1.5,
+                borderColor: 'rgba(252,251,250,0.56)',
+              },
+          (disabled || loading) && { opacity: 0.6 },
         ]}
       >
         {loading ? (
-          <View style={styles.loadingRow}>
-            <ActivityIndicator color={isPrimary ? '#fff' : Colors.primary} size="small" />
-            <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelOutline, { marginLeft: 10 }]}>
+          <View className="flex-row items-center">
+            <ActivityIndicator
+              color={isPrimary ? Colors.textInverse : Colors.primary}
+              size="small"
+            />
+            <Text
+              style={{
+                marginLeft: Tokens.space[2],
+                fontFamily: FontFamily.bold,
+                fontSize: 16,
+                fontWeight: '700',
+                letterSpacing: 0.2,
+                color: Colors.textInverse,
+              }}
+            >
               Đang xử lý...
             </Text>
           </View>
         ) : (
-          <Text style={[styles.label, isPrimary ? styles.labelPrimary : styles.labelOutline]}>
+          <Text
+            style={{
+              fontFamily: FontFamily.bold,
+              fontSize: 16,
+              fontWeight: '700',
+              letterSpacing: 0.2,
+              color: Colors.textInverse,
+            }}
+          >
             {label}
           </Text>
         )}
@@ -66,49 +105,5 @@ const AuthButton: React.FC<Props> = ({
     </Animated.View>
   );
 };
-
-const styles = StyleSheet.create({
-  wrap: {
-    borderRadius: 50,
-  },
-  btn: {
-    height: 56,
-    borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  btnPrimary: {
-    backgroundColor: '#2E5D3A',
-    shadowColor: '#1B3A1E',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  btnOutline: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.5)',
-  },
-  btnDisabled: {
-    opacity: 0.6,
-  },
-  loadingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  label: {
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: 0.3,
-  },
-  labelPrimary: {
-    color: '#FFFFFF',
-  },
-  labelOutline: {
-    color: '#FFFFFF',
-  },
-});
 
 export default AuthButton;

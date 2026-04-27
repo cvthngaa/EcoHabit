@@ -1,211 +1,53 @@
-import { Injectable } from '@nestjs/common';
-import { GenerateQuizDto } from './dto/generate-quiz.dto';
+import {
+  BadRequestException,
+  Injectable,
+  OnModuleDestroy,
+} from '@nestjs/common';
+import { Redis } from 'ioredis';
+import { GeminiQuizQuestion } from '../gemini/types/gemini.types';
+import { PointSourceType } from '../points/enums/point-source-type.enum';
+import { PointTransactionType } from '../points/enums/point-transaction-type.enum';
+import { PointsService } from '../points/points.service';
 import { GeminiService } from '../gemini/gemini.service';
+import {
+  DAILY_QUIZ_CACHE_TTL_SECONDS,
+  DAILY_QUIZ_DIFFICULTIES,
+  DAILY_QUIZ_QUESTION_COUNT,
+  DAILY_QUIZ_TOPIC_COUNT,
+  DAILY_QUIZ_TOPICS,
+  POINTS_PER_CORRECT_ANSWER,
+} from './constants/daily-quiz-topics.constant';
+import { QUIZ_BANK } from './constants/quiz-bank.constant';
+import { GenerateQuizDto } from './dto/generate-quiz.dto';
+import {
+  DailyQuizAnswerDetail,
+  DailyQuizResult,
+  QuizQuestion,
+  QuizTopic,
+  SelectedDailyQuizTopic,
+} from './types/quiz.types';
+import { getTodayInVietnam } from './utils/quiz-date.util';
+import { seededShuffle, shuffle } from './utils/quiz-random.util';
 
-type QuizDifficulty = 'easy' | 'medium' | 'hard';
-type QuizTopic = 'recycling' | 'plastic' | 'battery' | 'general';
-
-export interface QuizQuestion {
-  id: number;
-  question: string;
-  options: string[];
-  correctIndex: number;
-  explanation: string;
-  emoji: string;
-  topic: QuizTopic;
-  difficulty: QuizDifficulty;
-}
-
-const QUIZ_BANK: QuizQuestion[] = [
-  {
-    id: 1,
-    question: 'Chai nhua PET sau khi su dung nen duoc xu ly nhu the nao?',
-    options: [
-      'Vut vao thung rac thuong',
-      'Rua sach, ep dep va bo vao thung tai che',
-      'Dot bo',
-      'Chon lap',
-    ],
-    correctIndex: 1,
-    explanation:
-      'Chai PET co the tai che tot neu duoc lam sach va ep gon truoc khi thu gom.',
-    emoji: '♻️',
-    topic: 'plastic',
-    difficulty: 'easy',
-  },
-  {
-    id: 2,
-    question: 'Pin cu thuoc loai rac nao?',
-    options: ['Rac huu co', 'Rac tai che', 'Rac nguy hai', 'Rac thong thuong'],
-    correctIndex: 2,
-    explanation:
-      'Pin chua kim loai nang va hoa chat nen phai duoc thu gom nhu rac nguy hai.',
-    emoji: '🔋',
-    topic: 'battery',
-    difficulty: 'easy',
-  },
-  {
-    id: 3,
-    question: 'Giay ban dinh dau mo co nen bo vao nhom tai che giay khong?',
-    options: [
-      'Co, vi van la giay',
-      'Khong, vi lam hong quy trinh tai che',
-      'Co, neu gap gon lai',
-      'Chi khi phoi kho',
-    ],
-    correctIndex: 1,
-    explanation:
-      'Dau mo va tap chat khien giay ban kho tai che va de lam nhiem ban lo giay sach.',
-    emoji: '📄',
-    topic: 'recycling',
-    difficulty: 'easy',
-  },
-  {
-    id: 4,
-    question: 'Tui nilon thong thuong can khoang bao lau de phan huy ngoai tu nhien?',
-    options: ['10 nam', '50 nam', '100-500 nam', '1000 nam'],
-    correctIndex: 2,
-    explanation:
-      'Tui nilon mat rat lau de phan huy, vi vay nen han che su dung va thay bang tui tai dung.',
-    emoji: '🛍️',
-    topic: 'plastic',
-    difficulty: 'medium',
-  },
-  {
-    id: 5,
-    question: 'Diem thu gom rac nguy hai phu hop nhat cho pin va bong den la gi?',
-    options: [
-      'Thung rac sinh hoat gan nha',
-      'Diem thu gom rac nguy hai chuyen dung',
-      'Thung rac tai che giay',
-      'Kenh hoac ao ho',
-    ],
-    correctIndex: 1,
-    explanation:
-      'Pin va bong den can duoc thu gom tai diem chuyen dung de tranh ro ri hoa chat.',
-    emoji: '💡',
-    topic: 'battery',
-    difficulty: 'medium',
-  },
-  {
-    id: 6,
-    question: 'Dieu gi giup tang chat luong cua vat lieu tai che truoc khi mang di doi?',
-    options: [
-      'Tron chung tat ca loai rac',
-      'Giu nguyen thuc an thua tren bao bi',
-      'Phan loai dung va lam sach so bo',
-      'Bop nat vat lieu thuy tinh',
-    ],
-    correctIndex: 2,
-    explanation:
-      'Phan loai dung va ve sinh so bo giup vat lieu tai che it bi nhiem ban hon.',
-    emoji: '🌱',
-    topic: 'recycling',
-    difficulty: 'easy',
-  },
-  {
-    id: 7,
-    question: 'Ly do chinh khong nen dot rac nhua ngoai troi la gi?',
-    options: [
-      'Lam nhua dat hon',
-      'Phat sinh khi doc va anh huong suc khoe',
-      'Nhua se tan ra thanh nuoc',
-      'Khong tao ra khoi',
-    ],
-    correctIndex: 1,
-    explanation:
-      'Dot nhua ngoai troi co the phat sinh khi doc, bui min va nhieu chat gay hai.',
-    emoji: '🔥',
-    topic: 'plastic',
-    difficulty: 'medium',
-  },
-  {
-    id: 8,
-    question:
-      'Mot thoi quen nao sau day giup giam rac nhua dung mot lan hieu qua nhat?',
-    options: [
-      'Mang binh nuoc ca nhan',
-      'Mua nhieu tui nilon hon',
-      'Dung ly nhua moi ngay',
-      'Bo tat ca vao cung mot thung',
-    ],
-    correctIndex: 0,
-    explanation:
-      'Mang binh nuoc ca nhan giup cat giam dang ke luong chai va ly nhua dung mot lan.',
-    emoji: '🥤',
-    topic: 'general',
-    difficulty: 'easy',
-  },
-  {
-    id: 9,
-    question:
-      'Khi thu gom nhieu loai vat lieu tai che, dieu nao quan trong nhat?',
-    options: [
-      'Phan loai theo chat lieu',
-      'Buoc that chat tat ca lai voi nhau',
-      'Ngam nuoc truoc khi mang di',
-      'Tron voi rac huu co de tiet kiem cho',
-    ],
-    correctIndex: 0,
-    explanation:
-      'Phan loai theo chat lieu la buoc cot loi de don vi tai che xu ly dung luong vat lieu.',
-    emoji: '📦',
-    topic: 'recycling',
-    difficulty: 'medium',
-  },
-  {
-    id: 10,
-    question:
-      'Tai sao pin sac thuong than thien hon voi moi truong so voi pin dung mot lan?',
-    options: [
-      'Vi luon re hon',
-      'Vi co the tai su dung nhieu chu ky',
-      'Vi khong can dien de sac',
-      'Vi duoc bo chung voi rac huu co',
-    ],
-    correctIndex: 1,
-    explanation:
-      'Pin sac co the dung lai nhieu lan, giup giam luong pin thai bo ra moi truong.',
-    emoji: '🔌',
-    topic: 'battery',
-    difficulty: 'medium',
-  },
-  {
-    id: 11,
-    question: 'Nhua so 1 (PET) thuong duoc dung cho vat dung nao?',
-    options: ['Binh nuoc giai khat', 'Vo day dien', 'Noi kim loai', 'Pin tieu'],
-    correctIndex: 0,
-    explanation:
-      'PET thuong xuat hien o chai nuoc giai khat va nhieu loai bao bi nhua dung mot lan.',
-    emoji: '🧴',
-    topic: 'plastic',
-    difficulty: 'hard',
-  },
-  {
-    id: 12,
-    question:
-      'Neu mot vat lieu tai che bi lan qua nhieu tap chat, hau qua pho bien la gi?',
-    options: [
-      'Giam kha nang tai che hoac bi loai bo',
-      'Tang gia tri tai che len cao',
-      'Khong anh huong gi',
-      'Tu phan huy nhanh hon',
-    ],
-    correctIndex: 0,
-    explanation:
-      'Tap chat khien vat lieu kho tai che hon, lam giam chat luong dau ra hoac bi tu choi thu gom.',
-    emoji: '⚠️',
-    topic: 'recycling',
-    difficulty: 'hard',
-  },
-];
+type QuizServiceQuestion = QuizQuestion | GeminiQuizQuestion;
 
 @Injectable()
-export class QuizService {
-  constructor(private readonly geminiService: GeminiService) {}
+export class QuizService implements OnModuleDestroy {
+  private readonly redisClient: Redis;
+
+  constructor(
+    private readonly geminiService: GeminiService,
+    private readonly pointsService: PointsService,
+  ) {
+    this.redisClient = this.createRedisClient();
+  }
+
+  onModuleDestroy() {
+    this.redisClient.disconnect();
+  }
 
   async generateQuiz(dto: GenerateQuizDto) {
-    const count = dto.count ?? 5;
+    const count = dto.count ?? DAILY_QUIZ_QUESTION_COUNT;
     const difficulty = dto.difficulty;
     const topic = dto.topic ?? 'moi truong';
 
@@ -225,43 +67,145 @@ export class QuizService {
       };
     }
 
-    const normalizedTopic = (dto.topic || '').trim().toLowerCase();
-    const resolvedTopic = this.resolveTopic(normalizedTopic);
-    const filtered = QUIZ_BANK.filter((question) => {
-      const matchTopic = resolvedTopic
-        ? question.topic === resolvedTopic || question.topic === 'general'
-        : true;
-      const matchDifficulty = difficulty ? question.difficulty === difficulty : true;
-      return matchTopic && matchDifficulty;
-    });
-
-    const fallback = filtered.length > 0 ? filtered : QUIZ_BANK;
-    const selected = this.shuffle([...fallback]).slice(
-      0,
-      Math.min(count, fallback.length),
-    );
+    const fallbackQuestions = this.pickFallbackQuestions(dto, count);
 
     return {
       topic,
       difficulty: difficulty ?? 'mixed',
-      count: selected.length,
-      questions: selected.map(
-        ({ topic: _topic, difficulty: _difficulty, ...question }) => question,
+      count: fallbackQuestions.length,
+      questions: fallbackQuestions.map((question) =>
+        this.toPublicQuestion(question),
       ),
       source: 'fallback',
     };
   }
 
+  async getDailyQuiz(userId: string) {
+    const today = getTodayInVietnam();
+    const topics = this.getTodaysTopics(today);
+
+    return Promise.all(
+      topics.map(async (topic) => {
+        const completedResult = await this.getCompletedDailyQuiz(
+          userId,
+          today,
+          topic.id,
+        );
+
+        if (completedResult) {
+          return {
+            ...topic,
+            completed: true,
+            date: today,
+            score: completedResult.score,
+            total: completedResult.total,
+            pointsEarned: completedResult.pointsEarned,
+            completedAt: completedResult.completedAt,
+            questions: [],
+          };
+        }
+
+        const questions = await this.getQuestionsForDailyTopic(today, topic);
+
+        return {
+          ...topic,
+          completed: false,
+          date: today,
+          count: questions.length,
+          questions: questions.map((question) =>
+            this.toPublicQuestion(question),
+          ),
+        };
+      }),
+    );
+  }
+
+  async submitDailyQuiz(userId: string, topicId: string, answers: number[]) {
+    const today = getTodayInVietnam();
+    const topic = this.findTodaysTopic(today, topicId);
+
+    if (!topic) {
+      throw new BadRequestException(
+        'Chu de khong hop le hoac khong co trong ngay hom nay.',
+      );
+    }
+
+    const completedKey = this.completedQuizKey(userId, today, topicId);
+    const alreadyCompleted = await this.redisClient.get(completedKey);
+
+    if (alreadyCompleted) {
+      throw new BadRequestException(
+        'Ban da hoan thanh chu de nay hom nay roi.',
+      );
+    }
+
+    const questions = await this.getQuestionsForDailyTopic(today, topic);
+
+    if (answers.length !== questions.length) {
+      throw new BadRequestException(
+        `Can tra loi dung ${questions.length} cau, nhan duoc ${answers.length} cau.`,
+      );
+    }
+
+    const { score, details } = this.gradeAnswers(questions, answers);
+    const pointsEarned = score * POINTS_PER_CORRECT_ANSWER;
+
+    await this.rewardQuizPoints(userId, topicId, pointsEarned);
+
+    const result: DailyQuizResult = {
+      score,
+      total: questions.length,
+      pointsEarned,
+      details,
+      completedAt: new Date().toISOString(),
+    };
+
+    await this.cacheDailyQuizResult(completedKey, result);
+
+    return {
+      score,
+      total: questions.length,
+      pointsEarned,
+      details,
+    };
+  }
+
+  private createRedisClient(): Redis {
+    const redisUrl = process.env.REDIS_URL?.trim();
+
+    if (redisUrl?.startsWith('redis')) {
+      return new Redis(redisUrl);
+    }
+
+    return new Redis();
+  }
+
+  private pickFallbackQuestions(
+    dto: GenerateQuizDto,
+    count: number,
+  ): QuizQuestion[] {
+    const topic = this.resolveTopic((dto.topic ?? '').trim().toLowerCase());
+    const filteredQuestions = QUIZ_BANK.filter((question) => {
+      const matchesTopic = topic
+        ? question.topic === topic || question.topic === 'general'
+        : true;
+      const matchesDifficulty = dto.difficulty
+        ? question.difficulty === dto.difficulty
+        : true;
+
+      return matchesTopic && matchesDifficulty;
+    });
+
+    const fallback =
+      filteredQuestions.length > 0 ? filteredQuestions : QUIZ_BANK;
+
+    return shuffle(fallback).slice(0, Math.min(count, fallback.length));
+  }
+
   private resolveTopic(topic: string): QuizTopic | null {
     if (!topic) return null;
-
-    if (topic.includes('nhua') || topic.includes('plastic')) {
-      return 'plastic';
-    }
-
-    if (topic.includes('pin') || topic.includes('battery')) {
-      return 'battery';
-    }
+    if (topic.includes('nhua') || topic.includes('plastic')) return 'plastic';
+    if (topic.includes('pin') || topic.includes('battery')) return 'battery';
 
     if (
       topic.includes('tai che') ||
@@ -274,12 +218,170 @@ export class QuizService {
     return 'general';
   }
 
-  private shuffle<T>(items: T[]) {
-    for (let i = items.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [items[i], items[j]] = [items[j], items[i]];
+  private getTodaysTopics(today: string): SelectedDailyQuizTopic[] {
+    return seededShuffle(DAILY_QUIZ_TOPICS, today)
+      .slice(0, DAILY_QUIZ_TOPIC_COUNT)
+      .map((topic) => ({
+        ...topic,
+        difficulty: seededShuffle(
+          DAILY_QUIZ_DIFFICULTIES,
+          `${today}-${topic.id}-difficulty`,
+        )[0],
+      }));
+  }
+
+  private findTodaysTopic(
+    today: string,
+    topicId: string,
+  ): SelectedDailyQuizTopic | undefined {
+    return this.getTodaysTopics(today).find((topic) => topic.id === topicId);
+  }
+
+  private async getQuestionsForDailyTopic(
+    today: string,
+    topic: SelectedDailyQuizTopic,
+  ): Promise<QuizServiceQuestion[]> {
+    const cacheKey = this.dailyQuestionsKey(today, topic.id);
+    const cachedQuestions =
+      await this.readJson<QuizServiceQuestion[]>(cacheKey);
+
+    if (cachedQuestions) {
+      return cachedQuestions;
     }
 
-    return items;
+    const questions =
+      (await this.generateDailyQuestions(topic)) ??
+      this.pickFallbackDailyQuestions(today, topic);
+
+    await this.writeJson(cacheKey, questions, DAILY_QUIZ_CACHE_TTL_SECONDS);
+
+    return questions;
+  }
+
+  private async generateDailyQuestions(
+    topic: SelectedDailyQuizTopic,
+  ): Promise<GeminiQuizQuestion[] | null> {
+    const questions = await this.geminiService.generateQuizQuestions({
+      topic: topic.name,
+      difficulty: topic.difficulty === 'mixed' ? undefined : topic.difficulty,
+      count: DAILY_QUIZ_QUESTION_COUNT,
+    });
+
+    return questions.length > 0 ? questions : null;
+  }
+
+  private pickFallbackDailyQuestions(
+    today: string,
+    topic: SelectedDailyQuizTopic,
+  ): QuizQuestion[] {
+    const topicQuestions = this.getFallbackBankForDailyTopic(topic.id);
+
+    return seededShuffle(topicQuestions, `${today}-${topic.id}`).slice(
+      0,
+      Math.min(DAILY_QUIZ_QUESTION_COUNT, topicQuestions.length),
+    );
+  }
+
+  private getFallbackBankForDailyTopic(topicId: string): QuizQuestion[] {
+    if (topicId === 'general') {
+      return QUIZ_BANK;
+    }
+
+    const topicQuestions = QUIZ_BANK.filter(
+      (question) => question.topic === topicId,
+    );
+
+    return topicQuestions.length >= 3 ? topicQuestions : QUIZ_BANK;
+  }
+
+  private async getCompletedDailyQuiz(
+    userId: string,
+    today: string,
+    topicId: string,
+  ): Promise<DailyQuizResult | null> {
+    return this.readJson<DailyQuizResult>(
+      this.completedQuizKey(userId, today, topicId),
+    );
+  }
+
+  private gradeAnswers(
+    questions: QuizServiceQuestion[],
+    answers: number[],
+  ): { score: number; details: DailyQuizAnswerDetail[] } {
+    let score = 0;
+
+    const details = questions.map((question, index) => {
+      const correct = question.correctIndex === answers[index];
+
+      if (correct) {
+        score += 1;
+      }
+
+      return {
+        questionId: question.id,
+        userAnswer: answers[index],
+        correctAnswer: question.correctIndex,
+        correct,
+      };
+    });
+
+    return { score, details };
+  }
+
+  private async rewardQuizPoints(
+    userId: string,
+    topicId: string,
+    pointsEarned: number,
+  ): Promise<void> {
+    if (pointsEarned <= 0) return;
+
+    await this.pointsService.addPoint(
+      userId,
+      pointsEarned,
+      PointTransactionType.EARN,
+      PointSourceType.QUIZ,
+      topicId,
+    );
+  }
+
+  private async cacheDailyQuizResult(
+    cacheKey: string,
+    result: DailyQuizResult,
+  ): Promise<void> {
+    await this.writeJson(cacheKey, result, DAILY_QUIZ_CACHE_TTL_SECONDS);
+  }
+
+  private toPublicQuestion(question: QuizServiceQuestion) {
+    const {
+      topic: _topic,
+      difficulty: _difficulty,
+      ...publicQuestion
+    } = question as QuizServiceQuestion & Partial<QuizQuestion>;
+    return publicQuestion;
+  }
+
+  private dailyQuestionsKey(today: string, topicId: string): string {
+    return `quiz:daily_questions:${today}:${topicId}`;
+  }
+
+  private completedQuizKey(
+    userId: string,
+    today: string,
+    topicId: string,
+  ): string {
+    return `quiz:completed:${userId}:${today}:${topicId}`;
+  }
+
+  private async readJson<T>(key: string): Promise<T | null> {
+    const value = await this.redisClient.get(key);
+    return value ? (JSON.parse(value) as T) : null;
+  }
+
+  private async writeJson<T>(
+    key: string,
+    value: T,
+    ttlSeconds: number,
+  ): Promise<void> {
+    await this.redisClient.set(key, JSON.stringify(value), 'EX', ttlSeconds);
   }
 }

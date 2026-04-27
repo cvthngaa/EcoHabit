@@ -1,37 +1,37 @@
+import { Semantic, Tokens } from './tokens';
+
 const Colors = {
-  // ── Brand ──────────────────────────────────────────────────────────────────
-  primary: '#2E7D32',
-  primaryLight: '#4CAF50',
-  primaryDark: '#1B5E20',
-  primaryGradientStart: '#1B5E20',
-  primaryGradientEnd: '#4CAF50',
+  primary: Semantic.color.action.primary,
+  primaryLight: Tokens.color.green[400],
+  primaryDark: Semantic.color.action.primaryPressed,
+  primaryGradientStart: Tokens.color.green[800],
+  primaryGradientEnd: Tokens.color.brand.base,
+  brand: Semantic.color.action.brand,
 
-  // ── Surfaces ───────────────────────────────────────────────────────────────
   white: '#FFFFFF',
-  offWhite: '#F9FBF9',
-  surfaceLight: '#F1F8E9',
-  background: '#F5F9F5',
-  border: '#C8E6C9',
-  borderFocus: '#4CAF50',
+  offWhite: Semantic.color.bg.canvas,
+  surfaceLight: Semantic.color.bg.surfaceAlt,
+  background: Semantic.color.bg.canvas,
+  border: Semantic.color.border.subtle,
+  borderFocus: Semantic.color.action.primary,
+  borderDefault: Semantic.color.border.default,
 
-  // ── Text ───────────────────────────────────────────────────────────────────
-  textPrimary: '#1B3A1E',
-  textSecondary: '#5D7C61',
-  textMuted: '#8FA892',
+  textPrimary: Semantic.color.text.primary,
+  textSecondary: Semantic.color.text.secondary,
+  textMuted: Semantic.color.text.muted,
+  textInverse: Semantic.color.text.inverse,
 
-  // ── Semantic ───────────────────────────────────────────────────────────────
-  error: '#D32F2F',
-  errorLight: '#FFEBEE',
-  errorBorder: '#EF9A9A',
-  warning: '#F57F17',
-  warningLight: '#FFF8E1',
-  warningBorder: '#FFE082',
-  success: '#2E7D32',
-  successLight: '#E8F5E9',
-  info: '#1565C0',
-  infoLight: '#E3F2FD',
+  error: Tokens.color.status.error,
+  errorLight: Tokens.color.status.errorBg,
+  errorBorder: Tokens.color.status.error,
+  warning: Tokens.color.status.warning,
+  warningLight: Tokens.color.status.warningBg,
+  warningBorder: Tokens.color.status.warning,
+  success: Semantic.color.action.primary,
+  successLight: Tokens.color.status.successBg,
+  info: Tokens.color.status.info,
+  infoLight: Tokens.color.status.infoBg,
 
-  // ── Waste Categories ───────────────────────────────────────────────────────
   recyclable: '#1565C0',
   recyclableBg: '#E3F2FD',
   organic: '#5D4037',
@@ -41,19 +41,16 @@ const Colors = {
   general: '#546E7A',
   generalBg: '#ECEFF1',
 
-  // ── Confidence Levels ──────────────────────────────────────────────────────
-  confidenceHigh: '#2E7D32',
-  confidenceHighBg: '#E8F5E9',
-  confidenceMedium: '#F57F17',
-  confidenceMediumBg: '#FFF8E1',
-  confidenceLow: '#D32F2F',
-  confidenceLowBg: '#FFEBEE',
+  confidenceHigh: Semantic.color.action.primary,
+  confidenceHighBg: Tokens.color.status.successBg,
+  confidenceMedium: Tokens.color.status.warning,
+  confidenceMediumBg: Tokens.color.status.warningBg,
+  confidenceLow: Tokens.color.status.error,
+  confidenceLowBg: Tokens.color.status.errorBg,
 
-  // ── Wallet ─────────────────────────────────────────────────────────────────
-  earn: '#2E7D32',
-  spend: '#D32F2F',
+  earn: Semantic.color.action.primary,
+  spend: Tokens.color.status.error,
 
-  // ── Social ─────────────────────────────────────────────────────────────────
   google: '#DB4437',
   facebook: '#1877F2',
 };

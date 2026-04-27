@@ -1,23 +1,25 @@
+import { Tokens } from './tokens';
+
 export const Spacing = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  base: 16,
-  lg: 20,
-  xl: 24,
-  '2xl': 32,
+  xs: Tokens.space[1],
+  sm: Tokens.space[2],
+  md: Tokens.space[3],
+  base: Tokens.space[4],
+  lg: Tokens.space[5],
+  xl: Tokens.space[6],
+  '2xl': Tokens.space[8],
   '3xl': 40,
-  '4xl': 48,
+  '4xl': Tokens.space[12],
 };
 
 export const BorderRadius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
+  sm: Tokens.radius.sm,
+  md: Tokens.radius.md,
+  lg: Tokens.radius.lg,
   xl: 20,
-  '2xl': 24,
+  '2xl': Tokens.radius.xl,
   '3xl': 28,
-  full: 9999,
+  full: Tokens.radius.pill,
 };
 
 export const Shadows = {

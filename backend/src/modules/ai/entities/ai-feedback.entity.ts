@@ -7,7 +7,7 @@ import {
   CreateDateColumn,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { User } from 'src/modules/users/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
 import { TrashClassification } from './trash-classification.entity';
 import { WasteType } from '../enums/waste-type.enum';
 import { BinType } from '../enums/bin-type.enum';

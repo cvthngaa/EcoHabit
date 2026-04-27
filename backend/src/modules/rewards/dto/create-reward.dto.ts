@@ -1,4 +1,10 @@
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { RewardStatus } from '../enums/reward-status.enum';
 
 export class CreateRewardDto {

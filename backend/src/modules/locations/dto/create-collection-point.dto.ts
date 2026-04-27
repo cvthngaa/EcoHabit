@@ -1,4 +1,11 @@
-import { IsEnum, IsLatitude, IsLongitude, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEnum,
+  IsLatitude,
+  IsLongitude,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { LocationType } from '../enums/location-type.enum';
 
 export class CreateCollectionPointDto {

@@ -8,4 +8,4 @@ import { ForumReport } from './entities/forum-report.entity';
   imports: [TypeOrmModule.forFeature([ForumPost, ForumComment, ForumReport])],
   exports: [TypeOrmModule],
 })
-export class ForumModule { }
+export class ForumModule {}

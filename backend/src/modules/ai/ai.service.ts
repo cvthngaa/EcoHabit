@@ -24,14 +24,15 @@ import { PointTransactionType } from '../points/enums/point-transaction-type.enu
 export class AiService {
   private readonly aiServiceUrl: string;
   private readonly classificationAwardThreshold = 0.5;
-  private readonly classificationPointsByWasteType: Record<WasteType, number> = {
-    [WasteType.PLASTIC]: 20,
-    [WasteType.PAPER]: 15,
-    [WasteType.BATTERY]: 30,
-    [WasteType.GLASS]: 18,
-    [WasteType.METAL]: 25,
-    [WasteType.OTHER]: 12,
-  };
+  private readonly classificationPointsByWasteType: Record<WasteType, number> =
+    {
+      [WasteType.PLASTIC]: 20,
+      [WasteType.PAPER]: 15,
+      [WasteType.BATTERY]: 30,
+      [WasteType.GLASS]: 18,
+      [WasteType.METAL]: 25,
+      [WasteType.OTHER]: 12,
+    };
 
   constructor(
     @InjectRepository(TrashClassification)
@@ -99,10 +100,14 @@ export class AiService {
           filename: file.originalname,
           contentType: file.mimetype,
         });
-        const response = await axios.post(`${this.aiServiceUrl}/predict`, form, {
-          headers: form.getHeaders(),
-          timeout: 15000,
-        });
+        const response = await axios.post(
+          `${this.aiServiceUrl}/predict`,
+          form,
+          {
+            headers: form.getHeaders(),
+            timeout: 15000,
+          },
+        );
         aiResult = response.data;
       } catch {
         throw new InternalServerErrorException(

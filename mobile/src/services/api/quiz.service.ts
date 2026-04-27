@@ -31,3 +31,50 @@ export const generateQuiz = async (
   const res = await api.post('/quiz/generate', payload);
   return res.data;
 };
+
+// ========== DAILY QUIZ ==========
+
+export interface DailyQuizNotCompleted {
+  completed: false;
+  date: string;
+  count: number;
+  questions: QuizQuestion[];
+}
+
+export interface DailyQuizCompleted {
+  completed: true;
+  date: string;
+  score: number;
+  total: number;
+  pointsEarned: number;
+  completedAt: string;
+}
+
+export interface QuizTopic {
+  id: string;
+  name: string;
+  difficulty: string;
+  icon: string;
+  description: string;
+  completed: boolean;
+  date: string;
+  count?: number;
+  questions?: QuizQuestion[];
+  score?: number;
+  total?: number;
+  pointsEarned?: number;
+  completedAt?: string;
+}
+
+export const getDailyQuiz = async (): Promise<QuizTopic[]> => {
+  const response = await api.get('/quiz/daily');
+  return response.data;
+};
+
+export const submitDailyQuiz = async (
+  topicId: string,
+  answers: number[]
+): Promise<DailyQuizCompleted> => {
+  const response = await api.post('/quiz/daily/submit', { topicId, answers });
+  return response.data;
+};

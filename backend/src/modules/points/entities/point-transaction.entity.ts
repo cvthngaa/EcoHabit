@@ -7,7 +7,7 @@ import {
   CreateDateColumn,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { User } from 'src/modules/users/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
 import { PointTransactionType } from '../enums/point-transaction-type.enum';
 import { PointSourceType } from '../enums/point-source-type.enum';
 

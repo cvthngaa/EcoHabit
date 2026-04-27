@@ -10,6 +10,6 @@ import { PointsModule } from '../points/points.module';
 @Module({
   imports: [TypeOrmModule.forFeature([Reward, Redemption]), PointsModule],
   controllers: [RewardsController],
-  providers: [RewardsService]
+  providers: [RewardsService],
 })
-export class RewardsModule { }
+export class RewardsModule {}

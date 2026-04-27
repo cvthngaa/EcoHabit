@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Colors from '../../theme/colors';
+import { Colors, FontFamily, Semantic, Tokens } from '../../theme';
 
 interface Props {
   remembered: boolean;
@@ -14,63 +14,56 @@ const RememberForgotRow: React.FC<Props> = ({
   onToggleRemember,
   onForgotPassword,
 }) => (
-  <View style={styles.row}>
+  <View
+    className="flex-row items-center justify-between"
+    style={{ marginBottom: Tokens.space[5], marginTop: Tokens.space[1] }}
+  >
     <TouchableOpacity
-      style={styles.rememberWrap}
+      className="flex-row items-center"
+      style={{ gap: Tokens.space[2] }}
       onPress={onToggleRemember}
-      activeOpacity={0.7}
+      activeOpacity={0.72}
     >
-      <View style={[styles.checkbox, remembered && styles.checkboxOn]}>
-        {remembered && <Ionicons name="checkmark" size={12} color="#fff" />}
+      <View
+        className="items-center justify-center"
+        style={{
+          width: 20,
+          height: 20,
+          borderRadius: 6,
+          borderWidth: 2,
+          borderColor: remembered ? Colors.primary : Semantic.color.border.subtle,
+          backgroundColor: remembered ? Colors.primary : Colors.white,
+        }}
+      >
+        {remembered && <Ionicons name="checkmark" size={12} color={Colors.textInverse} />}
       </View>
-      <Text style={styles.rememberText}>Ghi nhớ</Text>
+      <Text
+        style={{
+          fontFamily: FontFamily.medium,
+          fontSize: 13,
+          fontWeight: '500',
+          color: Colors.textSecondary,
+        }}
+      >
+        Ghi nhớ
+      </Text>
     </TouchableOpacity>
 
     {onForgotPassword && (
-      <TouchableOpacity onPress={onForgotPassword} activeOpacity={0.7}>
-        <Text style={styles.forgotText}>Quên mật khẩu?</Text>
+      <TouchableOpacity onPress={onForgotPassword} activeOpacity={0.72}>
+        <Text
+          style={{
+            fontFamily: FontFamily.semibold,
+            fontSize: 13,
+            fontWeight: '600',
+            color: Colors.primary,
+          }}
+        >
+          Quên mật khẩu?
+        </Text>
       </TouchableOpacity>
     )}
   </View>
 );
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-    marginTop: 4,
-  },
-  rememberWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#C8E6C9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-  },
-  checkboxOn: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  rememberText: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    fontWeight: '500',
-  },
-  forgotText: {
-    fontSize: 13,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-});
 
 export default RememberForgotRow;

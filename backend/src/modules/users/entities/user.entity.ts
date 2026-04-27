@@ -1,23 +1,17 @@
-import {
-  Column,
-  Entity,
-  OneToMany,
-  DeleteDateColumn,
-  Index,
-} from 'typeorm';
-import { BaseEntity } from 'src/common/database/base.entity';
+import { Column, Entity, OneToMany, DeleteDateColumn, Index } from 'typeorm';
+import { BaseEntity } from '../../../common/database/base.entity';
 import { UserRole } from '../enums/user-role.enum';
 import { UserStatus } from '../enums/user-status.enum';
-import { PointRule } from 'src/modules/points/entities/point-rule.entity';
-import { PointTransaction } from 'src/modules/points/entities/point-transaction.entity';
-import { TrashClassification } from 'src/modules/ai/entities/trash-classification.entity';
-import { AiFeedback } from 'src/modules/ai/entities/ai-feedback.entity';
-import { Location } from 'src/modules/locations/entities/location.entity';
-import { DropoffTransaction } from 'src/modules/locations/entities/dropoff-transaction.entity';
-import { Redemption } from 'src/modules/rewards/entities/redemption.entity';
-import { ForumPost } from 'src/modules/forum/entities/forum-post.entity';
-import { ForumComment } from 'src/modules/forum/entities/forum-comment.entity';
-import { ForumReport } from 'src/modules/forum/entities/forum-report.entity';
+import { TrashClassification } from '../../ai/entities/trash-classification.entity';
+import { ForumComment } from '../../forum/entities/forum-comment.entity';
+import { ForumPost } from '../../forum/entities/forum-post.entity';
+import { ForumReport } from '../../forum/entities/forum-report.entity';
+import { DropoffTransaction } from '../../locations/entities/dropoff-transaction.entity';
+import { Location } from '../../locations/entities/location.entity';
+import { PointRule } from '../../points/entities/point-rule.entity';
+import { PointTransaction } from '../../points/entities/point-transaction.entity';
+import { Redemption } from '../../rewards/entities/redemption.entity';
+import { AiFeedback } from '../../ai/entities/ai-feedback.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -76,7 +70,10 @@ export class User extends BaseEntity {
   @OneToMany(() => PointRule, (pointRule) => pointRule.createdBy)
   createdPointRules: PointRule[];
 
-  @OneToMany(() => PointTransaction, (pointTransaction) => pointTransaction.user)
+  @OneToMany(
+    () => PointTransaction,
+    (pointTransaction) => pointTransaction.user,
+  )
   pointTransactions: PointTransaction[];
 
   @OneToMany(
