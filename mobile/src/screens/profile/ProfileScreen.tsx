@@ -15,7 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
-import { getProfile } from '../../services/api/auth.service';
+import { useGetProfile } from '../../services/auth';
 import { rankConfig } from '../../services/mockData';
 import { BackgroundTrees } from '../../components/NatureBackground';
 import FallingLeaves from '../../components/FallingLeaves';
@@ -130,10 +130,17 @@ const ProfileScreen: React.FC = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { refetch: refetchProfile } = useGetProfile({ enabled: false });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const data = await getProfile();
+      const profileResult = await refetchProfile({ throwOnError: true });
+      const data = profileResult.data;
+
+      if (!data) {
+        throw new Error('Profile data unavailable');
+      }
+
       setUserProfile(data);
     } catch (error) {
       console.log('Lỗi tải dữ liệu người dùng:', error);
@@ -141,18 +148,18 @@ const ProfileScreen: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [refetchProfile]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [])
+    }, [loadData])
   );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadData();
-  }, []);
+  }, [loadData]);
 
   const openProfileDetail = (route: ProfileMenuRoute) => {
     navigation.navigate(route);

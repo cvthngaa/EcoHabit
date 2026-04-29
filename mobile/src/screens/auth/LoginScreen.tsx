@@ -12,7 +12,7 @@ import SocialLoginRow from '../../components/auth/SocialLoginRow';
 import AuthFooterLink from '../../components/auth/AuthFooterLink';
 import BackButton from '../../components/auth/BackButton';
 import { Colors, Semantic, Tokens } from '../../theme';
-import { login } from '../../services/api/auth.service';
+import { useLogin } from '../../services/auth';
 import { saveToken } from '../../store/auth.store';
 
 const { width, height } = Dimensions.get('window');
@@ -62,6 +62,7 @@ const LoginScreen: React.FC<Props> = ({ onLogin, onGoRegister, onGoForgotPasswor
   const [loading, setLoading] = useState(false);
   const [remember, setRemember] = useState(false);
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const { mutateAsync: loginAsync } = useLogin();
 
   const shake = () =>
     Animated.sequence([
@@ -86,9 +87,9 @@ const LoginScreen: React.FC<Props> = ({ onLogin, onGoRegister, onGoForgotPasswor
     if (!validate()) return;
     setLoading(true);
     try {
-      const data = await login(email, password);
+      const data = await loginAsync({ email, password });
       if (data.access_token || data.token) {
-        await saveToken(data.access_token || data.token, remember);
+        await saveToken(String(data.access_token || data.token), remember);
       }
       onLogin?.();
     } catch (error: any) {

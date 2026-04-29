@@ -12,7 +12,7 @@ import AuthFooterLink from '../../components/auth/AuthFooterLink';
 import BackButton from '../../components/auth/BackButton';
 import DraggableBottomSheet from '../../components/DraggableBottomSheet';
 import { Colors, Semantic, Tokens } from '../../theme';
-import { register, sendOtp, verifyOtp } from '../../services/api/auth.service';
+import { useRegister, useSendOtp, useVerifyOtp } from '../../services/auth';
 
 const { height } = Dimensions.get('window');
 
@@ -33,6 +33,9 @@ const RegisterScreen: React.FC<Props> = ({ onGoLogin, onGoBack }) => {
   const [otp, setOtp] = useState('');
   const [verifying, setVerifying] = useState(false);
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const { mutateAsync: registerAsync } = useRegister();
+  const { mutateAsync: sendOtpAsync } = useSendOtp();
+  const { mutateAsync: verifyOtpAsync } = useVerifyOtp();
 
   const shake = () =>
     Animated.sequence([
@@ -60,7 +63,7 @@ const RegisterScreen: React.FC<Props> = ({ onGoLogin, onGoBack }) => {
     setIsOtpSheetVisible(true);
 
     try {
-      await sendOtp(email);
+      await sendOtpAsync({ email });
     } catch (error: any) {
       setIsOtpSheetVisible(false);
       Alert.alert('Lỗi', error?.response?.data?.message || 'Có lỗi xảy ra.');
@@ -76,8 +79,8 @@ const RegisterScreen: React.FC<Props> = ({ onGoLogin, onGoBack }) => {
     }
     setVerifying(true);
     try {
-      await verifyOtp(email, otp);
-      await register(email, password, fullName);
+      await verifyOtpAsync({ email, otp });
+      await registerAsync({ email, password, fullName });
       setIsOtpSheetVisible(false);
       Alert.alert('Thành công', 'Tạo tài khoản thành công! Vui lòng đăng nhập.', [
         { text: 'OK', onPress: () => onGoLogin?.() }

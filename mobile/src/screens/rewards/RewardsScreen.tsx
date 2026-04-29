@@ -19,12 +19,9 @@ import EmptyState from '../../components/EmptyState';
 import SelectableChipTabs from '../../components/SelectableChipTabs';
 import { useToast } from '../../context/ToastContext';
 import { rankConfig } from '../../services/mockData';
-import { getProfile } from '../../services/api/auth.service';
-import { getPointHistory } from '../../services/api/points.service';
-import {
-  getAllRewards,
-  redeemReward,
-} from '../../services/api/rewards.service';
+import { useGetProfile } from '../../services/auth';
+import { useGetPointHistory } from '../../services/points';
+import { useGetAllRewards, useRedeemReward } from '../../services/rewards';
 
 const { width } = Dimensions.get('window');
 
@@ -73,14 +70,25 @@ const RewardsScreen: React.FC = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { refetch: refetchProfile } = useGetProfile({ enabled: false });
+  const { refetch: refetchAllRewards } = useGetAllRewards({ enabled: false });
+  const { refetch: refetchPointHistory } = useGetPointHistory({ enabled: false });
+  const { mutateAsync: redeemRewardAsync } = useRedeemReward();
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const [profileData, rewardsData, historyData] = await Promise.all([
-        getProfile(),
-        getAllRewards(),
-        getPointHistory(),
+      const [profileResult, rewardsResult, historyResult] = await Promise.all([
+        refetchProfile({ throwOnError: true }),
+        refetchAllRewards({ throwOnError: true }),
+        refetchPointHistory({ throwOnError: true }),
       ]);
+      const profileData = profileResult.data;
+      const rewardsData = rewardsResult.data;
+      const historyData = historyResult.data;
+
+      if (!profileData) {
+        throw new Error('Profile data unavailable');
+      }
 
       setUserProfile(profileData);
 
@@ -142,18 +150,18 @@ const RewardsScreen: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [refetchAllRewards, refetchPointHistory, refetchProfile]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, [])
+    }, [loadData])
   );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadData();
-  }, []);
+  }, [loadData]);
 
   const userPoints = userProfile?.pointsBalance || 0;
   const selectedCategory = categories.find((category) => category.id === activeCat)?.label;
@@ -182,7 +190,7 @@ const RewardsScreen: React.FC = () => {
     setRedeeming(true);
 
     try {
-      await redeemReward(item.id);
+      await redeemRewardAsync({ rewardId: item.id });
       showToast(`🎉 Đã đổi "${item.name}" thành công!`, 'success');
       await loadData();
     } catch (error: any) {

@@ -9,7 +9,7 @@ import AuthButton from '../../components/auth/AuthButton';
 import BackButton from '../../components/auth/BackButton';
 import DraggableBottomSheet from '../../components/DraggableBottomSheet';
 import { Colors, FontFamily, Semantic, Tokens } from '../../theme';
-import { sendPasswordResetOtp, verifyOtp } from '../../services/api/auth.service';
+import { useSendPasswordResetOtp, useVerifyOtp } from '../../services/auth';
 
 const { height } = Dimensions.get('window');
 
@@ -29,6 +29,8 @@ const ForgotPasswordScreen: React.FC<Props> = ({ onGoBack, onVerified }) => {
   const [otp, setOtp] = useState('');
   const [verifying, setVerifying] = useState(false);
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const { mutateAsync: sendPasswordResetOtpAsync } = useSendPasswordResetOtp();
+  const { mutateAsync: verifyOtpAsync } = useVerifyOtp();
 
   const shake = () =>
     Animated.sequence([
@@ -57,7 +59,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ onGoBack, onVerified }) => {
     setLoading(true);
 
     try {
-      await sendPasswordResetOtp(email);
+      await sendPasswordResetOtpAsync({ email });
       setIsOtpSheetVisible(true);
     } catch (err: any) {
       Alert.alert('Lỗi', err?.response?.data?.message || 'Có lỗi xảy ra.');
@@ -73,7 +75,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ onGoBack, onVerified }) => {
     }
     setVerifying(true);
     try {
-      await verifyOtp(email, otp);
+      await verifyOtpAsync({ email, otp });
       setIsOtpSheetVisible(false);
       onVerified?.(email);
     } catch (err: any) {

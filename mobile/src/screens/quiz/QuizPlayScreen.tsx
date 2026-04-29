@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, Animated, ActivityIndicator, 
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
-import { QuizQuestion, submitDailyQuiz } from '../../services/api/quiz.service';
+import { QuizQuestion, useSubmitDailyQuiz } from '../../services/quiz';
 import { useToast } from '../../context/ToastContext';
 
 const QuizPlayScreen: React.FC = () => {
@@ -11,6 +11,7 @@ const QuizPlayScreen: React.FC = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
   const { showToast } = useToast();
+  const { mutateAsync: submitDailyQuizAsync } = useSubmitDailyQuiz();
   
   const questions: QuizQuestion[] = route.params?.questions || [];
   const total = questions.length;
@@ -66,7 +67,7 @@ const QuizPlayScreen: React.FC = () => {
       try {
         const finalAnswers = [...ans] as number[];
         finalAnswers[currentIdx] = selectedIdx!; 
-        const result = await submitDailyQuiz(topicId, finalAnswers);
+        const result = await submitDailyQuizAsync({ topicId, answers: finalAnswers });
         
         navigation.replace('QuizResult', {
           score: result.score,

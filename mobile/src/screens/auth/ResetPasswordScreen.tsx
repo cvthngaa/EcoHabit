@@ -8,7 +8,7 @@ import AuthInput from '../../components/auth/AuthInput';
 import AuthButton from '../../components/auth/AuthButton';
 import BackButton from '../../components/auth/BackButton';
 import { Colors, Semantic, Tokens } from '../../theme';
-import { resetPassword } from '../../services/api/auth.service';
+import { useResetPassword } from '../../services/auth';
 
 interface Props {
   email: string;
@@ -24,6 +24,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ email, onGoBack, onSuccess }) =>
   const [errors, setErrors] = useState<Errors>({});
   const [loading, setLoading] = useState(false);
   const shakeAnim = useRef(new Animated.Value(0)).current;
+  const { mutateAsync: resetPasswordAsync } = useResetPassword();
 
   const shake = () =>
     Animated.sequence([
@@ -60,7 +61,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ email, onGoBack, onSuccess }) =>
     setLoading(true);
 
     try {
-      await resetPassword(email, password);
+      await resetPasswordAsync({ email, newPassword: password });
       Alert.alert('Thành công', 'Mật khẩu đã được đặt lại thành công. Vui lòng đăng nhập bằng mật khẩu mới.', [
         { text: 'OK', onPress: () => onSuccess?.() }
       ]);

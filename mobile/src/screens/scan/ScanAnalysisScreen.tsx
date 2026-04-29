@@ -18,9 +18,9 @@ import ScanningAnimation from '../../components/ScanningAnimation';
 import { useToast } from '../../context/ToastContext';
 import {
   AIClassificationResult,
-  classifyWaste,
   getConfidenceLevel,
-} from '../../services/aiService';
+  useClassifyWaste,
+} from '../../services/ai';
 import { wasteCategories, WasteCategory } from '../../services/mockData';
 
 const { width } = Dimensions.get('window');
@@ -32,6 +32,7 @@ const ScanAnalysisScreen: React.FC = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { showToast } = useToast();
+  const { mutateAsync: classifyWasteAsync } = useClassifyWaste();
   const imageUri = route.params?.imageUri as string | undefined;
 
   const [mode, setMode] = useState<AnalysisMode>('scanning');
@@ -75,7 +76,7 @@ const ScanAnalysisScreen: React.FC = () => {
 
     const runAnalysis = async () => {
       try {
-        const aiResult = await classifyWaste(imageUri);
+        const aiResult = await classifyWasteAsync(imageUri);
         if (cancelled) return;
 
         setProgress(100);
@@ -103,7 +104,7 @@ const ScanAnalysisScreen: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [imageUri, navigation, resultSlideAnim, showToast]);
+  }, [classifyWasteAsync, imageUri, navigation, resultSlideAnim, showToast]);
 
   const handleSaveResult = useCallback(() => {
     if (result) {

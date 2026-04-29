@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StatusBar, ActivityIndicator, ScrollView 
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { getDailyQuiz, QuizTopic } from '../../services/api/quiz.service';
+import { QuizTopic, useGetDailyQuiz } from '../../services/quiz';
 import { useToast } from '../../context/ToastContext';
 import PrimaryButton from '../../components/PrimaryButton';
 
@@ -14,12 +14,13 @@ const QuizIntroScreen: React.FC = () => {
   
   const [loading, setLoading] = useState(true);
   const [topics, setTopics] = useState<QuizTopic[]>([]);
+  const { refetch: refetchDailyQuiz } = useGetDailyQuiz({ enabled: false });
 
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
-        const data = await getDailyQuiz();
-        setTopics(data);
+        const result = await refetchDailyQuiz({ throwOnError: true });
+        setTopics(result.data || []);
         setLoading(false);
       } catch (error) {
         console.log('Load quiz error:', error);
@@ -28,7 +29,7 @@ const QuizIntroScreen: React.FC = () => {
       }
     };
     fetchQuiz();
-  }, [navigation, showToast]);
+  }, [navigation, refetchDailyQuiz, showToast]);
 
   const handleStartTopic = (topic: QuizTopic) => {
     if (topic.completed) {

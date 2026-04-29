@@ -12,10 +12,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { getProfile } from '../../services/api/auth.service';
-import { getDailyTip, type DailyTipResponse } from '../../services/api/gemini.service';
-import { getPointHistory } from '../../services/api/points.service';
-import { getTopRewards } from '../../services/api/rewards.service';
+import { useGetProfile } from '../../services/auth';
+import { useGetPointHistory } from '../../services/points';
+import { useGetTopRewards } from '../../services/rewards';
+import { DailyTipResponse, useGetDailyTip } from '../../services/tips';
 import { Shadows, Tokens } from '../../theme';
 
 const PRIMARY_COLOR = Tokens.color.green.primary;
@@ -131,15 +131,27 @@ const HomeScreen: React.FC = () => {
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [featuredRewards, setFeaturedRewards] = useState<any[]>([]);
   const [dailyTip, setDailyTip] = useState<DailyTipResponse>(DAILY_TIP_FALLBACK);
+  const { refetch: refetchProfile } = useGetProfile({ enabled: false });
+  const { refetch: refetchPointHistory } = useGetPointHistory({ enabled: false });
+  const { refetch: refetchTopRewards } = useGetTopRewards({ enabled: false, limit: 5 });
+  const { refetch: refetchDailyTip } = useGetDailyTip({ enabled: false });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
-      const [profileData, historyRes, topRewardsRes, dailyTipRes] = await Promise.all([
-        getProfile(),
-        getPointHistory(),
-        getTopRewards(5),
-        getDailyTip(),
+      const [profileResult, historyResult, topRewardsResult, dailyTipResult] = await Promise.all([
+        refetchProfile({ throwOnError: true }),
+        refetchPointHistory({ throwOnError: true }),
+        refetchTopRewards({ throwOnError: true }),
+        refetchDailyTip({ throwOnError: true }),
       ]);
+      const profileData = profileResult.data;
+      const historyRes = historyResult.data;
+      const topRewardsRes = topRewardsResult.data;
+      const dailyTipRes = dailyTipResult.data;
+
+      if (!profileData) {
+        throw new Error('Profile data unavailable');
+      }
 
       setUserProfile(profileData);
       setRecentActivities(Array.isArray(historyRes) ? historyRes.slice(0, 5) : []);
@@ -165,18 +177,18 @@ const HomeScreen: React.FC = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [refetchDailyTip, refetchPointHistory, refetchProfile, refetchTopRewards]);
 
   useFocusEffect(
     useCallback(() => {
       loadData();
-    }, []),
+    }, [loadData]),
   );
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     loadData();
-  }, []);
+  }, [loadData]);
 
   const goQuickAction = (route: string) => {
     if (route === 'ScanTab') navigation.navigate('Scan');

@@ -9,14 +9,16 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import { useToast } from '../../context/ToastContext';
 
-import { getProfile } from '../../services/api/auth.service';
-import { redeemReward } from '../../services/api/rewards.service';
+import { useGetProfile } from '../../services/auth';
+import { useRedeemReward } from '../../services/rewards';
 
 const RewardDetailScreen: React.FC = () => {
   const nav = useNavigation<any>();
   const route = useRoute();
   const insets = useSafeAreaInsets();
   const { showToast } = useToast();
+  const { refetch: refetchProfile } = useGetProfile({ enabled: false });
+  const { mutateAsync: redeemRewardAsync } = useRedeemReward();
   
   const [redeeming, setRedeeming] = useState(false);
   const [redeemed, setRedeemed] = useState(false);
@@ -29,7 +31,8 @@ const RewardDetailScreen: React.FC = () => {
     if (!reward) return;
     const loadProfile = async () => {
       try {
-        const profile = await getProfile();
+        const profileResult = await refetchProfile({ throwOnError: true });
+        const profile = profileResult.data;
         setUserPoints(profile?.pointsBalance || 0);
       } catch (e) {
         console.log(e);
@@ -38,7 +41,7 @@ const RewardDetailScreen: React.FC = () => {
       }
     };
     loadProfile();
-  }, [reward]);
+  }, [refetchProfile, reward]);
 
   if (!reward) return null;
 
@@ -49,7 +52,7 @@ const RewardDetailScreen: React.FC = () => {
     setRedeeming(true);
     
     try {
-      await redeemReward(reward.id);
+      await redeemRewardAsync({ rewardId: reward.id });
       setRedeemed(true);
       setUserPoints(prev => (prev || 0) - reward.points);
       showToast(`🎉 Đã đổi "${reward.name}" thành công!`, 'success');
