@@ -4,19 +4,19 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import HeroHeader from '../../components/home/HeroHeader';
+import PointsCard from '../../components/PointsCard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useGetProfile } from '../../services/auth';
 import { useGetPointHistory } from '../../services/points';
 import { useGetTopRewards } from '../../services/rewards';
 import { DailyTipResponse, useGetDailyTip } from '../../services/tips';
-import { Shadows, Tokens } from '../../theme';
+import { Tokens } from '../../theme';
 
 const PRIMARY_COLOR = Tokens.color.green.primary;
 
@@ -228,7 +228,6 @@ const HomeScreen: React.FC = () => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerClassName="pb-5"
-        contentContainerStyle={{ paddingTop: insets.top + Tokens.space[5] }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -237,82 +236,18 @@ const HomeScreen: React.FC = () => {
           />
         }
       >
-        <View className="mb-6 flex-row items-center justify-between px-5">
-          <View className="flex-1 items-start">
-            {userProfile?.avatarUrl ? (
-              <Image source={{ uri: userProfile.avatarUrl }} className="h-11 w-11 rounded-full" />
-            ) : (
-              <View className="h-11 w-11 items-center justify-center rounded-full bg-primary">
-                <Text className="text-[18px] font-bold text-white">
-                  {userProfile?.fullName
-                    ? userProfile.fullName.charAt(0).toUpperCase()
-                    : 'U'}
-                </Text>
-              </View>
-            )}
-          </View>
-          <View className="flex-[4] items-center">
-            <Text className="mb-1 text-center text-[17px] font-extrabold text-text">
-              Chào buổi sáng, {userProfile?.fullName} 👋
-            </Text>
-            <Text className="text-center text-[13px] font-medium text-text-muted">
-              Hôm nay bạn đã sống xanh chưa?
-            </Text>
-          </View>
-          <View className="flex-1 items-end">
-            <TouchableOpacity
-              className="h-[42px] w-[42px] items-center justify-center rounded-full bg-surface"
-              style={Shadows.sm}
-            >
-              <Ionicons name="notifications-outline" size={24} color="#333" />
-              <View className="absolute right-3 top-2.5 h-2.5 w-2.5 rounded-full border-[1.5px] border-white bg-[#FF3B30]" />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <HeroHeader
+          fullName={userProfile?.fullName || 'Bạn'}
+          avatarUrl={userProfile?.avatarUrl}
+          pointsBalance={userProfile?.pointsBalance || 0}
+          onPressRedeem={() => navigation.navigate('Rewards')}
+          onPressNotification={() => {}}
+        />
 
-        <LinearGradient
-          colors={['#28A710', PRIMARY_COLOR, Tokens.color.green[600]]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            marginHorizontal: Tokens.space[5],
-            borderRadius: 20,
-            padding: Tokens.space[5],
-            shadowColor: PRIMARY_COLOR,
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.35,
-            shadowRadius: 16,
-            elevation: 8,
-            marginBottom: Tokens.space[6],
-            overflow: 'hidden',
-          }}
-        >
-          <View className="absolute right-[-30px] top-[-50px] h-[150px] w-[150px] rounded-full bg-white/10" />
-          <View className="mb-5 flex-row items-start justify-between">
-            <View>
-              <Text className="mb-1 text-[26px] font-extrabold text-white">
-                ⭐ {(userProfile?.pointsBalance || 0).toLocaleString()} điểm
-              </Text>
-              <Text className="text-[14px] font-semibold text-white/90">
-                +0 hôm nay
-              </Text>
-            </View>
-            <TouchableOpacity
-              className="rounded-lg bg-white/25 px-[14px] py-2"
-              onPress={() => navigation.navigate('Rewards')}
-            >
-              <Text className="text-[13px] font-bold text-white">Đổi quà 🎁</Text>
-            </TouchableOpacity>
-          </View>
-          <View className="mt-2">
-            <Text className="mb-2 text-[13px] font-semibold text-white/90">
-              Tháng này: 1/30 ngày
-            </Text>
-            <View className="h-2 overflow-hidden rounded-full bg-white/30">
-              <View className="h-full w-[10%] rounded-full bg-white" />
-            </View>
-          </View>
-        </LinearGradient>
+        <PointsCard 
+          pointsBalance={userProfile?.pointsBalance || 0}
+          onPressRedeem={() => navigation.navigate('Rewards')}
+        />
 
         <View className="mb-6 flex-row flex-wrap justify-between px-5">
           {quickActions.map((action) => (
