@@ -61,7 +61,8 @@ export class PointTransaction {
 
   @Column({
     name: 'source_id',
-    type: 'uuid',
+    type: 'varchar',
+    length: 255,
     nullable: true,
   })
   sourceId?: string | null;

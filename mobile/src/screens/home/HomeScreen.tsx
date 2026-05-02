@@ -238,10 +238,9 @@ const HomeScreen: React.FC = () => {
       >
         <HeroHeader
           fullName={userProfile?.fullName || 'Bạn'}
-          avatarUrl={userProfile?.avatarUrl}
           pointsBalance={userProfile?.pointsBalance || 0}
-          onPressRedeem={() => navigation.navigate('Rewards')}
           onPressNotification={() => {}}
+          onPressRedeem={() => navigation.navigate('Rewards')}
         />
 
         <PointsCard 

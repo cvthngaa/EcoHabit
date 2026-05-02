@@ -1,18 +1,20 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, TouchableOpacity, StatusBar, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
+import { useGetProfile } from '../../services/auth';
 
 const QuizResultScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
+  const { data: profile } = useGetProfile();
 
   const score = route.params?.score || 0;
   const total = route.params?.total || 5;
   const pointsEarned = route.params?.pointsEarned || 0;
-  const userName = 'Người chơi'; // Fallback until AuthContext provides it
+  const userName = profile?.fullName || 'Người chơi';
 
   const isPerfect = score === total;
   const isGood = score >= total / 2;
@@ -48,9 +50,16 @@ const QuizResultScreen: React.FC = () => {
 
           {/* Winner Avatar Mockup */}
           <View className="items-center">
-            <View className="w-24 h-24 rounded-full bg-[#FFE95C] items-center justify-center shadow-lg border-4 border-white mb-[-12px] z-10">
-              <Text className="text-5xl">{isPerfect ? '👑' : isGood ? '🌟' : '💪'}</Text>
-            </View>
+            {profile?.avatarUrl ? (
+              <Image
+                source={{ uri: profile.avatarUrl }}
+                className="w-24 h-24 rounded-full border-4 border-white mb-[-12px] z-10 shadow-lg"
+              />
+            ) : (
+              <View className="w-24 h-24 rounded-full bg-[#FFE95C] items-center justify-center shadow-lg border-4 border-white mb-[-12px] z-10">
+                <Text className="text-5xl">{isPerfect ? '👑' : isGood ? '🌟' : '💪'}</Text>
+              </View>
+            )}
             
             <View className="bg-white rounded-full px-5 py-2 flex-row items-center gap-2 shadow-sm">
               <Ionicons name="trophy" size={16} color="#358C5B" />

@@ -471,7 +471,7 @@ const MapScreen: React.FC = () => {
     <View className="flex-1 bg-canvas">
       <MapView
         ref={mapRef}
-        className="flex-1"
+        style={{ width: '100%', height: '100%' }}
         initialRegion={DEFAULT_REGION}
         region={region}
         onRegionChangeComplete={setRegion}
