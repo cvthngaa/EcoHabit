@@ -23,8 +23,20 @@ export class CollectionPointsController {
   constructor(private readonly locationsService: LocationsService) {}
 
   @Get()
-  async getAllCollectionPoints() {
-    return this.locationsService.getAllCollectionPoints();
+  async getAllCollectionPoints(
+    @Query('lat') lat?: string,
+    @Query('lng') lng?: string,
+    @Query('radius') radius?: string,
+  ) {
+    const latitude = lat ? parseFloat(lat) : undefined;
+    const longitude = lng ? parseFloat(lng) : undefined;
+    const radiusKm = radius ? parseFloat(radius) : 10;
+
+    return this.locationsService.getAllCollectionPoints(
+      latitude,
+      longitude,
+      radiusKm,
+    );
   }
 
   @Get('address-suggestions')

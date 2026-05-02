@@ -87,7 +87,13 @@ export async function getNearbyCollectionPoints(
 ): Promise<CollectionPointItem[]> {
   try {
     console.log('[locationService] requesting /collection-points with coordinate:', coordinate);
-    const response = await api.get<BackendCollectionPoint[]>('/collection-points');
+    const response = await api.get<BackendCollectionPoint[]>('/collection-points', {
+      params: {
+        lat: coordinate.latitude,
+        lng: coordinate.longitude,
+        radius: 10,
+      },
+    });
     const points = Array.isArray(response.data) ? response.data : [];
   const invalidCoordinatePoints = points.filter(point => {
     const latitude = toCoordinateNumber(point.latitude);

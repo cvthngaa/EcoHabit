@@ -59,22 +59,48 @@ export class LocationsService {
       .join(', ');
   }
 
-  async getAllCollectionPoints() {
-    return this.locationRepo.find({
-      where: { status: LocationStatus.APPROVED },
-      select: {
-        id: true,
-        name: true,
-        type: true,
-        address: true,
-        latitude: true,
-        longitude: true,
-        status: true,
-      },
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+  async getAllCollectionPoints(
+    latitude?: number,
+    longitude?: number,
+    radiusKm: number = 10,
+  ) {
+    const query = this.locationRepo
+      .createQueryBuilder('location')
+      .where('location.status = :status', { status: LocationStatus.APPROVED })
+      .select([
+        'location.id',
+        'location.name',
+        'location.type',
+        'location.address',
+        'location.latitude',
+        'location.longitude',
+        'location.status',
+      ]);
+
+    if (
+      latitude !== undefined &&
+      longitude !== undefined &&
+      !isNaN(latitude) &&
+      !isNaN(longitude)
+    ) {
+      query
+        .andWhere(
+          'location.latitude IS NOT NULL AND location.longitude IS NOT NULL',
+        )
+        .addSelect(
+          `(6371 * acos(least(greatest(cos(radians(:latitude)) * cos(radians(location.latitude)) * cos(radians(location.longitude) - radians(:longitude)) + sin(radians(:latitude)) * sin(radians(location.latitude)), -1.0), 1.0)))`,
+          'distance',
+        )
+        .setParameters({ latitude, longitude, radiusKm })
+        .andWhere(
+          `(6371 * acos(least(greatest(cos(radians(:latitude)) * cos(radians(location.latitude)) * cos(radians(location.longitude) - radians(:longitude)) + sin(radians(:latitude)) * sin(radians(location.latitude)), -1.0), 1.0))) <= :radiusKm`,
+        )
+        .orderBy('distance', 'ASC');
+    } else {
+      query.orderBy('location.createdAt', 'DESC');
+    }
+
+    return query.getMany();
   }
 
   async getAddressSuggestions(query: string): Promise<NominatimSuggestion[]> {
