@@ -25,8 +25,9 @@ import SelectableChipTabs from '../../components/SelectableChipTabs';
 import {
   CollectionPointItem,
   getNearbyCollectionPoints,
-} from '../../services/locationService';
-import { NominatimSuggestion, searchPlaces } from '../../services/nominatimService';
+  NominatimSuggestion,
+  searchPlaces,
+} from '../../services/map';
 
 const DEFAULT_REGION: Region = {
   latitude: 10.7769,

@@ -1,7 +1,9 @@
-import { Column, Entity, OneToMany } from 'typeorm';
+import { Column, Entity, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { BaseEntity } from '../../../common/database/base.entity';
 import { RewardStatus } from '../enums/reward-status.enum';
 import { Redemption } from './redemption.entity';
+import { PartnerProfile } from '../../partner/entity/partner-profile.entity';
+import { RewardPickupOption } from './reward-pickup-option.entity';
 
 @Entity('rewards')
 export class Reward extends BaseEntity {
@@ -44,4 +46,11 @@ export class Reward extends BaseEntity {
 
   @OneToMany(() => Redemption, (redemption) => redemption.reward)
   redemptions: Redemption[];
+
+  @ManyToOne(() => PartnerProfile, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'partner_profile_id' })
+  partnerProfile?: PartnerProfile | null;
+
+  @OneToMany(() => RewardPickupOption, (option) => option.reward)
+  pickupOptions: RewardPickupOption[];
 }

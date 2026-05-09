@@ -5,7 +5,7 @@ import { RedeemRewardPayload, RedeemRewardResponse } from './types';
 export function useRedeemReward() {
   return useMutation({
     mutationFn: async ({ rewardId }: RedeemRewardPayload): Promise<RedeemRewardResponse> => {
-      const response = await api.post<RedeemRewardResponse>('/rewards/redeem', {
+      const response = await api.post<RedeemRewardResponse>('/redemptions', {
         rewardId,
       });
 

@@ -9,12 +9,17 @@ import { Repository } from 'typeorm';
 import axios from 'axios';
 import { Location } from './entities/location.entity';
 import { DropoffTransaction } from './entities/dropoff-transaction.entity';
+import { LocationCapability } from './entities/location-capability.entity';
+import { CollectionLocationProfile } from './entities/collection-location-profile.entity';
+import { AcceptedWasteType } from './entities/accepted-waste-type.entity';
 import { CreateCollectionPointDto } from './dto/create-collection-point.dto';
 import { UpdateCollectionPointDto } from './dto/update-collection-point.dto';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { UserRole } from '../users/enums/user-role.enum';
 import { LocationStatus } from './enums/location-status.enum';
 import { DropoffStatus } from './enums/dropoff-status.enum';
+import { PartnerRoleType } from '../partner/enum/partner-role-type.enum';
+import { PartnersService } from '../partner/partners.service';
 import {
   NominatimAddress,
   NominatimItem,
@@ -28,6 +33,13 @@ export class LocationsService {
     private readonly locationRepo: Repository<Location>,
     @InjectRepository(DropoffTransaction)
     private readonly dropoffRepo: Repository<DropoffTransaction>,
+    @InjectRepository(LocationCapability)
+    private readonly locationCapabilityRepo: Repository<LocationCapability>,
+    @InjectRepository(CollectionLocationProfile)
+    private readonly collectionLocationProfileRepo: Repository<CollectionLocationProfile>,
+    @InjectRepository(AcceptedWasteType)
+    private readonly acceptedWasteTypeRepo: Repository<AcceptedWasteType>,
+    private readonly partnersService: PartnersService,
   ) {}
 
   private toCoordinateNumber(value?: string | number | null) {
@@ -167,12 +179,57 @@ export class LocationsService {
   }
 
   async createCollectionPoint(userId: string, data: CreateCollectionPointDto) {
+    const partnerProfile = await this.partnersService.getPartnerSummaryByUserId(userId);
+    
+    if (!partnerProfile || !partnerProfile.roleTypes.includes(PartnerRoleType.COLLECTOR)) {
+      throw new ForbiddenException('Only approved partners with COLLECTOR role can create collection points');
+    }
+
     const location = this.locationRepo.create({
-      ...data,
+      name: data.name,
+      address: data.address,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      type: data.type,
+      contactPhone: data.contactPhone,
       status: LocationStatus.PENDING,
       createdBy: { id: userId },
+      partnerProfile: { id: partnerProfile.id },
     });
-    return this.locationRepo.save(location);
+    
+    const savedLocation = await this.locationRepo.save(location);
+
+    if (data.capabilities && data.capabilities.length > 0) {
+      const capabilities = data.capabilities.map(cap => this.locationCapabilityRepo.create({
+        location: { id: savedLocation.id },
+        capability: cap,
+      }));
+      await this.locationCapabilityRepo.save(capabilities);
+    }
+
+    if (data.acceptedWasteTypes && data.acceptedWasteTypes.length > 0) {
+      const wasteTypes = data.acceptedWasteTypes.map(wt => this.acceptedWasteTypeRepo.create({
+        location: { id: savedLocation.id },
+        wasteType: wt.wasteType,
+        conditionNote: wt.conditionNote,
+      }));
+      await this.acceptedWasteTypeRepo.save(wasteTypes);
+    }
+
+    if (data.collectionProfile) {
+      const profile = this.collectionLocationProfileRepo.create({
+        location: { id: savedLocation.id },
+        siteType: data.collectionProfile.siteType,
+        instructions: data.collectionProfile.instructions,
+        requiresStaffConfirmation: data.collectionProfile.requiresStaffConfirmation,
+      });
+      await this.collectionLocationProfileRepo.save(profile);
+    }
+
+    return this.locationRepo.findOne({
+      where: { id: savedLocation.id },
+      relations: ['capabilities', 'acceptedWasteTypes', 'collectionProfile', 'partnerProfile'],
+    });
   }
 
   async updateCollectionPoint(
@@ -183,16 +240,19 @@ export class LocationsService {
   ) {
     const location = await this.locationRepo.findOne({
       where: { id },
-      relations: ['createdBy'],
+      relations: ['partnerProfile'],
     });
 
     if (!location)
       throw new NotFoundException(`Collection point ${id} not found`);
 
-    if (role !== UserRole.ADMIN && location.createdBy?.id !== userId) {
-      throw new ForbiddenException(
-        'You can only update your own collection points',
-      );
+    if (role !== UserRole.ADMIN) {
+      const partnerProfile = await this.partnersService.getPartnerSummaryByUserId(userId);
+      if (!partnerProfile || location.partnerProfile?.id !== partnerProfile.id) {
+        throw new ForbiddenException(
+          'You can only update your own collection points',
+        );
+      }
     }
 
     // Role check for status update
@@ -202,30 +262,11 @@ export class LocationsService {
       );
     }
 
-    Object.assign(location, data);
+    // Handle updating simple fields
+    // (Complex logic for nested entities would go here)
+    const { capabilities, acceptedWasteTypes, collectionProfile, ...simpleData } = data;
+    Object.assign(location, simpleData);
     return this.locationRepo.save(location);
   }
 
-  async createCheckin(userId: string, data: CreateCheckinDto) {
-    const location = await this.locationRepo.findOne({
-      where: { id: data.locationId },
-    });
-    if (!location)
-      throw new NotFoundException(
-        `Collection point ${data.locationId} not found`,
-      );
-
-    const dropoff = this.dropoffRepo.create({
-      user: { id: userId },
-      location: { id: data.locationId },
-      acceptedWasteType: data.acceptedWasteTypeId
-        ? { id: data.acceptedWasteTypeId }
-        : null,
-      quantityValue: data.quantityValue,
-      quantityUnit: data.quantityUnit,
-      status: DropoffStatus.PENDING,
-    });
-
-    return this.dropoffRepo.save(dropoff);
-  }
 }

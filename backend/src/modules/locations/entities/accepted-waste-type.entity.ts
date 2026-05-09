@@ -28,4 +28,11 @@ export class AcceptedWasteType {
     nullable: true,
   })
   wasteType?: WasteType | null;
+
+  @Column({
+    name: 'condition_note',
+    type: 'text',
+    nullable: true,
+  })
+  conditionNote?: string | null;
 }

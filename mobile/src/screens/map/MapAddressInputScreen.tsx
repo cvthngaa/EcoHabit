@@ -15,7 +15,7 @@ import * as Location from 'expo-location';
 import InputField from '../../components/InputField';
 import Colors from '../../theme/colors';
 import { useToast } from '../../context/ToastContext';
-import { NominatimSuggestion, searchPlaces } from '../../services/nominatimService';
+import { NominatimSuggestion, searchPlaces } from '../../services/map';
 
 const MapAddressInputScreen: React.FC = () => {
   const insets = useSafeAreaInsets();

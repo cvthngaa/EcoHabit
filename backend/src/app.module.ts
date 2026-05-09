@@ -13,6 +13,8 @@ import { RewardsModule } from './modules/rewards/rewards.module';
 import { LocationsModule } from './modules/locations/locations.module';
 import { ForumModule } from './modules/forum/forum.module';
 import { QuizModule } from './modules/quiz/quiz.module';
+import { PartnersModule } from './modules/partner/partners.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { QuizModule } from './modules/quiz/quiz.module';
     LocationsModule,
     ForumModule,
     QuizModule,
+    PartnersModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

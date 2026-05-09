@@ -1,4 +1,5 @@
 import {
+  IsArray,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -27,4 +28,9 @@ export class CreateRewardDto {
   @IsEnum(RewardStatus)
   @IsOptional()
   status?: RewardStatus;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  pickupLocationIds?: string[];
 }

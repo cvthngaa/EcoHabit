@@ -2,10 +2,12 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Reward } from './entities/reward.entity';
+import { RewardPickupOption } from './entities/reward-pickup-option.entity';
 import { CreateRewardDto } from './dto/create-reward.dto';
 import { UpdateRewardDto } from './dto/update-reward.dto';
 import { Redemption } from './entities/redemption.entity';
@@ -24,6 +26,8 @@ export class RewardsService {
     private readonly rewardRepo: Repository<Reward>,
     @InjectRepository(Redemption)
     private readonly redemptionRepo: Repository<Redemption>,
+    @InjectRepository(RewardPickupOption)
+    private readonly pickupOptionRepo: Repository<RewardPickupOption>,
     private readonly dataSource: DataSource,
     private readonly pointsService: PointsService,
   ) {}
@@ -69,24 +73,69 @@ export class RewardsService {
   }
 
   async getRewards(id: string) {
-    return this.rewardRepo.findOne({ where: { id } });
+    return this.rewardRepo.findOne({ 
+      where: { id },
+      relations: ['pickupOptions', 'pickupOptions.location', 'partnerProfile'] 
+    });
   }
 
-  async createRewards(data: CreateRewardDto) {
-    const reward = this.rewardRepo.create(data);
-    return this.rewardRepo.save(reward);
+  async createRewards(data: CreateRewardDto, partnerProfileId?: string) {
+    const { pickupLocationIds, ...rewardData } = data;
+    
+    const reward = this.rewardRepo.create({
+      ...rewardData,
+      partnerProfile: partnerProfileId ? { id: partnerProfileId } : null,
+    });
+    const savedReward = await this.rewardRepo.save(reward);
+
+    if (pickupLocationIds && pickupLocationIds.length > 0) {
+      const options = pickupLocationIds.map(locId => this.pickupOptionRepo.create({
+        reward: { id: savedReward.id },
+        location: { id: locId },
+      }));
+      await this.pickupOptionRepo.save(options);
+    }
+
+    return this.getRewards(savedReward.id);
   }
 
-  async updateRewards(id: string, data: UpdateRewardDto) {
-    const reward = await this.rewardRepo.findOne({ where: { id } });
+  async updateRewards(id: string, data: UpdateRewardDto, partnerProfileId?: string) {
+    const reward = await this.rewardRepo.findOne({ where: { id }, relations: ['partnerProfile'] });
     if (!reward) throw new NotFoundException(`Reward ${id} not found`);
-    Object.assign(reward, data);
-    return this.rewardRepo.save(reward);
+
+    if (partnerProfileId && reward.partnerProfile?.id !== partnerProfileId) {
+      throw new ForbiddenException('You can only update your own rewards');
+    }
+
+    const { pickupLocationIds, ...rewardData } = data;
+    Object.assign(reward, rewardData);
+    const updatedReward = await this.rewardRepo.save(reward);
+
+    if (pickupLocationIds !== undefined) {
+      // Clear old
+      await this.pickupOptionRepo.delete({ reward: { id: updatedReward.id } });
+      
+      // Add new
+      if (pickupLocationIds.length > 0) {
+        const options = pickupLocationIds.map(locId => this.pickupOptionRepo.create({
+          reward: { id: updatedReward.id },
+          location: { id: locId },
+        }));
+        await this.pickupOptionRepo.save(options);
+      }
+    }
+
+    return this.getRewards(updatedReward.id);
   }
 
-  async deleteRewards(id: string) {
-    const reward = await this.rewardRepo.findOne({ where: { id } });
+  async deleteRewards(id: string, partnerProfileId?: string) {
+    const reward = await this.rewardRepo.findOne({ where: { id }, relations: ['partnerProfile'] });
     if (!reward) throw new NotFoundException(`Reward ${id} not found`);
+    
+    if (partnerProfileId && reward.partnerProfile?.id !== partnerProfileId) {
+      throw new ForbiddenException('You can only delete your own rewards');
+    }
+
     return this.rewardRepo.remove(reward);
   }
 

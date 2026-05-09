@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, DeleteDateColumn, Index } from 'typeorm';
+import { Column, Entity, OneToMany, DeleteDateColumn, Index, OneToOne } from 'typeorm';
 import { BaseEntity } from '../../../common/database/base.entity';
 import { UserRole } from '../enums/user-role.enum';
 import { UserStatus } from '../enums/user-status.enum';
@@ -12,6 +12,7 @@ import { PointRule } from '../../points/entities/point-rule.entity';
 import { PointTransaction } from '../../points/entities/point-transaction.entity';
 import { Redemption } from '../../rewards/entities/redemption.entity';
 import { AiFeedback } from '../../ai/entities/ai-feedback.entity';
+import { PartnerProfile } from '../../partner/entity/partner-profile.entity';
 
 @Entity('users')
 export class User extends BaseEntity {
@@ -108,4 +109,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => ForumReport, (report) => report.reporter)
   forumReports: ForumReport[];
+
+  @OneToOne(() => PartnerProfile, (profile) => profile.user)
+  partnerProfile?: PartnerProfile;
 }

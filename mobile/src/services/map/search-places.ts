@@ -1,12 +1,5 @@
-import api from './api/interceptor';
-
-export type NominatimSuggestion = {
-  id: string;
-  title: string;
-  subtitle: string;
-  latitude: number;
-  longitude: number;
-};
+import api from '../api/interceptor';
+import { NominatimSuggestion } from './types';
 
 export async function searchPlaces(query: string): Promise<NominatimSuggestion[]> {
   const trimmed = query.trim();
