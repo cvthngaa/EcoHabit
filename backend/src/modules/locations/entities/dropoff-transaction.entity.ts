@@ -50,11 +50,46 @@ export class DropoffTransaction extends BaseEntity {
   quantityUnit?: string | null;
 
   @Column({
+    name: 'user_latitude',
+    type: 'float',
+    nullable: true,
+  })
+  userLatitude?: number | null;
+
+  @Column({
+    name: 'user_longitude',
+    type: 'float',
+    nullable: true,
+  })
+  userLongitude?: number | null;
+
+  @Column({
+    name: 'distance_km',
+    type: 'float',
+    nullable: true,
+  })
+  distanceKm?: number | null;
+
+  @Column({
     name: 'points_awarded',
     type: 'int',
     nullable: true,
   })
   pointsAwarded?: number | null;
+
+  @Column({
+    name: 'rejection_reason',
+    type: 'text',
+    nullable: true,
+  })
+  rejectionReason?: string | null;
+
+  @Column({
+    name: 'confirmed_at',
+    type: 'timestamp',
+    nullable: true,
+  })
+  confirmedAt?: Date | null;
 
   @Column({
     name: 'status',

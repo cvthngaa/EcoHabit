@@ -7,6 +7,7 @@ import { PartnerRoleGuard } from '../../common/guards/partner-role.guard';
 import { UserRole } from '../users/enums/user-role.enum';
 import { PartnerRoleType } from '../partner/enum/partner-role-type.enum';
 import { CollectionTransactionsService } from './collection-transactions.service';
+import { CreateCheckinDto } from './dto/create-checkin.dto';
 
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller()
@@ -14,7 +15,7 @@ export class CollectionTransactionsController {
   constructor(private readonly transactionsService: CollectionTransactionsService) {}
 
   @Post('collection-transactions/check-in')
-  checkIn(@Request() req: any, @Body() data: any) {
+  checkIn(@Request() req: any, @Body() data: CreateCheckinDto) {
     return this.transactionsService.checkIn(req.user.userId, data);
   }
 
@@ -53,5 +54,20 @@ export class CollectionTransactionsController {
     @Body('rejectionReason') rejectionReason: string,
   ) {
     return this.transactionsService.rejectTransaction(req.user.userId, id, rejectionReason);
+  }
+
+  @UseGuards(PartnerRoleGuard)
+  @Roles(UserRole.PARTNER)
+  @PartnerRoles(PartnerRoleType.COLLECTOR)
+  @Post('partner/locations/:locationId/qr')
+  async generateQr(
+    @Request() req: any,
+    @Param('locationId') locationId: string,
+  ) {
+    const qrToken = await this.transactionsService.generateLocationQr(
+      req.user.userId,
+      locationId,
+    );
+    return { qrToken };
   }
 }

@@ -11,6 +11,10 @@ import { PointTransactionType } from '../points/enums/point-transaction-type.enu
 import { PointSourceType } from '../points/enums/point-source-type.enum';
 import { QrService } from './qr.service';
 import { PartnerRoleType } from '../partner/enum/partner-role-type.enum';
+import { CreateCheckinDto } from './dto/create-checkin.dto';
+
+/** Maximum allowed distance (km) between user GPS and location for a valid check-in */
+const MAX_CHECKIN_DISTANCE_KM = 0.5; // 500 metres
 
 @Injectable()
 export class CollectionTransactionsService {
@@ -24,7 +28,33 @@ export class CollectionTransactionsService {
     private readonly qrService: QrService,
   ) {}
 
-  async checkIn(userId: string, data: any) {
+  /**
+   * Haversine formula — returns distance in kilometres between two GPS points.
+   */
+  private calculateDistanceKm(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number {
+    const R = 6371; // Earth radius in km
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  async checkIn(userId: string, data: CreateCheckinDto) {
     const location = await this.locationRepo.findOne({
       where: { id: data.locationId },
       relations: ['capabilities'],
@@ -42,6 +72,32 @@ export class CollectionTransactionsService {
       throw new BadRequestException('Location does not support waste collection');
     }
 
+    // --- GPS distance validation ---
+    let distanceKm: number | null = null;
+
+    if (
+      location.latitude != null &&
+      location.longitude != null
+    ) {
+      distanceKm = this.calculateDistanceKm(
+        data.userLatitude,
+        data.userLongitude,
+        location.latitude,
+        location.longitude,
+      );
+
+      // Round to 3 decimal places for cleaner storage
+      distanceKm = Math.round(distanceKm * 1000) / 1000;
+
+      if (distanceKm > MAX_CHECKIN_DISTANCE_KM) {
+        throw new BadRequestException(
+          `You are too far from this location (${distanceKm.toFixed(2)} km). ` +
+          `Please be within ${MAX_CHECKIN_DISTANCE_KM * 1000}m to check in.`,
+        );
+      }
+    }
+
+    // --- QR token validation ---
     if (data.qrToken) {
       await this.qrService.validateAndUseQr(location.id, data.qrToken);
     }
@@ -52,6 +108,9 @@ export class CollectionTransactionsService {
       acceptedWasteType: data.acceptedWasteTypeId ? { id: data.acceptedWasteTypeId } : null,
       quantityValue: data.quantityValue,
       quantityUnit: data.quantityUnit,
+      userLatitude: data.userLatitude,
+      userLongitude: data.userLongitude,
+      distanceKm,
       status: DropoffStatus.PENDING,
     });
 
@@ -106,6 +165,7 @@ export class CollectionTransactionsService {
       throw new BadRequestException('Transaction does not have an associated user');
     }
 
+    // Award points (idempotent — skip if already awarded)
     const hasAwarded = await this.pointsService.hasTransactionForSource(
       dropoff.user.id,
       PointSourceType.DROPOFF_TRANSACTION,
@@ -124,7 +184,9 @@ export class CollectionTransactionsService {
 
     dropoff.status = DropoffStatus.VERIFIED;
     dropoff.verifiedBy = { id: userId } as any;
-    
+    dropoff.pointsAwarded = pointsAwarded;
+    dropoff.confirmedAt = new Date();
+
     return this.dropoffRepo.save(dropoff);
   }
 
@@ -152,9 +214,31 @@ export class CollectionTransactionsService {
     }
 
     dropoff.status = DropoffStatus.REJECTED;
-    // Assuming there is a rejectionReason field or similar. 
-    // If not, we might need to add it, but for now we just change status
-    
+    dropoff.rejectionReason = rejectionReason || null;
+    dropoff.confirmedAt = new Date();
+
     return this.dropoffRepo.save(dropoff);
+  }
+
+  async generateLocationQr(userId: string, locationId: string): Promise<string> {
+    const partnerProfile = await this.partnersService.getPartnerSummaryByUserId(userId);
+    if (!partnerProfile || !partnerProfile.roleTypes.includes(PartnerRoleType.COLLECTOR)) {
+      throw new ForbiddenException('Only approved collectors can generate QR codes');
+    }
+
+    const location = await this.locationRepo.findOne({
+      where: { id: locationId },
+      relations: ['partnerProfile'],
+    });
+
+    if (!location) {
+      throw new NotFoundException('Location not found');
+    }
+
+    if (location.partnerProfile?.id !== partnerProfile.id) {
+      throw new ForbiddenException('You can only generate QR codes for your own locations');
+    }
+
+    return this.qrService.generateQr(locationId);
   }
 }

@@ -23,11 +23,11 @@ const isValidEmail = (v: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || /^(0|\+84)[3-9]\d{8}$/.test(v);
 
 interface FormErrors { email?: string; password?: string }
-interface Props { 
-  onLogin?: () => void; 
-  onGoRegister?: () => void; 
+interface Props {
+  onLogin?: () => void;
+  onGoRegister?: () => void;
   onGoForgotPassword?: () => void;
-  onGoBack?: () => void; 
+  onGoBack?: () => void;
 }
 
 const LoginWave = () => (
@@ -118,7 +118,7 @@ const LoginScreen: React.FC<Props> = ({ onLogin, onGoRegister, onGoForgotPasswor
           <BackButton
             onPress={() => onGoBack?.()}
             color={Colors.textInverse}
-            className="bg-base-canvas/20"
+            className="bg-base-canvas/10"
           />
         </View>
       </View>

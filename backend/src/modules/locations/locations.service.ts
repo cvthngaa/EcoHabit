@@ -262,11 +262,62 @@ export class LocationsService {
       );
     }
 
-    // Handle updating simple fields
-    // (Complex logic for nested entities would go here)
+    // Extract nested data, update simple fields
     const { capabilities, acceptedWasteTypes, collectionProfile, ...simpleData } = data;
     Object.assign(location, simpleData);
-    return this.locationRepo.save(location);
+    await this.locationRepo.save(location);
+
+    // Update capabilities (delete old, insert new)
+    if (capabilities !== undefined) {
+      await this.locationCapabilityRepo.delete({ location: { id } });
+      if (capabilities.length > 0) {
+        const newCapabilities = capabilities.map(cap =>
+          this.locationCapabilityRepo.create({
+            location: { id },
+            capability: cap,
+          }),
+        );
+        await this.locationCapabilityRepo.save(newCapabilities);
+      }
+    }
+
+    // Update accepted waste types (delete old, insert new)
+    if (acceptedWasteTypes !== undefined) {
+      await this.acceptedWasteTypeRepo.delete({ location: { id } });
+      if (acceptedWasteTypes.length > 0) {
+        const newWasteTypes = acceptedWasteTypes.map(wt =>
+          this.acceptedWasteTypeRepo.create({
+            location: { id },
+            wasteType: wt.wasteType,
+            conditionNote: wt.conditionNote,
+          }),
+        );
+        await this.acceptedWasteTypeRepo.save(newWasteTypes);
+      }
+    }
+
+    // Update collection profile (upsert)
+    if (collectionProfile !== undefined) {
+      const existing = await this.collectionLocationProfileRepo.findOne({
+        where: { location: { id } },
+      });
+
+      if (existing) {
+        Object.assign(existing, collectionProfile);
+        await this.collectionLocationProfileRepo.save(existing);
+      } else {
+        const newProfile = this.collectionLocationProfileRepo.create({
+          location: { id },
+          ...collectionProfile,
+        });
+        await this.collectionLocationProfileRepo.save(newProfile);
+      }
+    }
+
+    return this.locationRepo.findOne({
+      where: { id },
+      relations: ['capabilities', 'acceptedWasteTypes', 'collectionProfile', 'partnerProfile'],
+    });
   }
 
 }

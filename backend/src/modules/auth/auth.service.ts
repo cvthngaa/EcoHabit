@@ -9,6 +9,8 @@ import * as bcrypt from 'bcrypt';
 import { Redis } from 'ioredis';
 import * as nodemailer from 'nodemailer';
 import { UserStatus } from '../users/enums/user-status.enum';
+import { UserRole } from '../users/enums/user-role.enum';
+import { PartnersService } from '../partner/partners.service';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +20,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private partnersService: PartnersService,
   ) {
     // Fix EPERM error by trimming the URL and checking if it starts with rediss://
     const redisUrl = process.env.REDIS_URL?.trim();
@@ -172,6 +175,13 @@ export class AuthService {
       fullName: user.fullName,
     };
 
+    // Fetch partner profile if user is a PARTNER
+    let partnerProfile: any = null;
+    if (user.role === UserRole.PARTNER) {
+      partnerProfile =
+        await this.partnersService.getPartnerSummaryByUserId(user.id);
+    }
+
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -183,6 +193,7 @@ export class AuthService {
         role: user.role,
         status: user.status,
       },
+      partnerProfile,
     };
   }
 

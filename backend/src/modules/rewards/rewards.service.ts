@@ -199,9 +199,26 @@ export class RewardsService {
     });
   }
 
+  async getUserRedemptions(userId: string) {
+    return this.redemptionRepo.find({
+      where: { user: { id: userId } },
+      relations: ['reward', 'reward.pickupOptions', 'reward.pickupOptions.location'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async getPartnerRedemptions(partnerProfileId: string) {
+    return this.redemptionRepo.find({
+      where: { reward: { partnerProfile: { id: partnerProfileId } } },
+      relations: ['user', 'reward', 'reward.pickupOptions', 'reward.pickupOptions.location'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   async updateRedemptionStatus(
     redemptionId: string,
     dto: UpdateRedemptionStatusDto,
+    partnerProfileId?: string,
   ) {
     return this.dataSource.transaction(async (manager) => {
       const redemptionRepo = manager.getRepository(Redemption);
@@ -209,11 +226,15 @@ export class RewardsService {
 
       const redemption = await redemptionRepo.findOne({
         where: { id: redemptionId },
-        relations: ['user', 'reward'],
+        relations: ['user', 'reward', 'reward.partnerProfile'],
       });
 
       if (!redemption) {
         throw new NotFoundException(`Redemption ${redemptionId} not found`);
+      }
+
+      if (partnerProfileId && redemption.reward?.partnerProfile?.id !== partnerProfileId) {
+        throw new ForbiddenException('You can only process redemptions for your own rewards');
       }
 
       const nextStatus = dto.status;

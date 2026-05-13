@@ -11,6 +11,14 @@ export class CreateCheckinDto {
   @IsNotEmpty()
   locationId: string;
 
+  @IsNumber()
+  @IsNotEmpty()
+  userLatitude: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  userLongitude: number;
+
   @IsUUID()
   @IsOptional()
   acceptedWasteTypeId?: string;
@@ -22,4 +30,8 @@ export class CreateCheckinDto {
   @IsString()
   @IsOptional()
   quantityUnit?: string;
+
+  @IsString()
+  @IsOptional()
+  qrToken?: string;
 }

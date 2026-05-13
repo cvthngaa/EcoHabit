@@ -16,7 +16,7 @@ const { height } = Dimensions.get('window');
 const isValid = (v: string) =>
   /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) || /^(0|\+84)[3-9]\d{8}$/.test(v);
 
-interface Props { 
+interface Props {
   onGoBack?: () => void;
   onVerified?: (email: string) => void;
 }

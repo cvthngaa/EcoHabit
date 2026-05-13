@@ -4,6 +4,7 @@ import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request.type';
 import { UserRole } from '../users/enums/user-role.enum';
+import { UpdatePartnerProfileDto } from './dto/update-partner-profile.dto';
 import { PartnersService } from './partners.service';
 
 @UseGuards(AuthGuard('jwt'), RolesGuard)
@@ -20,7 +21,7 @@ export class PartnersController {
   @Patch('me')
   updateMyProfile(
     @Request() req: AuthenticatedRequest,
-    @Body() data: unknown,
+    @Body() data: UpdatePartnerProfileDto,
   ) {
     return this.partnersService.updateMyProfile(req.user.userId, data);
   }

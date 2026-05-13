@@ -1,13 +1,19 @@
-import { Injectable, NotImplementedException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { UpdatePartnerApprovalDto } from './dto/update-partner-approval.dto';
+import { UpdatePartnerProfileDto } from './dto/update-partner-profile.dto';
+import { UpdatePartnerRolesDto } from './dto/update-partner-roles.dto';
 import { PartnerProfile } from './entity/partner-profile.entity';
+import { PartnerRoleTypeEntity } from './entity/partner-role-type.entity';
 
 @Injectable()
 export class PartnersService {
   constructor(
     @InjectRepository(PartnerProfile)
     private readonly partnerProfileRepository: Repository<PartnerProfile>,
+    @InjectRepository(PartnerRoleTypeEntity)
+    private readonly partnerRoleTypeRepository: Repository<PartnerRoleTypeEntity>,
   ) {}
 
   async getPartnerSummaryByUserId(userId: string) {
@@ -26,37 +32,77 @@ export class PartnersService {
     };
   }
 
-  getMyProfile(userId: string) {
-    throw new NotImplementedException(
-      `Partner profile lookup is not implemented yet for user ${userId}`,
-    );
+  async getMyProfile(userId: string) {
+    const profile = await this.partnerProfileRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['roleTypes'],
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Không tìm thấy hồ sơ đối tác cho người dùng này');
+    }
+
+    return profile;
   }
 
-  updateMyProfile(userId: string, _data: unknown) {
-    throw new NotImplementedException(
-      `Partner profile update is not implemented yet for user ${userId}`,
-    );
+  async updateMyProfile(userId: string, data: UpdatePartnerProfileDto) {
+    const profile = await this.getMyProfile(userId);
+
+    Object.assign(profile, data);
+    return this.partnerProfileRepository.save(profile);
   }
 
-  getAllPartners() {
-    throw new NotImplementedException('Partner listing is not implemented yet');
+  async getAllPartners() {
+    return this.partnerProfileRepository.find({
+      relations: ['user', 'roleTypes'],
+    });
   }
 
-  getPartnerDetail(id: string) {
-    throw new NotImplementedException(
-      `Partner detail lookup is not implemented yet for partner ${id}`,
-    );
+  async getPartnerDetail(id: string) {
+    const profile = await this.partnerProfileRepository.findOne({
+      where: { id },
+      relations: ['user', 'roleTypes'],
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Không tìm thấy hồ sơ đối tác');
+    }
+
+    return profile;
   }
 
-  updatePartnerApproval(id: string, _data: unknown, adminUserId: string) {
-    throw new NotImplementedException(
-      `Partner approval update is not implemented yet for partner ${id} by admin ${adminUserId}`,
-    );
+  async updatePartnerApproval(
+    id: string,
+    data: UpdatePartnerApprovalDto,
+    adminUserId: string,
+  ) {
+    const profile = await this.getPartnerDetail(id);
+
+    profile.approvalStatus = data.status;
+    profile.approvedBy = adminUserId;
+    profile.approvedAt = new Date();
+
+    return this.partnerProfileRepository.save(profile);
   }
 
-  updatePartnerRoles(id: string, _data: unknown) {
-    throw new NotImplementedException(
-      `Partner role update is not implemented yet for partner ${id}`,
-    );
+  async updatePartnerRoles(id: string, data: UpdatePartnerRolesDto) {
+    const profile = await this.getPartnerDetail(id);
+
+    // Delete existing roles
+    await this.partnerRoleTypeRepository.delete({ partnerProfile: { id } });
+
+    // Insert new roles
+    const newRoles = data.roles.map((role) => {
+      const roleEntity = new PartnerRoleTypeEntity();
+      roleEntity.partnerProfile = profile;
+      roleEntity.roleType = role;
+      roleEntity.isActive = true;
+      return roleEntity;
+    });
+
+    await this.partnerRoleTypeRepository.save(newRoles);
+
+    // Reload profile with new roles
+    return this.getPartnerDetail(id);
   }
 }

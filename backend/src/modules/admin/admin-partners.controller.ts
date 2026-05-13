@@ -11,6 +11,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request.type';
+import { UpdatePartnerApprovalDto } from '../partner/dto/update-partner-approval.dto';
+import { UpdatePartnerRolesDto } from '../partner/dto/update-partner-roles.dto';
 import { PartnersService } from '../partner/partners.service';
 import { UserRole } from '../users/enums/user-role.enum';
 
@@ -34,7 +36,7 @@ export class AdminPartnersController {
   updatePartnerApproval(
     @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body() data: unknown,
+    @Body() data: UpdatePartnerApprovalDto,
   ) {
     return this.partnersService.updatePartnerApproval(
       id,
@@ -44,7 +46,10 @@ export class AdminPartnersController {
   }
 
   @Patch(':id/roles')
-  updatePartnerRoles(@Param('id') id: string, @Body() data: unknown) {
+  updatePartnerRoles(
+    @Param('id') id: string,
+    @Body() data: UpdatePartnerRolesDto,
+  ) {
     return this.partnersService.updatePartnerRoles(id, data);
   }
 }

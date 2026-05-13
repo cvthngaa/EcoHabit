@@ -1,4 +1,4 @@
-import { Body, Controller, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { RewardsService } from './rewards.service';
 import { RedeemDto } from './dto/redeem.dto';
@@ -11,6 +11,12 @@ import { UserRole } from '../users/enums/user-role.enum';
 @Controller('redemptions')
 export class RedemptionsController {
   constructor(private readonly rewardsService: RewardsService) {}
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('me')
+  async getMyRedemptions(@Request() req: AuthenticatedRequest) {
+    return this.rewardsService.getUserRedemptions(req.user.userId);
+  }
 
   @UseGuards(AuthGuard('jwt'))
   @Post()
