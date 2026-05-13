@@ -1,13 +1,13 @@
 import { Body, Controller, Get, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { PartnerRoles } from '../../common/decorators/partner-roles.decorator';
-import { PartnerRoleGuard } from '../../common/guards/partner-role.guard';
-import { UserRole } from '../users/enums/user-role.enum';
-import { PartnerRoleType } from '../partner/enum/partner-role-type.enum';
-import { CollectionTransactionsService } from './collection-transactions.service';
-import { CreateCheckinDto } from './dto/create-checkin.dto';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { PartnerRoles } from '../../../common/decorators/partner-roles.decorator';
+import { PartnerRoleGuard } from '../../../common/guards/partner-role.guard';
+import { UserRole } from '../../users/enums/user-role.enum';
+import { PartnerRoleType } from '../../partner/enum/partner-role-type.enum';
+import { CollectionTransactionsService } from '../collection-transactions.service';
+import { CreateCheckinDto } from '../dto/create-checkin.dto';
 
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller()

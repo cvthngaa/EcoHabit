@@ -1,10 +1,10 @@
 import { Body, Controller, Get, Param, Patch, Request, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import type { AuthenticatedRequest } from '../../common/types/authenticated-request.type';
-import { UserRole } from '../users/enums/user-role.enum';
-import { PartnersService } from './partners.service';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import type { AuthenticatedRequest } from '../../../common/types/authenticated-request.type';
+import { UserRole } from '../../users/enums/user-role.enum';
+import { PartnersService } from '../partners.service';
 
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles(UserRole.ADMIN)

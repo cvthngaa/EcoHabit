@@ -1,12 +1,12 @@
 import { Body, Controller, Get, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { RewardsService } from './rewards.service';
-import { RedeemDto } from './dto/redeem.dto';
-import { UpdateRedemptionStatusDto } from './dto/update-redemption-status.dto';
-import type { AuthenticatedRequest } from '../../common/types/authenticated-request.type';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { UserRole } from '../users/enums/user-role.enum';
+import { RewardsService } from '../rewards.service';
+import { RedeemDto } from '../dto/redeem.dto';
+import { UpdateRedemptionStatusDto } from '../dto/update-redemption-status.dto';
+import type { AuthenticatedRequest } from '../../../common/types/authenticated-request.type';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { UserRole } from '../../users/enums/user-role.enum';
 
 @Controller('redemptions')
 export class RedemptionsController {

@@ -9,14 +9,14 @@ import {
   Request,
   Query,
 } from '@nestjs/common';
-import { LocationsService } from './locations.service';
+import { LocationsService } from '../locations.service';
 import { AuthGuard } from '@nestjs/passport';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { UserRole } from '../users/enums/user-role.enum';
-import { CreateCollectionPointDto } from './dto/create-collection-point.dto';
-import { UpdateCollectionPointDto } from './dto/update-collection-point.dto';
-import type { AuthenticatedRequest } from '../../common/types/authenticated-request.type';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { UserRole } from '../../users/enums/user-role.enum';
+import { CreateCollectionPointDto } from '../dto/create-collection-point.dto';
+import { UpdateCollectionPointDto } from '../dto/update-collection-point.dto';
+import type { AuthenticatedRequest } from '../../../common/types/authenticated-request.type';
 
 @Controller('collection-points')
 export class CollectionPointsController {

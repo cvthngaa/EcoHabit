@@ -1,7 +1,7 @@
 import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { PointsService } from './points.service';
-import type { AuthenticatedRequest } from '../../common/types/authenticated-request.type';
+import { PointsService } from '../points.service';
+import type { AuthenticatedRequest } from '../../../common/types/authenticated-request.type';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('points')

@@ -1,16 +1,16 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Request, UseGuards, ForbiddenException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { Roles } from '../../common/decorators/roles.decorator';
-import { RolesGuard } from '../../common/guards/roles.guard';
-import { PartnerRoles } from '../../common/decorators/partner-roles.decorator';
-import { PartnerRoleGuard } from '../../common/guards/partner-role.guard';
-import { UserRole } from '../users/enums/user-role.enum';
-import { PartnerRoleType } from '../partner/enum/partner-role-type.enum';
-import { RewardsService } from './rewards.service';
-import { CreateRewardDto } from './dto/create-reward.dto';
-import { UpdateRewardDto } from './dto/update-reward.dto';
-import { UpdateRedemptionStatusDto } from './dto/update-redemption-status.dto';
-import { PartnersService } from '../partner/partners.service';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { PartnerRoles } from '../../../common/decorators/partner-roles.decorator';
+import { PartnerRoleGuard } from '../../../common/guards/partner-role.guard';
+import { UserRole } from '../../users/enums/user-role.enum';
+import { PartnerRoleType } from '../../partner/enum/partner-role-type.enum';
+import { RewardsService } from '../rewards.service';
+import { CreateRewardDto } from '../dto/create-reward.dto';
+import { UpdateRewardDto } from '../dto/update-reward.dto';
+import { UpdateRedemptionStatusDto } from '../dto/update-redemption-status.dto';
+import { PartnersService } from '../../partner/partners.service';
 
 @UseGuards(AuthGuard('jwt'), RolesGuard, PartnerRoleGuard)
 @Roles(UserRole.PARTNER)

@@ -8,10 +8,10 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { GenerateQuizDto } from './dto/generate-quiz.dto';
-import { SubmitDailyQuizDto } from './dto/submit-daily-quiz.dto';
-import { QuizService } from './quiz.service';
-import type { AuthenticatedRequest } from '../../common/types/authenticated-request.type';
+import { GenerateQuizDto } from '../dto/generate-quiz.dto';
+import { SubmitDailyQuizDto } from '../dto/submit-daily-quiz.dto';
+import { QuizService } from '../quiz.service';
+import type { AuthenticatedRequest } from '../../../common/types/authenticated-request.type';
 
 @ApiTags('Quiz')
 @ApiBearerAuth()
