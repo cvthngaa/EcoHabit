@@ -84,11 +84,10 @@ export const Login: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loginMutation.isPending}
-                className={`w-full pl-11 pr-4 py-3 text-sm rounded-xl border bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all duration-200 ${
-                  errors.email
+                className={`w-full pl-11 pr-4 py-3 text-sm rounded-xl border bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all duration-200 ${errors.email
                     ? 'border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-50'
                     : 'border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50'
-                }`}
+                  }`}
               />
             </div>
             {errors.email && <p className="text-xs text-rose-600 pl-1">{errors.email}</p>}
@@ -110,11 +109,10 @@ export const Login: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loginMutation.isPending}
-                className={`w-full pl-11 pr-4 py-3 text-sm rounded-xl border bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all duration-200 ${
-                  errors.password
+                className={`w-full pl-11 pr-4 py-3 text-sm rounded-xl border bg-slate-50 text-slate-800 placeholder-slate-400 focus:outline-none focus:bg-white transition-all duration-200 ${errors.password
                     ? 'border-rose-300 focus:border-rose-500 focus:ring-4 focus:ring-rose-50'
                     : 'border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50'
-                }`}
+                  }`}
               />
             </div>
             {errors.password && <p className="text-xs text-rose-600 pl-1">{errors.password}</p>}
@@ -129,9 +127,9 @@ export const Login: React.FC = () => {
               />
               Ghi nhớ đăng nhập
             </label>
-            <a href="#forgot" className="text-emerald-600 hover:text-emerald-700">
+            <Link to="/forgot-password" className="text-emerald-600 hover:text-emerald-700">
               Quên mật khẩu?
-            </a>
+            </Link>
           </div>
 
           {/* Submit button */}

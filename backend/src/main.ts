@@ -36,7 +36,7 @@ async function bootstrap() {
 
   // Cho phép frontend/mobile gọi sang backend
   app.enableCors({
-    origin: '*',
+    origin: true,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });

@@ -2,6 +2,9 @@ import React from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { LayoutDashboard, Store, MapPin, ListOrdered, Gift, Settings, LogOut, Bell } from 'lucide-react';
 import clsx from 'clsx';
+import { useGetProfile } from '../../features/auth/services/use-get-profile';
+import { useAuth } from '../../features/auth/store/auth.store';
+import { logout } from '../../features/auth/services/helpers';
 
 const navigation = [
   { name: 'Dashboard', to: '/', icon: LayoutDashboard },
@@ -12,6 +15,14 @@ const navigation = [
 ];
 
 export const AdminLayout: React.FC = () => {
+  const { data: profile } = useGetProfile();
+  const { setIsLoggedIn } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    setIsLoggedIn(false);
+  };
+
   return (
     <div className="flex h-screen bg-slate-50 font-sans text-slate-900">
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-10">
@@ -59,7 +70,7 @@ export const AdminLayout: React.FC = () => {
             <Settings className="w-5 h-5 mr-3" />
             Cài đặt
           </NavLink>
-          <button className="flex items-center w-full px-3 py-2 mt-1 text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+          <button onClick={handleLogout} className="flex items-center w-full px-3 py-2 mt-1 text-red-600 rounded-lg hover:bg-red-50 transition-colors cursor-pointer">
             <LogOut className="w-5 h-5 mr-3" />
             Đăng xuất
           </button>
@@ -76,7 +87,7 @@ export const AdminLayout: React.FC = () => {
             </button>
             <div className="flex items-center space-x-3 border-l border-slate-200 pl-4">
               <div className="text-right hidden md:block">
-                <p className="text-sm font-medium text-slate-700">Công ty ABC</p>
+                <p className="text-sm font-medium text-slate-700">{profile?.organizationName || 'Tên doanh nghiệp'}</p>
                 <p className="text-xs text-slate-500">Đối tác Thu gom</p>
               </div>
               <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center border border-emerald-200">

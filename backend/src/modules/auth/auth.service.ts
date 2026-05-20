@@ -216,6 +216,15 @@ export class AuthService {
     if (user.role === UserRole.PARTNER) {
       partnerProfile =
         await this.partnersService.getPartnerSummaryByUserId(user.id);
+
+      if (partnerProfile) {
+        if (partnerProfile.approvalStatus === 'PENDING') {
+          throw new UnauthorizedException('Tài khoản đang chờ phê duyệt.');
+        }
+        if (partnerProfile.approvalStatus === 'REJECTED') {
+          throw new UnauthorizedException('Tài khoản đã bị từ chối.');
+        }
+      }
     }
 
     return {
