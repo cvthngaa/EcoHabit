@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { QuizController } from './quiz.controller';
+import { QuizController } from './controllers/quiz.controller';
 import { QuizService } from './quiz.service';
 import { GeminiModule } from '../gemini/gemini.module';
 import { PointsModule } from '../points/points.module';

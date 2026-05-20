@@ -47,11 +47,10 @@ export class TrashClassification extends BaseEntity {
 
   @Column({
     name: 'confidence',
-    type: 'decimal',
-    precision: 5,
-    scale: 4,
+    type: 'double precision',
+    nullable: true,
   })
-  confidence: number;
+  confidence?: number | null;
 
   @Column({
     name: 'suggested_bin',

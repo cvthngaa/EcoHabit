@@ -11,6 +11,7 @@ import * as nodemailer from 'nodemailer';
 import { UserStatus } from '../users/enums/user-status.enum';
 import { UserRole } from '../users/enums/user-role.enum';
 import { PartnersService } from '../partner/partners.service';
+import { RegisterPartnerDto } from './dto/register-partner.dto';
 
 @Injectable()
 export class AuthService {
@@ -153,6 +154,41 @@ export class AuthService {
     await this.redisClient.del(verifiedKey);
 
     return user;
+  }
+
+  // ✅ REGISTER PARTNER
+  async registerPartner(dto: RegisterPartnerDto) {
+    // 1. Kiểm tra OTP
+    const verifiedKey = `verified:email:${dto.email}`;
+    const isVerified = await this.redisClient.get(verifiedKey);
+
+    if (!isVerified) {
+      throw new BadRequestException(
+        'Vui lòng xác minh email trước khi tạo tài khoản đối tác.',
+      );
+    }
+
+    // 2. Tạo User với role PARTNER
+    const hashed = await bcrypt.hash(dto.password, 10);
+    const user = await this.usersService.create({
+      email: dto.email,
+      passwordHash: hashed,
+      fullName: dto.contactPerson,
+      role: UserRole.PARTNER,
+    });
+
+    // 3. Tạo PartnerProfile
+    await this.partnersService.createPartnerProfile(user, {
+      organizationName: dto.organizationName,
+      contactName: dto.contactPerson,
+      contactPhone: dto.contactPhone,
+      contactEmail: dto.email,
+    });
+
+    // 4. Xoá OTP
+    await this.redisClient.del(verifiedKey);
+
+    return { message: 'Đăng ký đối tác thành công. Vui lòng chờ phê duyệt.' };
   }
 
   // ✅ LOGIN

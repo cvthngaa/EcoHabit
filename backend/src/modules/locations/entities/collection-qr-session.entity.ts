@@ -13,7 +13,7 @@ export class CollectionQrSession extends BaseEntity {
   @Column({ name: 'qr_token', type: 'varchar', length: 255 })
   qrToken: string;
 
-  @Column({ name: 'expires_at', type: 'timestamp' })
+  @Column({ name: 'expired_at', type: 'timestamp' })
   expiresAt: Date;
 
   @Column({ name: 'is_used', type: 'boolean', default: false })

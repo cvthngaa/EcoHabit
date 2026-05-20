@@ -6,6 +6,8 @@ import { UpdatePartnerProfileDto } from './dto/update-partner-profile.dto';
 import { UpdatePartnerRolesDto } from './dto/update-partner-roles.dto';
 import { PartnerProfile } from './entity/partner-profile.entity';
 import { PartnerRoleTypeEntity } from './entity/partner-role-type.entity';
+import { User } from '../users/entities/user.entity';
+import { PartnerApprovalStatus } from './enum/partner-approval-status.enum';
 
 @Injectable()
 export class PartnersService {
@@ -15,6 +17,18 @@ export class PartnersService {
     @InjectRepository(PartnerRoleTypeEntity)
     private readonly partnerRoleTypeRepository: Repository<PartnerRoleTypeEntity>,
   ) {}
+
+  async createPartnerProfile(user: User, data: { organizationName: string, contactName: string, contactPhone: string, contactEmail: string }) {
+    const profile = this.partnerProfileRepository.create({
+      user,
+      organizationName: data.organizationName,
+      contactName: data.contactName,
+      contactPhone: data.contactPhone,
+      contactEmail: data.contactEmail,
+      approvalStatus: PartnerApprovalStatus.PENDING
+    });
+    return this.partnerProfileRepository.save(profile);
+  }
 
   async getPartnerSummaryByUserId(userId: string) {
     const profile = await this.partnerProfileRepository.findOne({

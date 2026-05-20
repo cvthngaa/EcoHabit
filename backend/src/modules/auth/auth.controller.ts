@@ -14,6 +14,7 @@ import { UserRole } from '../users/enums/user-role.enum';
 import { LoginDto } from './dto/login.dto';
 import { ApiBody, ApiOperation } from '@nestjs/swagger';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterPartnerDto } from './dto/register-partner.dto';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -42,6 +43,13 @@ export class AuthController {
   @ApiBody({ type: RegisterDto })
   register(@Body() body: RegisterDto) {
     return this.authService.register(body.email, body.password, body.fullName);
+  }
+
+  @Post('register-partner')
+  @ApiOperation({ summary: 'Đăng ký tài khoản đối tác' })
+  @ApiBody({ type: RegisterPartnerDto })
+  registerPartner(@Body() body: RegisterPartnerDto) {
+    return this.authService.registerPartner(body);
   }
 
   @Post('login')

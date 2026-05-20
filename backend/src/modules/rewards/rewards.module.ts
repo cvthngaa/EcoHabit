@@ -6,10 +6,10 @@ import { RewardPickupOption } from './entities/reward-pickup-option.entity';
 import { PointsModule } from '../points/points.module';
 import { PartnersModule } from '../partner/partners.module';
 
-import { RewardsController } from './rewards.controller';
-import { AdminRewardsController } from './admin-rewards.controller';
-import { PartnerRewardsController } from './partner-rewards.controller';
-import { RedemptionsController } from './redemptions.controller';
+import { RewardsController } from './controllers/rewards.controller';
+import { AdminRewardsController } from './controllers/admin-rewards.controller';
+import { PartnerRewardsController } from './controllers/partner-rewards.controller';
+import { RedemptionsController } from './controllers/redemptions.controller';
 import { RewardsService } from './rewards.service';
 
 @Module({

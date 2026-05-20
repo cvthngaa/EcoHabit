@@ -10,22 +10,22 @@ export class PartnerProfile extends BaseEntity {
   @JoinColumn({ name: 'user_id' })
   user: User;
 
-  @Column({ name: 'organization_name', type: 'varchar', length: 255 })
+  @Column({ name: 'organization_name', type: 'text' })
   organizationName: string;
 
-  @Column({ name: 'organization_type', type: 'varchar', length: 100, nullable: true })
+  @Column({ name: 'organization_type', type: 'text', nullable: true })
   organizationType?: string;
 
-  @Column({ name: 'contact_name', type: 'varchar', length: 100 })
-  contactName: string;
+  @Column({ name: 'contact_name', type: 'text', nullable: true })
+  contactName?: string;
 
-  @Column({ name: 'contact_phone', type: 'varchar', length: 20 })
-  contactPhone: string;
+  @Column({ name: 'contact_phone', type: 'text', nullable: true })
+  contactPhone?: string;
 
-  @Column({ name: 'contact_email', type: 'varchar', length: 255 })
-  contactEmail: string;
+  @Column({ name: 'contact_email', type: 'text', nullable: true })
+  contactEmail?: string;
 
-  @Column({ name: 'tax_code', type: 'varchar', length: 50, nullable: true })
+  @Column({ name: 'tax_code', type: 'text', nullable: true })
   taxCode?: string;
 
   @Column({ name: 'business_license_url', type: 'text', nullable: true })

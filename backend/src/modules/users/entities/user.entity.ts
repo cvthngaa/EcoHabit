@@ -68,6 +68,20 @@ export class User extends BaseEntity {
   })
   pointsBalance: number;
 
+  @Column({
+    name: 'locked_reason',
+    type: 'text',
+    nullable: true,
+  })
+  lockedReason?: string | null;
+
+  @Column({
+    name: 'locked_at',
+    type: 'timestamp',
+    nullable: true,
+  })
+  lockedAt?: Date | null;
+
   @OneToMany(() => PointRule, (pointRule) => pointRule.createdBy)
   createdPointRules: PointRule[];
 

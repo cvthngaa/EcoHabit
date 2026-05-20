@@ -15,6 +15,7 @@ import { ForumModule } from './modules/forum/forum.module';
 import { QuizModule } from './modules/quiz/quiz.module';
 import { PartnersModule } from './modules/partner/partners.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
   imports: [
@@ -46,8 +47,9 @@ import { AdminModule } from './modules/admin/admin.module';
     QuizModule,
     PartnersModule,
     AdminModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }
