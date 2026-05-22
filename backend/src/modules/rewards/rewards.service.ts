@@ -79,6 +79,14 @@ export class RewardsService {
     });
   }
 
+  async getPartnerRewards(partnerProfileId: string) {
+    return this.rewardRepo.find({
+      where: { partnerProfile: { id: partnerProfileId } },
+      relations: ['pickupOptions', 'pickupOptions.location'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
   async createRewards(data: CreateRewardDto, partnerProfileId?: string) {
     const { pickupLocationIds, ...rewardData } = data;
     

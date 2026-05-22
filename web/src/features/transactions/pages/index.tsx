@@ -13,6 +13,9 @@ import {
   TX_STATUS_COLOR
 } from '../../locations/services/constants';
 import type { CollectionTransaction } from '../services/types';
+import { Badge } from '../../../shared/components/Badge';
+import { Modal } from '../../../shared/components/Modal';
+import { DataTable, type ColumnDef } from '../../../shared/components/DataTable';
 
 // ─── Modals ───────────────────────────────────────────────────────────────────
 
@@ -35,18 +38,13 @@ const VerifyModal: React.FC<{ tx: CollectionTransaction; onClose: () => void; on
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm border border-slate-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            Xác nhận thu gom
-          </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <Modal
+      title="Xác nhận thu gom"
+      icon={<CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+      onClose={onClose}
+      maxWidth="sm"
+    >
+      <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-1.5">
             <div className="flex justify-between">
               <span className="text-slate-500">Người gửi</span>
@@ -86,8 +84,7 @@ const VerifyModal: React.FC<{ tx: CollectionTransaction; onClose: () => void; on
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -103,18 +100,13 @@ const RejectModal: React.FC<{ tx: CollectionTransaction; onClose: () => void; on
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm border border-slate-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <XCircle className="w-4 h-4 text-rose-600" />
-            Từ chối thu gom
-          </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <Modal
+      title="Từ chối thu gom"
+      icon={<XCircle className="w-4 h-4 text-rose-600" />}
+      onClose={onClose}
+      maxWidth="sm"
+    >
+      <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-1.5">
             <div className="flex justify-between">
               <span className="text-slate-500">Người gửi</span>
@@ -141,8 +133,7 @@ const RejectModal: React.FC<{ tx: CollectionTransaction; onClose: () => void; on
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -193,7 +184,7 @@ export const TransactionsHistory: React.FC = () => {
       const userName = tx.user?.displayName || '';
       const userEmail = tx.user?.email || '';
       const locationName = tx.location?.name || '';
-      const wasteLabel = tx.wasteType ? WASTE_LABEL[tx.wasteType] : '';
+      const wasteLabel = tx.acceptedWasteType?.wasteType ? WASTE_LABEL[tx.acceptedWasteType.wasteType as WasteType] : '';
 
       return (
         userName.toLowerCase().includes(searchLower) ||
@@ -321,111 +312,103 @@ export const TransactionsHistory: React.FC = () => {
         </div>
       </div>
 
-      {/* Main List */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-        {isLoading ? (
-          <div className="p-16 flex flex-col justify-center items-center gap-3">
-            <RefreshCw className="w-8 h-8 text-emerald-500 animate-spin" />
-            <span className="text-sm text-slate-500">Đang tải lịch sử thu gom...</span>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs text-slate-500 bg-slate-50 uppercase border-b border-slate-100">
-                <tr>
-                  <th className="px-6 py-4 font-semibold">Người gửi</th>
-                  <th className="px-6 py-4 font-semibold">Điểm thu gom</th>
-                  <th className="px-6 py-4 font-semibold">Rác tiếp nhận</th>
-                  <th className="px-6 py-4 font-semibold">Trạng thái</th>
-                  <th className="px-6 py-4 font-semibold">Thời gian</th>
-                  <th className="px-6 py-4 font-semibold text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {filteredTransactions.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-900 flex items-center gap-1.5">
-                        <User className="w-3.5 h-3.5 text-slate-400" />
-                        {tx.user?.displayName || 'Ẩn danh'}
-                      </div>
-                      <div className="text-xs text-slate-400 mt-0.5">{tx.user?.email || 'N/A'}</div>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <div className="text-slate-800 font-medium text-xs">{tx.location?.name || 'N/A'}</div>
-                      <div className="text-[10px] text-slate-400 truncate max-w-[180px] mt-0.5">{tx.location?.address}</div>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-950 flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        {tx.wasteType ? WASTE_LABEL[tx.wasteType] : 'Chưa phân loại'}
-                      </div>
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        Lượng: <span className="font-semibold text-slate-700">{tx.quantityValue} {tx.quantityUnit}</span>
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4 text-xs">
-                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-full ${TX_STATUS_COLOR[tx.status]}`}>
-                        {TX_STATUS_LABEL[tx.status]}
-                      </span>
-                      {tx.status === 'VERIFIED' && (
-                        <div className="mt-1.5">
-                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-md font-bold">
-                            +{tx.pointsAwarded} điểm
-                          </span>
-                        </div>
-                      )}
-                      {tx.status === 'REJECTED' && (
-                        <div className="text-[10px] text-rose-600 italic mt-1.5 max-w-[150px] leading-tight">
-                          Lý do: {tx.rejectionReason || 'Không có lý do'}
-                        </div>
-                      )}
-                    </td>
-
-                    <td className="px-6 py-4 text-xs text-slate-500">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        {tx.createdAt ? new Date(tx.createdAt).toLocaleString('vi-VN') : 'N/A'}
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4 text-right">
-                      {tx.status === 'PENDING' && (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => setRejectTx(tx)}
-                            className="px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-lg cursor-pointer transition-colors"
-                          >
-                            Từ chối
-                          </button>
-                          <button
-                            onClick={() => setVerifyTx(tx)}
-                            className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg cursor-pointer transition-colors"
-                          >
-                            Xác nhận
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-
-                {filteredTransactions.length === 0 && (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-16 text-center text-slate-500">
-                      <FileText className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                      Không tìm thấy lịch sử giao dịch nào.
-                    </td>
-                  </tr>
+      <DataTable
+        data={filteredTransactions}
+        isLoading={isLoading}
+        loadingMessage="Đang tải lịch sử thu gom..."
+        emptyIcon={<FileText className="w-8 h-8" />}
+        emptyTitle="Không tìm thấy lịch sử giao dịch nào."
+        containerClassName="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden"
+        columns={[
+          {
+            header: 'Người gửi',
+            render: (tx) => (
+              <>
+                <div className="font-semibold text-slate-900 flex items-center gap-1.5">
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                  {tx.user?.displayName || 'Ẩn danh'}
+                </div>
+                <div className="text-xs text-slate-400 mt-0.5">{tx.user?.email || 'N/A'}</div>
+              </>
+            ),
+          },
+          {
+            header: 'Điểm thu gom',
+            render: (tx) => (
+              <>
+                <div className="text-slate-800 font-medium text-xs">{tx.location?.name || 'N/A'}</div>
+                <div className="text-[10px] text-slate-400 truncate max-w-[180px] mt-0.5">{tx.location?.address}</div>
+              </>
+            ),
+          },
+          {
+            header: 'Rác tiếp nhận',
+            render: (tx) => (
+              <>
+                <div className="font-semibold text-slate-950 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  {tx.acceptedWasteType?.wasteType ? WASTE_LABEL[tx.acceptedWasteType.wasteType as WasteType] : 'Chưa phân loại'}
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  Lượng: <span className="font-semibold text-slate-700">{tx.quantityValue} {tx.quantityUnit}</span>
+                </div>
+              </>
+            ),
+          },
+          {
+            header: 'Trạng thái',
+            render: (tx) => (
+              <div className="text-xs">
+                <Badge 
+                  className={`text-[10px] uppercase py-1 ${TX_STATUS_COLOR[tx.status]}`}
+                  label={TX_STATUS_LABEL[tx.status]}
+                />
+                {tx.status === 'VERIFIED' && (
+                  <div className="mt-1.5">
+                    <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-md font-bold">
+                      +{tx.pointsAwarded} điểm
+                    </span>
+                  </div>
                 )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                {tx.status === 'REJECTED' && (
+                  <div className="text-[10px] text-rose-600 italic mt-1.5 max-w-[150px] leading-tight">
+                    Lý do: {tx.rejectionReason || 'Không có lý do'}
+                  </div>
+                )}
+              </div>
+            ),
+          },
+          {
+            header: 'Thời gian',
+            render: (tx) => (
+              <div className="flex items-center gap-1 text-xs text-slate-500">
+                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                {tx.createdAt ? new Date(tx.createdAt).toLocaleString('vi-VN') : 'N/A'}
+              </div>
+            ),
+          },
+          {
+            header: 'Thao tác',
+            className: 'text-right',
+            render: (tx) => tx.status === 'PENDING' ? (
+              <div className="flex justify-end gap-2">
+                <button
+                  onClick={() => setRejectTx(tx)}
+                  className="px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-lg cursor-pointer transition-colors"
+                >
+                  Từ chối
+                </button>
+                <button
+                  onClick={() => setVerifyTx(tx)}
+                  className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg cursor-pointer transition-colors"
+                >
+                  Xác nhận
+                </button>
+              </div>
+            ) : null,
+          },
+        ]}
+      />
 
       {verifyTx && (
         <VerifyModal

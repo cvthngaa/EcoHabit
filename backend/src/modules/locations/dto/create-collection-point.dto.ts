@@ -49,12 +49,12 @@ export class CreateCollectionPointDto {
   address: string;
 
   @IsLatitude()
-  @IsNotEmpty()
-  latitude: number;
+  @IsOptional()
+  latitude?: number;
 
   @IsLongitude()
-  @IsNotEmpty()
-  longitude: number;
+  @IsOptional()
+  longitude?: number;
 
   @IsEnum(LocationType)
   @IsNotEmpty()

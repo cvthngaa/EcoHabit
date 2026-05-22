@@ -22,6 +22,15 @@ export class PartnerRewardsController {
     private readonly partnersService: PartnersService,
   ) {}
 
+  @Get()
+  async getMyRewards(@Request() req: any) {
+    const partnerProfile = await this.partnersService.getPartnerSummaryByUserId(req.user.userId);
+    if (!partnerProfile) {
+      throw new ForbiddenException('Partner profile not found');
+    }
+    return this.rewardsService.getPartnerRewards(partnerProfile.id);
+  }
+
   @Post()
   async createRewards(@Request() req: any, @Body() data: CreateRewardDto) {
     const partnerProfile = await this.partnersService.getPartnerSummaryByUserId(req.user.userId);

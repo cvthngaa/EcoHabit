@@ -4,6 +4,7 @@ import {
   AlertTriangle, CheckCircle2, Phone, MapPin, Info,
   Shield, Download, SlidersHorizontal, RefreshCw,
   ChevronDown, Package, Recycle, XCircle, Clock,
+  Map, List,
 } from 'lucide-react';
 import { useGetLocations } from '../services/use-get-locations';
 import { useGenerateQr } from '../services/use-generate-qr';
@@ -35,6 +36,12 @@ import type {
   LocationStatus,
 } from '../services/types';
 import { locationFormSchema } from '../services/schemas';
+import LocationMap from '../components/location-map';
+import { Badge } from '../../../shared/components/Badge';
+import { Modal } from '../../../shared/components/Modal';
+import { LoadingState } from '../../../shared/components/LoadingState';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { DataTable } from '../../../shared/components/DataTable';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -49,10 +56,6 @@ const ALL_SITE_TYPES: CollectionSiteType[] = ['MACHINE', 'COUNTER', 'BIN'];
 const selectCls =
   'w-full px-3.5 py-2.5 text-sm rounded-lg border border-slate-200 bg-white text-slate-800 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-all appearance-none cursor-pointer';
 
-interface BadgeProps { label: string; cls: string }
-const Badge: React.FC<BadgeProps> = ({ label, cls }) => (
-  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${cls}`}>{label}</span>
-);
 
 // ─── Form default state ───────────────────────────────────────────────────────
 
@@ -200,27 +203,41 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({ editTarget, onClo
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div
-        className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between rounded-t-2xl z-10">
-          <div>
-            <h3 className="text-base font-bold text-slate-900">
-              {isEdit ? 'Cập nhật điểm thu gom' : 'Thêm điểm thu gom mới'}
-            </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {isEdit ? `Đang sửa: ${editTarget.name}` : 'Điền thông tin để tạo địa điểm mới'}
-            </p>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
-            <X className="w-5 h-5" />
+    <Modal
+      title={
+        <div>
+          <span className="text-base font-bold text-slate-900 block">
+            {isEdit ? 'Cập nhật điểm thu gom' : 'Thêm điểm thu gom mới'}
+          </span>
+          <span className="text-xs text-slate-400 mt-0.5 font-normal block">
+            {isEdit ? `Đang sửa: ${editTarget.name}` : 'Điền thông tin để tạo địa điểm mới'}
+          </span>
+        </div>
+      }
+      onClose={onClose}
+      maxWidth="2xl"
+      footer={
+        <div className="flex items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2 text-sm font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors"
+          >
+            Huỷ
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isPending}
+            className="flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white rounded-xl cursor-pointer active:scale-[0.98] transition-all shadow-sm shadow-emerald-600/20"
+          >
+            {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isEdit ? 'Lưu thay đổi' : 'Tạo điểm thu gom'}
           </button>
         </div>
-
-        <div className="p-6 space-y-6">
+      }
+    >
+      <div className="p-6 space-y-6">
           {/* ── Basic Info ── */}
           <div>
             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Thông tin cơ bản</p>
@@ -440,28 +457,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({ editTarget, onClo
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-4 flex justify-end gap-3 rounded-b-2xl">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer"
-          >
-            Huỷ
-          </button>
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={isPending}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white rounded-xl cursor-pointer active:scale-[0.98] transition-all shadow-sm shadow-emerald-600/20"
-          >
-            {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-            {isEdit ? 'Lưu thay đổi' : 'Tạo điểm thu gom'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -502,7 +498,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ location, onClose, onEdit }) 
         <div className="sticky top-0 bg-white border-b border-slate-100 px-5 py-4 flex items-center justify-between z-10">
           <div>
             <h3 className="text-sm font-bold text-slate-900">{location.name}</h3>
-            <Badge label={STATUS_LABEL[location.status]} cls={STATUS_COLOR[location.status]} />
+            <Badge label={STATUS_LABEL[location.status]} className={STATUS_COLOR[location.status]} />
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -557,7 +553,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ location, onClose, onEdit }) 
                   <Badge
                     key={cap}
                     label={CAPABILITY_LABEL[cap]}
-                    cls={cap === 'COLLECTION' ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}
+                    className={cap === 'COLLECTION' ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700'}
                   />
                 ))}
               </div>
@@ -781,90 +777,88 @@ const TransactionsPanel: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        {isLoading ? (
-          <div className="py-16 flex flex-col items-center gap-2">
-            <Loader2 className="w-6 h-6 text-emerald-500 animate-spin" />
-            <p className="text-sm text-slate-400">Đang tải giao dịch...</p>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-16 text-center text-slate-400">
-            <XCircle className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-            <p className="text-sm">Không có giao dịch nào</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-xs text-slate-500 border-b border-slate-100">
-                <tr>
-                  <th className="text-left px-5 py-3 font-semibold">Người gửi</th>
-                  <th className="text-left px-5 py-3 font-semibold">Điểm thu gom</th>
-                  <th className="text-left px-5 py-3 font-semibold">Rác / Khối lượng</th>
-                  <th className="text-left px-5 py-3 font-semibold">Khoảng cách</th>
-                  <th className="text-left px-5 py-3 font-semibold">Điểm thưởng</th>
-                  <th className="text-left px-5 py-3 font-semibold">Trạng thái</th>
-                  <th className="text-right px-5 py-3 font-semibold">Hành động</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {filtered.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <p className="font-medium text-slate-900">{tx.user?.displayName ?? 'Ẩn danh'}</p>
-                      <p className="text-xs text-slate-400">{tx.user?.email ?? ''}</p>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <p className="text-slate-700">{tx.location?.name ?? '—'}</p>
-                      <p className="text-xs text-slate-400 truncate max-w-[160px]">{tx.location?.address ?? ''}</p>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <p className="font-medium">{tx.wasteType ? WASTE_LABEL[tx.wasteType] : '—'}</p>
-                      {tx.quantityValue != null && (
-                        <p className="text-xs text-slate-400">
-                          {tx.quantityValue} {tx.quantityUnit}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-5 py-3.5 text-xs text-slate-500">
-                      {tx.distanceKm != null ? `${tx.distanceKm.toFixed(2)} km` : '—'}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      {tx.status === 'VERIFIED' && tx.pointsAwarded != null ? (
-                        <span className="font-bold text-emerald-600">+{tx.pointsAwarded}</span>
-                      ) : tx.status === 'REJECTED' ? (
-                        <span className="text-xs text-rose-500 italic">{tx.rejectionReason ?? 'Từ chối'}</span>
-                      ) : '—'}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <Badge label={TX_STATUS_LABEL[tx.status]} cls={TX_STATUS_COLOR[tx.status]} />
-                    </td>
-                    <td className="px-5 py-3.5 text-right">
-                      {tx.status === 'PENDING' && (
-                        <div className="flex gap-1.5 justify-end">
-                          <button
-                            onClick={() => setVerifyModal({ tx, points: '10' })}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 cursor-pointer"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            Duyệt
-                          </button>
-                          <button
-                            onClick={() => setRejectModal({ tx, reason: '' })}
-                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 rounded-lg hover:bg-rose-100 cursor-pointer"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                            Từ chối
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <DataTable
+        data={filtered}
+        isLoading={isLoading}
+        loadingMessage="Đang tải giao dịch..."
+        emptyIcon={<XCircle className="w-8 h-8" />}
+        emptyTitle="Không có giao dịch nào"
+        emptyClassName="py-16"
+        columns={[
+          {
+            header: 'Người gửi',
+            render: (tx) => (
+              <>
+                <p className="font-medium text-slate-900">{tx.user?.displayName ?? 'Ẩn danh'}</p>
+                <p className="text-xs text-slate-400">{tx.user?.email ?? ''}</p>
+              </>
+            ),
+          },
+          {
+            header: 'Điểm thu gom',
+            render: (tx) => (
+              <>
+                <p className="text-slate-700">{tx.location?.name ?? '—'}</p>
+                <p className="text-xs text-slate-400 truncate max-w-[160px]">{tx.location?.address ?? ''}</p>
+              </>
+            ),
+          },
+          {
+            header: 'Rác / Khối lượng',
+            render: (tx) => (
+              <>
+                <p className="font-medium">{tx.acceptedWasteType?.wasteType ? WASTE_LABEL[tx.acceptedWasteType.wasteType as WasteType] : 'Chưa phân loại'}</p>
+                {tx.quantityValue != null && (
+                  <p className="text-xs text-slate-400">
+                    {tx.quantityValue} {tx.quantityUnit}
+                  </p>
+                )}
+              </>
+            ),
+          },
+          {
+            header: 'Khoảng cách',
+            className: 'text-xs text-slate-500',
+            render: (tx) => tx.distanceKm != null ? `${tx.distanceKm.toFixed(2)} km` : '—',
+          },
+          {
+            header: 'Điểm thưởng',
+            render: (tx) => tx.status === 'VERIFIED' && tx.pointsAwarded != null ? (
+              <span className="font-bold text-emerald-600">+{tx.pointsAwarded}</span>
+            ) : tx.status === 'REJECTED' ? (
+              <span className="text-xs text-rose-500 italic">{tx.rejectionReason ?? 'Từ chối'}</span>
+            ) : '—',
+          },
+          {
+            header: 'Trạng thái',
+            render: (tx) => (
+              <Badge label={TX_STATUS_LABEL[tx.status]} className={TX_STATUS_COLOR[tx.status]} />
+            ),
+          },
+          {
+            header: 'Hành động',
+            className: 'text-right',
+            render: (tx) => tx.status === 'PENDING' ? (
+              <div className="flex gap-1.5 justify-end">
+                <button
+                  onClick={() => setVerifyModal({ tx, points: '10' })}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 cursor-pointer"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Duyệt
+                </button>
+                <button
+                  onClick={() => setRejectModal({ tx, reason: '' })}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 rounded-lg hover:bg-rose-100 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  Từ chối
+                </button>
+              </div>
+            ) : null,
+          },
+        ]}
+      />
 
       {/* Verify Modal */}
       {verifyModal && (
@@ -873,7 +867,7 @@ const TransactionsPanel: React.FC = () => {
             <h4 className="text-base font-bold text-slate-900">Xác nhận giao dịch</h4>
             <p className="text-sm text-slate-500">
               Duyệt giao dịch của <strong>{verifyModal.tx.user?.displayName ?? 'người dùng'}</strong> —{' '}
-              {verifyModal.tx.wasteType ? WASTE_LABEL[verifyModal.tx.wasteType] : ''}{' '}
+              {verifyModal.tx.acceptedWasteType?.wasteType ? WASTE_LABEL[verifyModal.tx.acceptedWasteType.wasteType as WasteType] : ''}{' '}
               {verifyModal.tx.quantityValue} {verifyModal.tx.quantityUnit}
             </p>
             <div className="space-y-1.5">
@@ -969,6 +963,7 @@ export const Locations: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editTarget, setEditTarget] = useState<Location | null>(null);
   const [detailTarget, setDetailTarget] = useState<Location | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   const filteredLocations = useMemo(() => {
     return locations
@@ -1096,6 +1091,32 @@ export const Locations: React.FC = () => {
                 <span>{filteredLocations.length} / {locations.length} điểm</span>
               </div>
 
+              {/* Map / List toggle */}
+              <div className="flex items-center bg-slate-100 p-0.5 rounded-lg">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                    viewMode === 'list'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <List className="w-3.5 h-3.5" />
+                  Danh sách
+                </button>
+                <button
+                  onClick={() => setViewMode('map')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+                    viewMode === 'map'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <Map className="w-3.5 h-3.5" />
+                  Bản đồ
+                </button>
+              </div>
+
               <button
                 onClick={() => refetch()}
                 className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 cursor-pointer"
@@ -1105,140 +1126,147 @@ export const Locations: React.FC = () => {
             </div>
           </div>
 
-          {/* Locations Table */}
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            {isLoading ? (
-              <div className="py-20 flex flex-col items-center gap-3">
-                <Loader2 className="w-7 h-7 text-emerald-500 animate-spin" />
-                <p className="text-sm text-slate-400">Đang tải danh sách điểm thu gom...</p>
-              </div>
-            ) : filteredLocations.length === 0 ? (
-              <div className="py-20 text-center">
-                <MapPin className="w-10 h-10 text-slate-200 mx-auto mb-3" />
-                <p className="text-sm font-medium text-slate-500">Không có điểm thu gom nào</p>
-                <p className="text-xs text-slate-400 mt-1">Thêm điểm mới hoặc thay đổi bộ lọc</p>
-                <button
-                  onClick={openCreate}
-                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" /> Thêm điểm thu gom
-                </button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-xs text-slate-500 border-b border-slate-100">
-                    <tr>
-                      <th className="text-left px-5 py-3.5 font-semibold">Tên / Địa chỉ</th>
-                      <th className="text-left px-5 py-3.5 font-semibold">Loại</th>
-                      <th className="text-left px-5 py-3.5 font-semibold">Liên hệ</th>
-                      <th className="text-left px-5 py-3.5 font-semibold">Loại rác</th>
-                      <th className="text-left px-5 py-3.5 font-semibold">Khả năng</th>
-                      <th className="text-left px-5 py-3.5 font-semibold">Trạng thái</th>
-                      <th className="text-right px-5 py-3.5 font-semibold">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 text-slate-700">
-                    {filteredLocations.map((loc) => (
-                      <tr key={loc.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="px-5 py-4 max-w-[240px]">
-                          <p className="font-semibold text-slate-900 truncate">{loc.name}</p>
-                          <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1 truncate">
-                            <MapPin className="w-3 h-3 flex-shrink-0" />
-                            {loc.address}
+          {/* Locations Content: Map or List */}
+          {viewMode === 'map' ? (
+            <LocationMap
+              locations={filteredLocations}
+              onViewDetail={(loc) => setDetailTarget(loc)}
+            />
+          ) : (
+              <DataTable
+                data={filteredLocations}
+                isLoading={isLoading}
+                loadingMessage="Đang tải danh sách điểm thu gom..."
+                emptyIcon={<MapPin className="w-10 h-10" />}
+                emptyTitle="Không có điểm thu gom nào"
+                emptyDescription="Thêm điểm mới hoặc thay đổi bộ lọc"
+                emptyClassName="py-20"
+                emptyAction={
+                  <button
+                    onClick={openCreate}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Thêm điểm thu gom
+                  </button>
+                }
+                columns={[
+                  {
+                    header: 'Tên / Địa chỉ',
+                    className: 'max-w-[240px]',
+                    render: (loc) => (
+                      <>
+                        <p className="font-semibold text-slate-900 truncate">{loc.name}</p>
+                        <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1 truncate">
+                          <MapPin className="w-3 h-3 flex-shrink-0" />
+                          {loc.address}
+                        </p>
+                        {(loc.latitude || loc.longitude) && (
+                          <p className="text-[10px] text-slate-300 mt-0.5">
+                            {loc.latitude}, {loc.longitude}
                           </p>
-                          {(loc.latitude || loc.longitude) && (
-                            <p className="text-[10px] text-slate-300 mt-0.5">
-                              {loc.latitude}, {loc.longitude}
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-5 py-4">
-                          <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-medium">
-                            {TYPE_LABEL[loc.type]}
-                          </span>
-                        </td>
-                        <td className="px-5 py-4">
-                          {loc.contactPhone ? (
-                            <span className="text-xs flex items-center gap-1 text-slate-600">
-                              <Phone className="w-3 h-3" />
-                              {loc.contactPhone}
+                        )}
+                      </>
+                    ),
+                  },
+                  {
+                    header: 'Loại',
+                    render: (loc) => (
+                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-lg font-medium">
+                        {TYPE_LABEL[loc.type]}
+                      </span>
+                    ),
+                  },
+                  {
+                    header: 'Liên hệ',
+                    render: (loc) => loc.contactPhone ? (
+                      <span className="text-xs flex items-center gap-1 text-slate-600">
+                        <Phone className="w-3 h-3" />
+                        {loc.contactPhone}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-300">—</span>
+                    ),
+                  },
+                  {
+                    header: 'Loại rác',
+                    render: (loc) => (
+                      <div className="flex flex-wrap gap-1">
+                        {loc.acceptedWasteTypes && loc.acceptedWasteTypes.length > 0 ? (
+                          loc.acceptedWasteTypes.slice(0, 3).map(({ wasteType }) => (
+                            <span
+                              key={wasteType}
+                              className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-1.5 py-0.5 rounded-md font-medium"
+                            >
+                              {WASTE_LABEL[wasteType]}
                             </span>
-                          ) : (
-                            <span className="text-xs text-slate-300">—</span>
-                          )}
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="flex flex-wrap gap-1">
-                            {loc.acceptedWasteTypes && loc.acceptedWasteTypes.length > 0 ? (
-                              loc.acceptedWasteTypes.slice(0, 3).map(({ wasteType }) => (
-                                <span
-                                  key={wasteType}
-                                  className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-1.5 py-0.5 rounded-md font-medium"
-                                >
-                                  {WASTE_LABEL[wasteType]}
-                                </span>
-                              ))
-                            ) : (
-                              <span className="text-xs text-slate-300">—</span>
-                            )}
-                            {loc.acceptedWasteTypes && loc.acceptedWasteTypes.length > 3 && (
-                              <span className="text-[10px] text-slate-400">
-                                +{loc.acceptedWasteTypes.length - 3}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-5 py-4">
-                          <div className="flex flex-col gap-1">
-                            {loc.capabilities && loc.capabilities.length > 0 ? (
-                              loc.capabilities.map((cap) => (
-                                <Badge
-                                  key={cap}
-                                  label={CAPABILITY_LABEL[cap]}
-                                  cls={cap === 'COLLECTION' ? 'bg-teal-100 text-teal-700' : 'bg-purple-100 text-purple-700'}
-                                />
-                              ))
-                            ) : (
-                              <span className="text-xs text-slate-300">—</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-5 py-4">
-                          <Badge label={STATUS_LABEL[loc.status]} cls={STATUS_COLOR[loc.status]} />
-                        </td>
-                        <td className="px-5 py-4 text-right">
-                          <div className="flex items-center gap-1.5 justify-end">
-                            <button
-                              onClick={() => setDetailTarget(loc)}
-                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              Chi tiết
-                            </button>
-                            <button
-                              onClick={() => openEdit(loc)}
-                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-100 rounded-lg cursor-pointer"
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                              Sửa
-                            </button>
-                            <button
-                              onClick={() => setDetailTarget(loc)}
-                              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 rounded-lg cursor-pointer"
-                            >
-                              <QrCode className="w-3.5 h-3.5" />
-                              QR
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-300">—</span>
+                        )}
+                        {loc.acceptedWasteTypes && loc.acceptedWasteTypes.length > 3 && (
+                          <span className="text-[10px] text-slate-400">
+                            +{loc.acceptedWasteTypes.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    ),
+                  },
+                  {
+                    header: 'Khả năng',
+                    render: (loc) => (
+                      <div className="flex flex-col gap-1 items-start">
+                        {loc.capabilities && loc.capabilities.length > 0 ? (
+                          loc.capabilities.map((cap) => (
+                            <Badge
+                              key={cap}
+                              label={CAPABILITY_LABEL[cap]}
+                              className={cap === 'COLLECTION' ? 'bg-teal-100 text-teal-700' : 'bg-purple-100 text-purple-700'}
+                            />
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-300">—</span>
+                        )}
+                      </div>
+                    ),
+                  },
+                  {
+                    header: 'Trạng thái',
+                    render: (loc) => (
+                      <Badge label={STATUS_LABEL[loc.status]} className={STATUS_COLOR[loc.status]} />
+                    ),
+                  },
+                  {
+                    header: 'Thao tác',
+                    className: 'text-right',
+                    render: (loc) => (
+                      <div className="flex items-center gap-1.5 justify-end">
+                        <button
+                          onClick={() => setDetailTarget(loc)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          Chi tiết
+                        </button>
+                        <button
+                          onClick={() => openEdit(loc)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-100 rounded-lg cursor-pointer"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          Sửa
+                        </button>
+                        <button
+                          onClick={() => setDetailTarget(loc)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 rounded-lg cursor-pointer"
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
+                          QR
+                        </button>
+                      </div>
+                    ),
+                  },
+                ]}
+              />
+          )}
         </div>
       )}
 

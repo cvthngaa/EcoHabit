@@ -11,6 +11,12 @@ import { useDeleteReward } from '../services/use-delete-reward';
 import { useUpdateRedemptionStatus } from '../services/use-update-redemption-status';
 import { useGetLocations } from '../../locations/services/use-get-locations';
 import type { Reward, Redemption, RewardStatus, RedemptionStatus, CreateRewardDto } from '../services/types';
+import { Badge } from '../../../shared/components/Badge';
+import { Modal } from '../../../shared/components/Modal';
+import { LoadingState } from '../../../shared/components/LoadingState';
+import { EmptyState } from '../../../shared/components/EmptyState';
+import { StatCard } from '../../../shared/components/StatCard';
+import { DataTable } from '../../../shared/components/DataTable';
 
 // ── Helpers ──
 
@@ -57,7 +63,7 @@ const RewardFormModal: React.FC<RewardFormModalProps> = ({ reward, onClose }) =>
     pointsCost: reward?.pointsCost ?? 100,
     stock: reward?.stock ?? 10,
     status: reward?.status ?? 'DRAFT',
-    pickupLocationIds: reward?.pickupOptions?.map(p => p.id) ?? [],
+    pickupLocationIds: reward?.pickupOptions?.map(p => p.location?.id).filter(Boolean) as string[] ?? [],
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -79,21 +85,35 @@ const RewardFormModal: React.FC<RewardFormModalProps> = ({ reward, onClose }) =>
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-slate-200 flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
-          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <Gift className="w-4 h-4 text-emerald-600" />
-            {isEdit ? 'Cập nhật quà tặng' : 'Thêm quà tặng mới'}
-          </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer transition-colors">
-            <X className="w-5 h-5" />
+    <Modal
+      title={isEdit ? 'Cập nhật quà tặng' : 'Thêm quà tặng mới'}
+      icon={<Gift className="w-4 h-4 text-emerald-600" />}
+      onClose={onClose}
+      maxWidth="lg"
+      footer={
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 py-2 text-sm font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
+          >
+            Hủy
+          </button>
+          <button
+            type="submit"
+            form="reward-form"
+            disabled={isPending}
+            className="flex-1 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-60 cursor-pointer flex items-center justify-center gap-2"
+          >
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            {isEdit ? 'Lưu thay đổi' : 'Thêm quà'}
           </button>
         </div>
-
-        <div className="flex-1 overflow-y-auto px-6 py-5">
-          <form id="reward-form" onSubmit={handleSubmit} className="space-y-4">
-            <div>
+      }
+    >
+      <div className="px-6 py-5">
+        <form id="reward-form" onSubmit={handleSubmit} className="space-y-4">
+          <div>
               <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Tên quà tặng <span className="text-rose-500">*</span></label>
               <input
                 required
@@ -182,29 +202,9 @@ const RewardFormModal: React.FC<RewardFormModalProps> = ({ reward, onClose }) =>
                 )}
               </div>
             </div>
-          </form>
-        </div>
-
-        <div className="px-6 py-4 border-t border-slate-100 flex gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 py-2 text-sm font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer"
-          >
-            Hủy
-          </button>
-          <button
-            type="submit"
-            form="reward-form"
-            disabled={isPending}
-            className="flex-1 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors disabled:opacity-60 cursor-pointer flex items-center justify-center gap-2"
-          >
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-            {isEdit ? 'Lưu thay đổi' : 'Thêm quà'}
-          </button>
-        </div>
+        </form>
       </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -232,19 +232,14 @@ const RedemptionStatusModal: React.FC<RedemptionStatusModalProps> = ({ redemptio
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm border border-slate-200">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
-          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <ArrowRightLeft className="w-4 h-4 text-blue-600" />
-            Cập nhật lượt đổi quà
-          </h3>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="px-6 py-4 space-y-4">
-          <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-2">
+    <Modal
+      title="Cập nhật lượt đổi quà"
+      icon={<ArrowRightLeft className="w-4 h-4 text-blue-600" />}
+      onClose={onClose}
+      maxWidth="sm"
+    >
+      <div className="px-6 py-4 space-y-4">
+        <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-2">
             <div className="flex justify-between">
               <span className="text-slate-500">Mã đổi quà</span>
               <span className="font-mono text-slate-800">{redemption.id.slice(0, 8).toUpperCase()}</span>
@@ -279,8 +274,7 @@ const RedemptionStatusModal: React.FC<RedemptionStatusModalProps> = ({ redemptio
             </div>
           </div>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 };
 
@@ -381,26 +375,30 @@ export const Rewards: React.FC = () => {
         {/* B. Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { icon: <Gift />, label: 'Tổng quà tặng', value: stats.totalRewards, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-            { icon: <CheckCircle2 />, label: 'Đang hoạt động', value: stats.activeRewards, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-            { icon: <Package />, label: 'Tổng tồn kho', value: stats.totalStock, color: 'text-blue-600', bg: 'bg-blue-50' },
-            { icon: <Clock />, label: 'Chờ xử lý', value: stats.pendingRedemptions, color: 'text-amber-600', bg: 'bg-amber-50', isAlert: stats.pendingRedemptions > 0 },
+            { icon: Gift, label: 'Tổng quà tặng', value: stats.totalRewards, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+            { icon: CheckCircle2, label: 'Đang hoạt động', value: stats.activeRewards, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { icon: Package, label: 'Tổng tồn kho', value: stats.totalStock, color: 'text-blue-600', bg: 'bg-blue-50' },
+            { icon: Clock, label: 'Chờ xử lý', value: stats.pendingRedemptions, color: 'text-amber-600', bg: 'bg-amber-50', isAlert: stats.pendingRedemptions > 0 },
           ].map((s, i) => (
-            <div key={i} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-              <div className={`w-11 h-11 ${s.bg} ${s.color} rounded-xl flex items-center justify-center shrink-0`}>
-                {/* {React.cloneElement(s.icon as React.ReactElement, { className: 'w-5 h-5' })} */}
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{s.label}</p>
-                <h3 className="text-xl font-extrabold text-slate-900 mt-0.5 flex items-center gap-2">
+            <StatCard
+              key={i}
+              icon={s.icon}
+              iconColorClass={s.color}
+              iconBgClass={s.bg}
+              iconClassName="w-5 h-5"
+              label={<span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{s.label}</span>}
+              value={
+                <>
                   {s.value}
-                  {s.isAlert && <span className="flex h-2 w-2 relative">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                  </span>}
-                </h3>
-              </div>
-            </div>
+                  {s.isAlert && (
+                    <span className="flex h-2 w-2 relative mb-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                    </span>
+                  )}
+                </>
+              }
+            />
           ))}
         </div>
 
@@ -464,64 +462,67 @@ export const Rewards: React.FC = () => {
             </div>
 
             {/* List */}
-            {rewardsLoading ? (
-              <div className="p-12 text-center text-slate-400"><Loader2 className="w-8 h-8 animate-spin mx-auto" /></div>
-            ) : filteredRewards.length === 0 ? (
-              <div className="p-12 text-center text-slate-400">
-                <Gift className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                <p className="text-sm font-semibold">Không tìm thấy quà tặng nào</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase font-bold tracking-wide">
-                    <tr>
-                      <th className="px-4 py-3">Quà tặng</th>
-                      <th className="px-4 py-3">Điểm</th>
-                      <th className="px-4 py-3">Tồn kho</th>
-                      <th className="px-4 py-3">Trạng thái</th>
-                      <th className="px-4 py-3">Điểm nhận</th>
-                      <th className="px-4 py-3 text-right">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredRewards.map(r => (
-                      <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-4 py-3">
-                          <p className="font-bold text-slate-800">{r.name}</p>
-                          {r.description && <p className="text-slate-400 mt-0.5 truncate max-w-[200px]">{r.description}</p>}
-                        </td>
-                        <td className="px-4 py-3 font-bold text-emerald-700">{r.pointsCost}</td>
-                        <td className="px-4 py-3">
-                          <span className={`font-semibold ${r.stock > 0 ? 'text-slate-700' : 'text-rose-500'}`}>{r.stock}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${REWARD_STATUS_MAP[r.status].color}`}>
-                            {REWARD_STATUS_MAP[r.status].label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-slate-500">
-                          {r.pickupOptions?.length ? `${r.pickupOptions.length} điểm` : 'Mọi nơi'}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex justify-end gap-1">
-                            <button onClick={() => setDetailReward(r)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors" title="Chi tiết">
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => setFormReward(r)} className="p-1.5 text-blue-400 hover:text-blue-700 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors" title="Sửa">
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => handleDeleteReward(r.id)} className="p-1.5 text-rose-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer transition-colors" title="Xóa">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <DataTable
+              data={filteredRewards}
+              isLoading={rewardsLoading}
+              loadingMessage="Đang tải danh sách quà tặng..."
+              loadingMinHeight="py-12"
+              emptyIcon={<Gift className="w-12 h-12 opacity-20" />}
+              emptyTitle="Không tìm thấy quà tặng nào"
+              emptyClassName="py-12"
+              containerClassName=""
+              tableClassName="text-xs"
+              columns={[
+                {
+                  header: 'Quà tặng',
+                  render: (r) => (
+                    <>
+                      <p className="font-bold text-slate-800">{r.name}</p>
+                      {r.description && <p className="text-slate-400 mt-0.5 truncate max-w-[200px]">{r.description}</p>}
+                    </>
+                  ),
+                },
+                {
+                  header: 'Điểm',
+                  render: (r) => <span className="font-bold text-emerald-700">{r.pointsCost}</span>,
+                },
+                {
+                  header: 'Tồn kho',
+                  render: (r) => <span className={`font-semibold ${r.stock > 0 ? 'text-slate-700' : 'text-rose-500'}`}>{r.stock}</span>,
+                },
+                {
+                  header: 'Trạng thái',
+                  render: (r) => (
+                    <Badge 
+                      className={`text-[10px] ${REWARD_STATUS_MAP[r.status].color}`}
+                      label={REWARD_STATUS_MAP[r.status].label}
+                    />
+                  ),
+                },
+                {
+                  header: 'Điểm nhận',
+                  className: 'text-slate-500',
+                  render: (r) => r.pickupOptions?.length ? `${r.pickupOptions.length} điểm` : 'Mọi nơi',
+                },
+                {
+                  header: 'Thao tác',
+                  className: 'text-right',
+                  render: (r) => (
+                    <div className="flex justify-end gap-1">
+                      <button onClick={() => setDetailReward(r)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors" title="Chi tiết">
+                        <Eye className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => setFormReward(r)} className="p-1.5 text-blue-400 hover:text-blue-700 hover:bg-blue-50 rounded-lg cursor-pointer transition-colors" title="Sửa">
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => handleDeleteReward(r.id)} className="p-1.5 text-rose-400 hover:text-rose-700 hover:bg-rose-50 rounded-lg cursor-pointer transition-colors" title="Xóa">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ),
+                },
+              ]}
+            />
           </div>
         )}
 
@@ -553,67 +554,73 @@ export const Rewards: React.FC = () => {
               </select>
             </div>
 
-            {redemptionsLoading ? (
-              <div className="p-12 text-center text-slate-400"><Loader2 className="w-8 h-8 animate-spin mx-auto" /></div>
-            ) : filteredRedemptions.length === 0 ? (
-              <div className="p-12 text-center text-slate-400">
-                <History className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                <p className="text-sm font-semibold">Không tìm thấy lượt đổi quà nào</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase font-bold tracking-wide">
-                    <tr>
-                      <th className="px-4 py-3">Ngày đổi</th>
-                      <th className="px-4 py-3">Người dùng</th>
-                      <th className="px-4 py-3">Quà tặng</th>
-                      <th className="px-4 py-3">Trạng thái</th>
-                      <th className="px-4 py-3">Xử lý</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredRedemptions.map(r => (
-                      <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="px-4 py-3 whitespace-nowrap text-slate-500">{fmtDate(r.createdAt)}</td>
-                        <td className="px-4 py-3">
-                          <p className="font-semibold text-slate-800">{r.user?.displayName || 'Ẩn danh'}</p>
-                          {r.user?.email && <p className="text-[10px] text-slate-400 truncate max-w-[120px]">{r.user.email}</p>}
-                        </td>
-                        <td className="px-4 py-3">
-                          <p className="font-semibold text-slate-800 max-w-[180px] truncate">{r.reward?.name}</p>
-                          <p className="text-[10px] font-bold text-emerald-600 mt-0.5">{r.pointsSpent} điểm</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${REDEMPTION_STATUS_MAP[r.status].color}`}>
-                            {REDEMPTION_STATUS_MAP[r.status].label}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1.5">
-                            {['PENDING', 'APPROVED'].includes(r.status) ? (
-                              <button
-                                onClick={() => setStatusRedemption(r)}
-                                className="px-2.5 py-1 text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg cursor-pointer transition-colors"
-                              >
-                                Cập nhật
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => setDetailRedemption(r)}
-                                className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
-                              >
-                                Chi tiết
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <DataTable
+              data={filteredRedemptions}
+              isLoading={redemptionsLoading}
+              loadingMessage="Đang tải danh sách đổi quà..."
+              loadingMinHeight="p-12"
+              emptyIcon={<History className="w-12 h-12 opacity-20" />}
+              emptyTitle="Không tìm thấy lượt đổi quà nào"
+              emptyClassName="p-12"
+              tableClassName="text-xs"
+              containerClassName=""
+              columns={[
+                {
+                  header: 'Ngày đổi',
+                  className: 'whitespace-nowrap text-slate-500',
+                  render: (r) => fmtDate(r.createdAt),
+                },
+                {
+                  header: 'Người dùng',
+                  render: (r) => (
+                    <>
+                      <p className="font-semibold text-slate-800">{r.user?.displayName || 'Ẩn danh'}</p>
+                      {r.user?.email && <p className="text-[10px] text-slate-400 truncate max-w-[120px]">{r.user.email}</p>}
+                    </>
+                  ),
+                },
+                {
+                  header: 'Quà tặng',
+                  render: (r) => (
+                    <>
+                      <p className="font-semibold text-slate-800 max-w-[180px] truncate">{r.reward?.name}</p>
+                      <p className="text-[10px] font-bold text-emerald-600 mt-0.5">{r.pointsSpent} điểm</p>
+                    </>
+                  ),
+                },
+                {
+                  header: 'Trạng thái',
+                  render: (r) => (
+                    <Badge 
+                      className={`text-[10px] ${REDEMPTION_STATUS_MAP[r.status].color}`}
+                      label={REDEMPTION_STATUS_MAP[r.status].label}
+                    />
+                  ),
+                },
+                {
+                  header: 'Xử lý',
+                  render: (r) => (
+                    <div className="flex items-center gap-1.5">
+                      {['PENDING', 'APPROVED'].includes(r.status) ? (
+                        <button
+                          onClick={() => setStatusRedemption(r)}
+                          className="px-2.5 py-1 text-[11px] font-bold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg cursor-pointer transition-colors"
+                        >
+                          Cập nhật
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => setDetailRedemption(r)}
+                          className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 border border-slate-200 hover:bg-slate-50 rounded-lg cursor-pointer transition-colors"
+                        >
+                          Chi tiết
+                        </button>
+                      )}
+                    </div>
+                  ),
+                },
+              ]}
+            />
           </div>
         )}
       </div>
@@ -645,9 +652,10 @@ export const Rewards: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-slate-500">Trạng thái</p>
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold inline-block ${REWARD_STATUS_MAP[detailReward.status].color}`}>
-                    {REWARD_STATUS_MAP[detailReward.status].label}
-                  </span>
+                  <Badge 
+                    className={`text-[10px] ${REWARD_STATUS_MAP[detailReward.status].color}`}
+                    label={REWARD_STATUS_MAP[detailReward.status].label}
+                  />
                 </div>
                 <div className="space-y-1">
                   <p className="text-slate-500">Tồn kho</p>
@@ -669,7 +677,7 @@ export const Rewards: React.FC = () => {
                   <p className="text-slate-500">Điểm nhận quà ({detailReward.pickupOptions.length})</p>
                   <ul className="list-disc pl-4 space-y-1 text-slate-700">
                     {detailReward.pickupOptions.map(p => (
-                      <li key={p.id}><strong>{p.name}</strong><br /><span className="text-[10px] text-slate-500">{p.address}</span></li>
+                      <li key={p.id}><strong>{p.location?.name}</strong><br /><span className="text-[10px] text-slate-500">{p.location?.address}</span></li>
                     ))}
                   </ul>
                 </div>
@@ -697,9 +705,10 @@ export const Rewards: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
               <div className="flex justify-between items-center bg-slate-50 p-3 rounded-lg">
                 <span className="text-slate-500">Trạng thái</span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${REDEMPTION_STATUS_MAP[detailRedemption.status].color}`}>
-                  {REDEMPTION_STATUS_MAP[detailRedemption.status].label}
-                </span>
+                <Badge 
+                  className={`text-[10px] ${REDEMPTION_STATUS_MAP[detailRedemption.status].color}`}
+                  label={REDEMPTION_STATUS_MAP[detailRedemption.status].label}
+                />
               </div>
               <div className="space-y-1">
                 <p className="text-slate-500">Người dùng</p>

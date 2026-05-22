@@ -44,6 +44,16 @@ export class CollectionPointsController {
     return this.locationsService.getAddressSuggestions(query);
   }
 
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles(UserRole.PARTNER, UserRole.ADMIN)
+  @Get('my-locations')
+  async getMyCollectionPoints(@Request() req: AuthenticatedRequest) {
+    return this.locationsService.getMyCollectionPoints(
+      req.user.userId,
+      req.user.role,
+    );
+  }
+
   @Get(':id')
   async getCollectionPoint(@Param('id') id: string) {
     return this.locationsService.getCollectionPoint(id);

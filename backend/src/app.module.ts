@@ -16,6 +16,7 @@ import { QuizModule } from './modules/quiz/quiz.module';
 import { PartnersModule } from './modules/partner/partners.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { AuditModule } from './modules/audit/audit.module';
     PartnersModule,
     AdminModule,
     AuditModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

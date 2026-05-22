@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useGetProfile } from '../../auth/services/use-get-profile';
 import { useUpdateProfile } from '../../auth/services/use-update-profile';
+import { LoadingState } from '../../../shared/components/LoadingState';
 import { inputCls } from '../../locations/services/constants';
 
 export const Profile: React.FC = () => {
@@ -91,12 +92,7 @@ export const Profile: React.FC = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
-        <p className="text-slate-500 text-sm">Đang tải hồ sơ doanh nghiệp...</p>
-      </div>
-    );
+    return <LoadingState message="Đang tải hồ sơ doanh nghiệp..." className="min-h-[50vh]" size="lg" />;
   }
 
   const approvalStatus = profile?.approvalStatus || 'PENDING';

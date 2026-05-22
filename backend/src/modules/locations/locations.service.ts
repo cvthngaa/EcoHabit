@@ -115,6 +115,29 @@ export class LocationsService {
     return query.getMany();
   }
 
+  async getMyCollectionPoints(userId: string, role: UserRole) {
+    const query = this.locationRepo.createQueryBuilder('location');
+
+    if (role === UserRole.ADMIN) {
+      // Admin sees all locations
+    } else {
+      // Partner sees their own locations
+      const partnerProfile = await this.partnersService.getPartnerSummaryByUserId(userId);
+      if (!partnerProfile) {
+        return [];
+      }
+      query.where('location.partnerProfile = :partnerId', { partnerId: partnerProfile.id });
+    }
+
+    query
+      .leftJoinAndSelect('location.capabilities', 'capabilities')
+      .leftJoinAndSelect('location.acceptedWasteTypes', 'acceptedWasteTypes')
+      .leftJoinAndSelect('location.collectionProfile', 'collectionProfile')
+      .orderBy('location.createdAt', 'DESC');
+
+    return query.getMany();
+  }
+
   async getAddressSuggestions(query: string): Promise<NominatimSuggestion[]> {
     const trimmed = query?.trim();
 

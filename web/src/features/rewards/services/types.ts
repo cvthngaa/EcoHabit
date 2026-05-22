@@ -3,8 +3,11 @@ export type RedemptionStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'FULFILLED'
 
 export interface RewardPickupOption {
   id: string;
-  name: string;
-  address?: string;
+  location?: {
+    id: string;
+    name: string;
+    address?: string;
+  };
 }
 
 export interface Reward {

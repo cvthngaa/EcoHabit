@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, clearToken } from '../../auth/store/auth.store';
+import { apiClient } from '../../../shared/services/api-client';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -193,13 +194,22 @@ export const Settings: React.FC = () => {
   const [alertStrangeLogin, setAlertStrangeLogin] = useState(true);
   const [pwError, setPwError] = useState('');
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     setPwError('');
     if (!currentPw) { setPwError('Vui lòng nhập mật khẩu hiện tại'); return; }
     if (newPw.length < 8) { setPwError('Mật khẩu mới phải có ít nhất 8 ký tự'); return; }
     if (newPw !== confirmPw) { setPwError('Mật khẩu xác nhận không khớp'); return; }
-    setCurrentPw(''); setNewPw(''); setConfirmPw('');
-    showToast('Đã đổi mật khẩu thành công');
+    
+    try {
+      await apiClient.post('/auth/change-password', {
+        oldPassword: currentPw,
+        newPassword: newPw,
+      });
+      setCurrentPw(''); setNewPw(''); setConfirmPw('');
+      showToast('Đã đổi mật khẩu thành công');
+    } catch (error: any) {
+      setPwError(error.response?.data?.message || 'Đổi mật khẩu thất bại');
+    }
   };
 
   // ── Section: Thông báo ────────────────────────────────────────────────────
