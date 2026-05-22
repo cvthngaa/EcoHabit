@@ -4,10 +4,13 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { Between, ILike, IsNull, Not, Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
+import { UserRole } from '../enums/user-role.enum';
 import { UserStatus } from '../enums/user-status.enum';
 import { PointTransaction } from '../../points/entities/point-transaction.entity';
+import { PointTransactionType } from '../../points/enums/point-transaction-type.enum';
+import { PointSourceType } from '../../points/enums/point-source-type.enum';
 import { Redemption } from '../../rewards/entities/redemption.entity';
 import { DropoffTransaction } from '../../locations/entities/dropoff-transaction.entity';
 import { TrashClassification } from '../../ai/entities/trash-classification.entity';
@@ -16,6 +19,10 @@ import { AdminAuditAction } from '../../audit/enums/admin-audit-action.enum';
 import { ListUsersQueryDto } from '../dto/list-users-query.dto';
 import { UpdateUserStatusDto } from '../dto/update-user-status.dto';
 import { UpdateUserProfileDto } from '../dto/update-user-profile.dto';
+import { AdjustPointsDto } from '../dto/adjust-points.dto';
+import { ListUserPointsQueryDto } from '../dto/list-user-points-query.dto';
+import { PaginationQueryDto } from '../dto/pagination-query.dto';
+import { ListUserDropoffsQueryDto } from '../dto/list-user-dropoffs-query.dto';
 
 @Injectable()
 export class AdminUsersService {
@@ -41,7 +48,15 @@ export class AdminUsersService {
   // ─── GET /admin/users ───────────────────────────────────────────────────────
 
   async listUsers(query: ListUsersQueryDto) {
-    const { role, status, search, page = 1, limit = 20 } = query;
+    const {
+      role,
+      status,
+      search,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+      page = 1,
+      limit = 20,
+    } = query;
 
     const where: any = {};
     if (role) where.role = role;
@@ -69,7 +84,7 @@ export class AdminUsersService {
         'lockedAt',
         'lockedReason',
       ],
-      order: { createdAt: 'DESC' },
+      order: { [sortBy]: sortOrder },
       skip: (page - 1) * limit,
       take: limit,
     });
@@ -82,6 +97,51 @@ export class AdminUsersService {
         limit,
         totalPages: Math.ceil(total / limit),
       },
+    };
+  }
+
+  // ─── GET /admin/users/stats ─────────────────────────────────────────────────
+
+  async getUserStats() {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [
+      totalUsers,
+      activeUsers,
+      suspendedUsers,
+      partnerUsers,
+      adminUsers,
+      newUsersToday,
+      newUsersThisMonth,
+    ] = await Promise.all([
+      this.userRepository.count(),
+      this.userRepository.count({ where: { status: UserStatus.ACTIVE } }),
+      this.userRepository.count({
+        where: [
+          { status: UserStatus.LOCKED },
+          { status: UserStatus.BANNED },
+        ],
+      }),
+      this.userRepository.count({ where: { role: UserRole.PARTNER } }),
+      this.userRepository.count({ where: { role: UserRole.ADMIN } }),
+      this.userRepository.count({
+        where: { createdAt: Between(todayStart, now) },
+      }),
+      this.userRepository.count({
+        where: { createdAt: Between(monthStart, now) },
+      }),
+    ]);
+
+    return {
+      totalUsers,
+      activeUsers,
+      suspendedUsers,
+      partnerUsers,
+      adminUsers,
+      newUsersToday,
+      newUsersThisMonth,
     };
   }
 
@@ -259,6 +319,218 @@ export class AdminUsersService {
       redemptions,
       dropoffs,
       trashClassifications: classifications,
+    };
+  }
+
+  // ─── GET /admin/users/:id/points ────────────────────────────────────────────
+
+  async getUserPoints(id: string, query: ListUserPointsQueryDto) {
+    const userExists = await this.userRepository.findOne({
+      where: { id },
+      select: ['id'],
+    });
+    if (!userExists) throw new NotFoundException(`User ${id} không tồn tại`);
+
+    const { page = 1, limit = 20, type, sourceType, from, to } = query;
+
+    const where: any = { user: { id } };
+    if (type) where.type = type;
+    if (sourceType) where.sourceType = sourceType;
+    if (from || to) {
+      where.createdAt = Between(
+        from ? new Date(from) : new Date(0),
+        to ? new Date(to) : new Date(),
+      );
+    }
+
+    const [transactions, total] = await this.pointTxRepository.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+      select: [
+        'id',
+        'type',
+        'points',
+        'balanceAfter',
+        'sourceType',
+        'sourceId',
+        'reasonCode',
+        'note',
+        'createdAt',
+      ],
+    });
+
+    return {
+      data: transactions,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // ─── POST /admin/users/:id/points/adjust ────────────────────────────────────
+
+  async adjustUserPoints(
+    id: string,
+    dto: AdjustPointsDto,
+    adminId: string,
+    adminEmail: string,
+  ) {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) throw new NotFoundException(`User ${id} không tồn tại`);
+
+    const newBalance = user.pointsBalance + dto.amount;
+    if (newBalance < 0) {
+      throw new BadRequestException(
+        `Không thể trừ điểm: số dư hiện tại là ${user.pointsBalance}, không đủ để trừ ${Math.abs(dto.amount)}`,
+      );
+    }
+
+    user.pointsBalance = newBalance;
+    await this.userRepository.save(user);
+
+    // Tạo point transaction ghi lại hành động
+    const txType =
+      dto.amount > 0 ? PointTransactionType.EARN : PointTransactionType.SPEND;
+
+    const tx = this.pointTxRepository.create({
+      user: { id } as any,
+      type: txType,
+      points: Math.abs(dto.amount),
+      balanceAfter: newBalance,
+      sourceType: PointSourceType.ADMIN,
+      sourceId: adminId,
+      note: dto.reason,
+    });
+    await this.pointTxRepository.save(tx);
+
+    // Ghi audit log
+    await this.auditService.log(
+      adminId,
+      adminEmail,
+      AdminAuditAction.POINTS_ADJUST,
+      id,
+      {
+        amount: dto.amount,
+        reason: dto.reason,
+        previousBalance: user.pointsBalance - dto.amount,
+        newBalance,
+        transactionId: tx.id,
+      },
+    );
+
+    return {
+      message: `Đã điều chỉnh ${dto.amount > 0 ? '+' : ''}${dto.amount} điểm cho user`,
+      userId: id,
+      previousBalance: user.pointsBalance - dto.amount,
+      newBalance,
+      transactionId: tx.id,
+    };
+  }
+
+  // ─── GET /admin/users/:id/redemptions ───────────────────────────────────────
+
+  async getUserRedemptions(id: string, query: PaginationQueryDto) {
+    const userExists = await this.userRepository.findOne({
+      where: { id },
+      select: ['id'],
+    });
+    if (!userExists) throw new NotFoundException(`User ${id} không tồn tại`);
+
+    const { page = 1, limit = 20 } = query;
+
+    const [redemptions, total] = await this.redemptionRepository.findAndCount({
+      where: { user: { id } },
+      relations: ['reward'],
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      data: redemptions,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // ─── GET /admin/users/:id/dropoffs ──────────────────────────────────────────
+
+  async getUserDropoffs(id: string, query: ListUserDropoffsQueryDto) {
+    const userExists = await this.userRepository.findOne({
+      where: { id },
+      select: ['id'],
+    });
+    if (!userExists) throw new NotFoundException(`User ${id} không tồn tại`);
+
+    const { page = 1, limit = 20, status } = query;
+
+    const where: any = { user: { id } };
+    if (status) where.status = status;
+
+    const [dropoffs, total] = await this.dropoffRepository.findAndCount({
+      where,
+      relations: ['location', 'acceptedWasteType'],
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      data: dropoffs,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  // ─── GET /admin/users/:id/ai-classifications ────────────────────────────────
+
+  async getUserAiClassifications(id: string, query: PaginationQueryDto) {
+    const userExists = await this.userRepository.findOne({
+      where: { id },
+      select: ['id'],
+    });
+    if (!userExists) throw new NotFoundException(`User ${id} không tồn tại`);
+
+    const { page = 1, limit = 20 } = query;
+
+    const [classifications, total] =
+      await this.classificationRepository.findAndCount({
+        where: { user: { id } },
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * limit,
+        take: limit,
+        select: [
+          'id',
+          'predictedLabel',
+          'predictedWasteType',
+          'confidence',
+          'suggestedBin',
+          'status',
+          'createdAt',
+        ],
+      });
+
+    return {
+      data: classifications,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     };
   }
 }

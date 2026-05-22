@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Patch,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -13,6 +14,8 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request.type';
 import { UpdatePartnerApprovalDto } from '../partner/dto/update-partner-approval.dto';
 import { UpdatePartnerRolesDto } from '../partner/dto/update-partner-roles.dto';
+import { UpdatePartnerUserStatusDto } from '../partner/dto/update-partner-user-status.dto';
+import { ListPartnersQueryDto } from '../partner/dto/list-partners-query.dto';
 import { PartnersService } from '../partner/partners.service';
 import { UserRole } from '../users/enums/user-role.enum';
 
@@ -22,9 +25,14 @@ import { UserRole } from '../users/enums/user-role.enum';
 export class AdminPartnersController {
   constructor(private readonly partnersService: PartnersService) {}
 
+  @Get('stats')
+  getPartnerStats() {
+    return this.partnersService.getAdminPartnerStats();
+  }
+
   @Get()
-  getAllPartners() {
-    return this.partnersService.getAllPartners();
+  getAllPartners(@Query() query: ListPartnersQueryDto) {
+    return this.partnersService.getAllPartners(query);
   }
 
   @Get(':id')
@@ -42,14 +50,35 @@ export class AdminPartnersController {
       id,
       data,
       req.user.userId,
+      req.user.fullName ?? req.user.userId,
     );
   }
 
   @Patch(':id/roles')
   updatePartnerRoles(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() data: UpdatePartnerRolesDto,
   ) {
-    return this.partnersService.updatePartnerRoles(id, data);
+    return this.partnersService.updatePartnerRoles(
+      id,
+      data,
+      req.user.userId,
+      req.user.fullName ?? req.user.userId,
+    );
+  }
+
+  @Patch(':id/status')
+  updatePartnerUserStatus(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: UpdatePartnerUserStatusDto,
+  ) {
+    return this.partnersService.updatePartnerUserStatus(
+      id,
+      dto,
+      req.user.userId,
+      req.user.fullName ?? req.user.userId,
+    );
   }
 }

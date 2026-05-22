@@ -8,7 +8,7 @@ INSERT INTO users (id, email, password_hash, full_name, role, status, points_bal
 VALUES
 ('11111111-1111-1111-1111-111111111111', 'user1@gmail.com', 'hashed_pw', 'Nguyen Van A', 'USER', 'ACTIVE', 0, NOW(), NOW()),
 ('22222222-2222-2222-2222-222222222222', 'partner@gmail.com', 'hashed_pw', 'Partner B', 'PARTNER', 'ACTIVE', 0, NOW(), NOW()),
-('33333333-3333-3333-3333-333333333333', 'admin@gmail.com', 'hashed_pw', 'Admin C', 'ADMIN', 'ACTIVE', 0, NOW(), NOW())
+('33333333-3333-3333-3333-333333333333', 'admin@gmail.com', '$2b$10$DMhM9uAFnA/iuji8WqB9QO0m/MHQr8/prwbbXUN06gX2KZMp8FI3y', 'Admin C', 'ADMIN', 'ACTIVE', 0, NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- PARTNER PROFILES

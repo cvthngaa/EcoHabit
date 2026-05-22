@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, ILike, Between, IsNull, Not } from 'typeorm';
 import { Reward } from './entities/reward.entity';
 import { RewardPickupOption } from './entities/reward-pickup-option.entity';
 import { CreateRewardDto } from './dto/create-reward.dto';
@@ -18,6 +18,11 @@ import { PointsService } from '../points/points.service';
 import { PointSourceType } from '../points/enums/point-source-type.enum';
 import { PointTransactionType } from '../points/enums/point-transaction-type.enum';
 import { UpdateRedemptionStatusDto } from './dto/update-redemption-status.dto';
+import { AuditService } from '../audit/audit.service';
+import { AdminAuditAction } from '../audit/enums/admin-audit-action.enum';
+import { ListRewardsQueryDto } from './dto/list-rewards-query.dto';
+import { ListRedemptionsQueryDto } from './dto/list-redemptions-query.dto';
+import { UpdateRewardStatusDto } from './dto/update-reward-status.dto';
 
 @Injectable()
 export class RewardsService {
@@ -30,6 +35,7 @@ export class RewardsService {
     private readonly pickupOptionRepo: Repository<RewardPickupOption>,
     private readonly dataSource: DataSource,
     private readonly pointsService: PointsService,
+    private readonly auditService: AuditService,
   ) {}
 
   async getAllRewards() {
@@ -87,7 +93,94 @@ export class RewardsService {
     });
   }
 
-  async createRewards(data: CreateRewardDto, partnerProfileId?: string) {
+  // ─── ADMIN REWARDS ──────────────────────────────────────────────────────────
+
+  async getAdminRewards(query: ListRewardsQueryDto) {
+    const {
+      search,
+      status,
+      partnerId,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+      page = 1,
+      limit = 20,
+    } = query;
+
+    const where: any = {};
+    if (status) where.status = status;
+    if (partnerId) where.partnerProfile = { id: partnerId };
+    
+    const whereConditions = search
+      ? [
+          { ...where, name: ILike(`%${search}%`) },
+        ]
+      : [where];
+
+    const [data, total] = await this.rewardRepo.findAndCount({
+      where: whereConditions,
+      relations: ['partnerProfile'],
+      order: { [sortBy]: sortOrder },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getAdminRewardStats() {
+    // Low stock condition: stock <= 10 and stock > 0
+    const [
+      totalRewards,
+      activeRewards,
+      inactiveRewards,
+      outOfStockRewards,
+      lowStockRewards,
+      totalRedemptions,
+      pendingRedemptions,
+      completedRedemptions,
+      cancelledRedemptions,
+    ] = await Promise.all([
+      this.rewardRepo.count(),
+      this.rewardRepo.count({ where: { status: RewardStatus.ACTIVE } }),
+      this.rewardRepo.count({ where: { status: RewardStatus.INACTIVE } }),
+      this.rewardRepo.count({ where: { stock: 0 } }),
+      this.rewardRepo.count({ where: { stock: Between(1, 10) } }),
+      
+      this.redemptionRepo.count(),
+      this.redemptionRepo.count({ where: { status: RedemptionStatus.PENDING } }),
+      this.redemptionRepo.count({ where: { status: RedemptionStatus.FULFILLED } }),
+      this.redemptionRepo.count({ where: { status: RedemptionStatus.CANCELED } }),
+    ]);
+
+    return {
+      totalRewards,
+      activeRewards,
+      inactiveRewards,
+      outOfStockRewards,
+      lowStockRewards,
+      totalRedemptions,
+      pendingRedemptions,
+      completedRedemptions,
+      cancelledRedemptions,
+    };
+  }
+
+  // ─── CRUD REWARDS ───────────────────────────────────────────────────────────
+
+  async createRewards(
+    data: CreateRewardDto, 
+    partnerProfileId?: string,
+    adminId?: string,
+    adminEmail?: string,
+  ) {
     const { pickupLocationIds, ...rewardData } = data;
     
     const reward = this.rewardRepo.create({
@@ -104,10 +197,23 @@ export class RewardsService {
       await this.pickupOptionRepo.save(options);
     }
 
+    if (adminId && adminEmail) {
+      await this.auditService.log(adminId, adminEmail, AdminAuditAction.REWARD_CREATE, null, {
+        rewardId: savedReward.id,
+        rewardName: savedReward.name,
+      });
+    }
+
     return this.getRewards(savedReward.id);
   }
 
-  async updateRewards(id: string, data: UpdateRewardDto, partnerProfileId?: string) {
+  async updateRewards(
+    id: string, 
+    data: UpdateRewardDto, 
+    partnerProfileId?: string,
+    adminId?: string,
+    adminEmail?: string,
+  ) {
     const reward = await this.rewardRepo.findOne({ where: { id }, relations: ['partnerProfile'] });
     if (!reward) throw new NotFoundException(`Reward ${id} not found`);
 
@@ -116,6 +222,8 @@ export class RewardsService {
     }
 
     const { pickupLocationIds, ...rewardData } = data;
+    const previousState = { name: reward.name, pointsCost: reward.pointsCost, stock: reward.stock };
+    
     Object.assign(reward, rewardData);
     const updatedReward = await this.rewardRepo.save(reward);
 
@@ -133,10 +241,50 @@ export class RewardsService {
       }
     }
 
+    if (adminId && adminEmail) {
+      await this.auditService.log(adminId, adminEmail, AdminAuditAction.REWARD_UPDATE, null, {
+        rewardId: updatedReward.id,
+        changes: rewardData,
+        previousState,
+      });
+    }
+
     return this.getRewards(updatedReward.id);
   }
 
-  async deleteRewards(id: string, partnerProfileId?: string) {
+  async updateRewardStatus(
+    id: string,
+    dto: UpdateRewardStatusDto,
+    adminId: string,
+    adminEmail: string,
+  ) {
+    const reward = await this.rewardRepo.findOne({ where: { id } });
+    if (!reward) throw new NotFoundException(`Reward ${id} not found`);
+
+    const previousStatus = reward.status;
+    reward.status = dto.status;
+    await this.rewardRepo.save(reward);
+
+    await this.auditService.log(adminId, adminEmail, AdminAuditAction.REWARD_UPDATE, null, {
+      rewardId: id,
+      action: 'STATUS_CHANGE',
+      previousStatus,
+      newStatus: dto.status,
+    });
+
+    return {
+      message: `Reward status updated to ${dto.status}`,
+      rewardId: id,
+      status: dto.status,
+    };
+  }
+
+  async deleteRewards(
+    id: string, 
+    partnerProfileId?: string,
+    adminId?: string,
+    adminEmail?: string,
+  ) {
     const reward = await this.rewardRepo.findOne({ where: { id }, relations: ['partnerProfile'] });
     if (!reward) throw new NotFoundException(`Reward ${id} not found`);
     
@@ -144,8 +292,19 @@ export class RewardsService {
       throw new ForbiddenException('You can only delete your own rewards');
     }
 
-    return this.rewardRepo.remove(reward);
+    const result = await this.rewardRepo.remove(reward);
+
+    if (adminId && adminEmail) {
+      await this.auditService.log(adminId, adminEmail, AdminAuditAction.REWARD_DELETE, null, {
+        rewardId: id,
+        rewardName: reward.name,
+      });
+    }
+
+    return result;
   }
+
+  // ─── REDEMPTIONS ────────────────────────────────────────────────────────────
 
   async redeemReward(userId: string, dto: RedeemDto) {
     return this.dataSource.transaction(async (manager) => {
@@ -223,10 +382,71 @@ export class RewardsService {
     });
   }
 
+  async getAdminRedemptions(query: ListRedemptionsQueryDto) {
+    const {
+      status,
+      userId,
+      rewardId,
+      partnerId,
+      from,
+      to,
+      sortBy = 'createdAt',
+      sortOrder = 'DESC',
+      page = 1,
+      limit = 20,
+    } = query;
+
+    const where: any = {};
+    if (status) where.status = status;
+    if (userId) where.user = { id: userId };
+    if (rewardId) where.reward = { id: rewardId };
+    if (partnerId) where.reward = { ...where.reward, partnerProfile: { id: partnerId } };
+    
+    if (from || to) {
+      where.createdAt = Between(
+        from ? new Date(from) : new Date(0),
+        to ? new Date(to) : new Date(),
+      );
+    }
+
+    const [data, total] = await this.redemptionRepo.findAndCount({
+      where,
+      relations: ['user', 'reward', 'reward.partnerProfile'],
+      order: { [sortBy]: sortOrder },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async getAdminRedemptionDetail(id: string) {
+    const redemption = await this.redemptionRepo.findOne({
+      where: { id },
+      relations: ['user', 'reward', 'reward.partnerProfile', 'reward.pickupOptions', 'reward.pickupOptions.location'],
+    });
+
+    if (!redemption) {
+      throw new NotFoundException(`Redemption ${id} not found`);
+    }
+
+    return redemption;
+  }
+
   async updateRedemptionStatus(
     redemptionId: string,
     dto: UpdateRedemptionStatusDto,
     partnerProfileId?: string,
+    adminId?: string,
+    adminEmail?: string,
   ) {
     return this.dataSource.transaction(async (manager) => {
       const redemptionRepo = manager.getRepository(Redemption);
@@ -293,7 +513,17 @@ export class RewardsService {
       }
 
       redemption.status = nextStatus;
-      return redemptionRepo.save(redemption);
+      const savedRedemption = await redemptionRepo.save(redemption);
+
+      if (adminId && adminEmail) {
+        await this.auditService.log(adminId, adminEmail, AdminAuditAction.REDEMPTION_STATUS_UPDATE, redemption.user?.id, {
+          redemptionId: redemption.id,
+          previousStatus: currentStatus,
+          newStatus: nextStatus,
+        });
+      }
+
+      return savedRedemption;
     });
   }
 

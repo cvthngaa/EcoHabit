@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Query,
   Request,
   UseGuards,
@@ -18,6 +19,10 @@ import { AdminUsersService } from '../services/admin-users.service';
 import { ListUsersQueryDto } from '../dto/list-users-query.dto';
 import { UpdateUserStatusDto } from '../dto/update-user-status.dto';
 import { UpdateUserProfileDto } from '../dto/update-user-profile.dto';
+import { AdjustPointsDto } from '../dto/adjust-points.dto';
+import { ListUserPointsQueryDto } from '../dto/list-user-points-query.dto';
+import { PaginationQueryDto } from '../dto/pagination-query.dto';
+import { ListUserDropoffsQueryDto } from '../dto/list-user-dropoffs-query.dto';
 
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Roles(UserRole.ADMIN)
@@ -25,13 +30,22 @@ import { UpdateUserProfileDto } from '../dto/update-user-profile.dto';
 export class AdminUsersController {
   constructor(private readonly adminUsersService: AdminUsersService) {}
 
-  /** GET /admin/users?role=&status=&search=&page=&limit= */
+  /** GET /admin/users?role=&status=&search=&sortBy=&sortOrder=&page=&limit= */
   @Get()
   listUsers(
     @Query(new ValidationPipe({ transform: true, whitelist: true }))
     query: ListUsersQueryDto,
   ) {
     return this.adminUsersService.listUsers(query);
+  }
+
+  /**
+   * GET /admin/users/stats
+   * PHẢI đứng trước /:id để tránh NestJS hiểu "stats" là id
+   */
+  @Get('stats')
+  getUserStats() {
+    return this.adminUsersService.getUserStats();
   }
 
   /** GET /admin/users/:id */
@@ -74,5 +88,60 @@ export class AdminUsersController {
   @Get(':id/activity')
   getUserActivity(@Param('id') id: string) {
     return this.adminUsersService.getUserActivity(id);
+  }
+
+  /** GET /admin/users/:id/points?type=&sourceType=&from=&to=&page=&limit= */
+  @Get(':id/points')
+  getUserPoints(
+    @Param('id') id: string,
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    query: ListUserPointsQueryDto,
+  ) {
+    return this.adminUsersService.getUserPoints(id, query);
+  }
+
+  /** POST /admin/users/:id/points/adjust */
+  @Post(':id/points/adjust')
+  adjustUserPoints(
+    @Param('id') id: string,
+    @Body(new ValidationPipe({ whitelist: true })) dto: AdjustPointsDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.adminUsersService.adjustUserPoints(
+      id,
+      dto,
+      req.user.userId,
+      req.user.fullName ?? req.user.userId,
+    );
+  }
+
+  /** GET /admin/users/:id/redemptions?page=&limit= */
+  @Get(':id/redemptions')
+  getUserRedemptions(
+    @Param('id') id: string,
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    query: PaginationQueryDto,
+  ) {
+    return this.adminUsersService.getUserRedemptions(id, query);
+  }
+
+  /** GET /admin/users/:id/dropoffs?status=&page=&limit= */
+  @Get(':id/dropoffs')
+  getUserDropoffs(
+    @Param('id') id: string,
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    query: ListUserDropoffsQueryDto,
+  ) {
+    return this.adminUsersService.getUserDropoffs(id, query);
+  }
+
+  /** GET /admin/users/:id/ai-classifications?page=&limit= */
+  @Get(':id/ai-classifications')
+  getUserAiClassifications(
+    @Param('id') id: string,
+    @Query(new ValidationPipe({ transform: true, whitelist: true }))
+    query: PaginationQueryDto,
+  ) {
+    return this.adminUsersService.getUserAiClassifications(id, query);
   }
 }

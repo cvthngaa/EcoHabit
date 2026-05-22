@@ -10,19 +10,23 @@ import { RewardsController } from './controllers/rewards.controller';
 import { AdminRewardsController } from './controllers/admin-rewards.controller';
 import { PartnerRewardsController } from './controllers/partner-rewards.controller';
 import { RedemptionsController } from './controllers/redemptions.controller';
+import { AdminRedemptionsController } from './controllers/admin-redemptions.controller';
 import { RewardsService } from './rewards.service';
+import { AuditModule } from '../audit/audit.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Reward, Redemption, RewardPickupOption]),
     PointsModule,
     PartnersModule,
+    AuditModule,
   ],
   controllers: [
     RewardsController,
     AdminRewardsController,
     PartnerRewardsController,
     RedemptionsController,
+    AdminRedemptionsController,
   ],
   providers: [RewardsService],
 })

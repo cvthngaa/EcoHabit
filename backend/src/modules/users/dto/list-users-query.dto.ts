@@ -18,6 +18,14 @@ export class ListUsersQueryDto {
   search?: string;
 
   @IsOptional()
+  @IsEnum(['createdAt', 'fullName', 'email', 'pointsBalance', 'status'])
+  sortBy?: 'createdAt' | 'fullName' | 'email' | 'pointsBalance' | 'status' = 'createdAt';
+
+  @IsOptional()
+  @IsEnum(['ASC', 'DESC'])
+  sortOrder?: 'ASC' | 'DESC' = 'DESC';
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
