@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
+import { IconButton } from './IconButton';
 
 export interface ModalProps {
   title: React.ReactNode;
@@ -48,12 +49,14 @@ export const Modal: React.FC<ModalProps> = ({
             {icon}
             {title}
           </h3>
-          <button 
-            onClick={onClose} 
-            className="text-slate-400 hover:text-slate-600 cursor-pointer p-1 rounded-full hover:bg-slate-100 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <IconButton
+            onClick={onClose}
+            icon={<X />}
+            variant="ghost"
+            size="sm"
+            aria-label="Đóng"
+            className="text-slate-400 hover:text-slate-600"
+          />
         </div>
         <div className="overflow-y-auto flex-1">
           {children}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Power, PowerOff, Gift, Clock, CheckCircle, XCircle } from 'lucide-react';
 import {
   useAdminRewardDetail,
@@ -7,6 +7,7 @@ import {
   useUpdateRedemptionStatus,
 } from '../services/queries';
 import { StatusPill } from '../../shared/admin-ui';
+import { IconButton } from '../../../../shared/components';
 import type { RewardStatus, RedemptionStatus } from '../services/types';
 
 export const AdminRewardDetailDrawer = ({
@@ -43,9 +44,14 @@ export const AdminRewardDetailDrawer = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="text-lg font-bold text-slate-900">Chi tiết phần quà</h2>
-          <button onClick={onClose} className="rounded-full p-2 hover:bg-slate-100">
-            <X className="h-5 w-5 text-slate-500" />
-          </button>
+          <IconButton
+            onClick={onClose}
+            icon={<X />}
+            variant="ghost"
+            size="sm"
+            aria-label="Đóng chi tiết"
+            className="text-slate-500"
+          />
         </div>
 
         {/* Content */}
@@ -82,11 +88,10 @@ export const AdminRewardDetailDrawer = ({
             <div className="mt-4 flex gap-2">
               <button
                 onClick={handleToggleStatus}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${
-                  reward.status === 'ACTIVE'
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${reward.status === 'ACTIVE'
                     ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
                     : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                }`}
+                  }`}
               >
                 {reward.status === 'ACTIVE' ? (
                   <>
@@ -111,11 +116,10 @@ export const AdminRewardDetailDrawer = ({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`border-b-2 py-3 text-sm font-bold transition-colors ${
-                    activeTab === tab.id
+                  className={`border-b-2 py-3 text-sm font-bold transition-colors ${activeTab === tab.id
                       ? 'border-emerald-500 text-emerald-700'
                       : 'border-transparent text-slate-500 hover:text-slate-800'
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -166,16 +170,15 @@ const RewardRedemptionsTab = ({ rewardId }: { rewardId: string }) => {
         <div key={rx.id} className="rounded-xl border border-slate-100 p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <span className={`flex h-6 w-6 items-center justify-center rounded-full ${
-                rx.status === 'PENDING' ? 'bg-amber-100 text-amber-600' :
-                rx.status === 'APPROVED' ? 'bg-blue-100 text-blue-600' :
-                rx.status === 'FULFILLED' ? 'bg-emerald-100 text-emerald-600' :
-                'bg-rose-100 text-rose-600'
-              }`}>
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full ${rx.status === 'PENDING' ? 'bg-amber-100 text-amber-600' :
+                  rx.status === 'APPROVED' ? 'bg-blue-100 text-blue-600' :
+                    rx.status === 'FULFILLED' ? 'bg-emerald-100 text-emerald-600' :
+                      'bg-rose-100 text-rose-600'
+                }`}>
                 {rx.status === 'PENDING' ? <Clock className="h-3 w-3" /> :
-                 rx.status === 'APPROVED' ? <CheckCircle className="h-3 w-3" /> :
-                 rx.status === 'FULFILLED' ? <CheckCircle className="h-3 w-3" /> :
-                 <XCircle className="h-3 w-3" />}
+                  rx.status === 'APPROVED' ? <CheckCircle className="h-3 w-3" /> :
+                    rx.status === 'FULFILLED' ? <CheckCircle className="h-3 w-3" /> :
+                      <XCircle className="h-3 w-3" />}
               </span>
               <StatusPill status={rx.status} />
             </div>
@@ -187,17 +190,17 @@ const RewardRedemptionsTab = ({ rewardId }: { rewardId: string }) => {
             <p className="text-sm font-bold text-slate-900">{rx.user?.fullName || 'Người dùng ẩn'}</p>
             <p className="text-[11px] text-slate-500">{rx.user?.email}</p>
           </div>
-          
+
           {/* Actions for Pending/Approved */}
           {rx.status === 'PENDING' && (
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => handleUpdateStatus(rx.id, 'APPROVED')}
                 className="flex-1 rounded-lg bg-blue-50 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-100"
               >
                 Duyệt
               </button>
-              <button 
+              <button
                 onClick={() => handleUpdateStatus(rx.id, 'REJECTED')}
                 className="flex-1 rounded-lg bg-rose-50 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"
               >
@@ -207,13 +210,13 @@ const RewardRedemptionsTab = ({ rewardId }: { rewardId: string }) => {
           )}
           {rx.status === 'APPROVED' && (
             <div className="flex gap-2">
-              <button 
+              <button
                 onClick={() => handleUpdateStatus(rx.id, 'FULFILLED')}
                 className="flex-1 rounded-lg bg-emerald-50 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100"
               >
                 Đã giao quà
               </button>
-              <button 
+              <button
                 onClick={() => handleUpdateStatus(rx.id, 'CANCELED')}
                 className="flex-1 rounded-lg bg-rose-50 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-100"
               >

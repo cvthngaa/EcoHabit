@@ -37,9 +37,7 @@ import type {
 } from '../services/types';
 import { locationFormSchema } from '../services/schemas';
 import LocationMap from '../components/location-map';
-import { Badge } from '../../../../shared/components/Badge';
-import { Modal } from '../../../../shared/components/Modal';
-import { DataTable } from '../../../../shared/components/DataTable';
+import { Badge, Modal, DataTable, IconButton } from '../../../../shared/components';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -508,9 +506,14 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ location, onClose, onEdit }) 
               <Pencil className="w-3.5 h-3.5" />
               Sửa
             </button>
-            <button onClick={onClose} className="text-slate-400 hover:text-slate-600 cursor-pointer ml-1">
-              <X className="w-5 h-5" />
-            </button>
+            <IconButton
+              onClick={onClose}
+              icon={<X />}
+              variant="ghost"
+              size="sm"
+              aria-label="Đóng chi tiết"
+              className="text-slate-400 hover:text-slate-600 ml-1"
+            />
           </div>
         </div>
 

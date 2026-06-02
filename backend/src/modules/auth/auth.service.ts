@@ -2,6 +2,7 @@ import {
   Injectable,
   UnauthorizedException,
   BadRequestException,
+  OnModuleDestroy,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
@@ -14,7 +15,7 @@ import { PartnersService } from '../partner/partners.service';
 import { RegisterPartnerDto } from './dto/register-partner.dto';
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleDestroy {
   private redisClient: Redis;
   private transporter: nodemailer.Transporter;
 
@@ -42,6 +43,11 @@ export class AuthService {
         pass: process.env.MAIL_PASS,
       },
     });
+  }
+
+  onModuleDestroy() {
+    this.redisClient.disconnect();
+    this.transporter.close();
   }
 
   // ✅ SEND OTP
@@ -214,8 +220,9 @@ export class AuthService {
     // Fetch partner profile if user is a PARTNER
     let partnerProfile: any = null;
     if (user.role === UserRole.PARTNER) {
-      partnerProfile =
-        await this.partnersService.getPartnerSummaryByUserId(user.id);
+      partnerProfile = await this.partnersService.getPartnerSummaryByUserId(
+        user.id,
+      );
 
       if (partnerProfile) {
         if (partnerProfile.approvalStatus === 'PENDING') {

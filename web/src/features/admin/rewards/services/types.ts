@@ -89,3 +89,14 @@ export interface UpdateRewardStatusDto {
 export interface UpdateRedemptionStatusDto {
   status: RedemptionStatus;
 }
+
+export interface CreateRewardDto {
+  name: string;
+  description?: string;
+  pointsCost?: number;
+  stock?: number;
+  status?: RewardStatus;
+  pickupLocationIds?: string[];
+}
+
+export type UpdateRewardDto = Partial<CreateRewardDto>;

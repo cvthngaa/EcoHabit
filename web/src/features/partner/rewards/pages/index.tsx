@@ -11,10 +11,7 @@ import { useDeleteReward } from '../services/use-delete-reward';
 import { useUpdateRedemptionStatus } from '../services/use-update-redemption-status';
 import { useGetLocations } from '../../locations/services/use-get-locations';
 import type { Reward, Redemption, RewardStatus, RedemptionStatus, CreateRewardDto } from '../services/types';
-import { Badge } from '../../../../shared/components/Badge';
-import { Modal } from '../../../../shared/components/Modal';
-import { StatCard } from '../../../../shared/components/StatCard';
-import { DataTable } from '../../../../shared/components/DataTable';
+import { Badge, Modal, StatCard, DataTable, IconButton } from '../../../../shared/components';
 
 // ── Helpers ──
 
@@ -638,9 +635,14 @@ export const Rewards: React.FC = () => {
           <div className="w-full max-w-sm bg-white shadow-2xl flex flex-col border-l border-slate-200">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
               <h3 className="text-sm font-bold text-slate-800">Chi tiết quà tặng</h3>
-              <button onClick={() => setDetailReward(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
+              <IconButton
+                onClick={() => setDetailReward(null)}
+                icon={<X />}
+                variant="ghost"
+                size="sm"
+                aria-label="Đóng chi tiết"
+                className="text-slate-400 hover:text-slate-600"
+              />
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
               <div className="space-y-1">
@@ -696,9 +698,14 @@ export const Rewards: React.FC = () => {
           <div className="w-full max-w-sm bg-white shadow-2xl flex flex-col border-l border-slate-200">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
               <h3 className="text-sm font-bold text-slate-800">Chi tiết lượt đổi quà</h3>
-              <button onClick={() => setDetailRedemption(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
+              <IconButton
+                onClick={() => setDetailRedemption(null)}
+                icon={<X />}
+                variant="ghost"
+                size="sm"
+                aria-label="Đóng chi tiết"
+                className="text-slate-400 hover:text-slate-600"
+              />
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
               <div className="flex justify-between items-center bg-slate-50 p-3 rounded-lg">

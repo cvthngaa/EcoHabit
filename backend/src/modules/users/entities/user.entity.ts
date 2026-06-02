@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany, DeleteDateColumn, Index, OneToOne } from 'typeorm';
+import { Column, Entity, OneToMany, Index, OneToOne } from 'typeorm';
 import { BaseEntity } from '../../../common/database/base.entity';
 import { UserRole } from '../enums/user-role.enum';
 import { UserStatus } from '../enums/user-status.enum';

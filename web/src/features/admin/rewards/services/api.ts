@@ -8,6 +8,8 @@ import type {
   ListRedemptionsQuery,
   UpdateRewardStatusDto,
   UpdateRedemptionStatusDto,
+  CreateRewardDto,
+  UpdateRewardDto,
 } from './types';
 
 // Rewards
@@ -31,6 +33,20 @@ export const updateAdminRewardStatus = async (id: string, dto: UpdateRewardStatu
   return data;
 };
 
+export const createAdminReward = async (dto: CreateRewardDto): Promise<Reward> => {
+  const { data } = await apiClient.post('/admin/rewards', dto);
+  return data;
+};
+
+export const updateAdminReward = async (id: string, dto: UpdateRewardDto): Promise<Reward> => {
+  const { data } = await apiClient.put(`/admin/rewards/${id}`, dto);
+  return data;
+};
+
+export const deleteAdminReward = async (id: string): Promise<void> => {
+  await apiClient.delete(`/admin/rewards/${id}`);
+};
+
 // Redemptions
 export const getAdminRedemptions = async (params: ListRedemptionsQuery): Promise<PaginatedResponse<Redemption>> => {
   const { data } = await apiClient.get('/admin/redemptions', { params });
@@ -39,5 +55,10 @@ export const getAdminRedemptions = async (params: ListRedemptionsQuery): Promise
 
 export const updateAdminRedemptionStatus = async (id: string, dto: UpdateRedemptionStatusDto) => {
   const { data } = await apiClient.patch(`/admin/redemptions/${id}/status`, dto);
+  return data;
+};
+
+export const getAdminRedemptionDetail = async (id: string): Promise<Redemption> => {
+  const { data } = await apiClient.get(`/admin/redemptions/${id}`);
   return data;
 };

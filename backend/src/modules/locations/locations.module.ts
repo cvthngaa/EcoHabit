@@ -31,4 +31,4 @@ import { PointsModule } from '../points/points.module';
   providers: [LocationsService, CollectionTransactionsService, QrService],
   exports: [TypeOrmModule, LocationsService],
 })
-export class LocationsModule {}
+export class LocationsModule { }

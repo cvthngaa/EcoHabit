@@ -10,6 +10,8 @@ import type {
   DropoffTransaction,
   Redemption,
   TrashClassification,
+  UserActivity,
+  UpdateUserProfileDto,
 } from './types';
 
 export const getAdminUsers = async (params: ListUsersQuery): Promise<PaginatedResponse<User>> => {
@@ -29,6 +31,16 @@ export const getAdminUserDetail = async (id: string): Promise<User> => {
 
 export const updateAdminUserStatus = async (id: string, dto: UpdateUserStatusDto) => {
   const { data } = await apiClient.patch(`/admin/users/${id}/status`, dto);
+  return data;
+};
+
+export const updateAdminUserProfile = async (id: string, dto: UpdateUserProfileDto) => {
+  const { data } = await apiClient.patch(`/admin/users/${id}/profile`, dto);
+  return data;
+};
+
+export const getAdminUserActivity = async (id: string): Promise<UserActivity> => {
+  const { data } = await apiClient.get(`/admin/users/${id}/activity`);
   return data;
 };
 

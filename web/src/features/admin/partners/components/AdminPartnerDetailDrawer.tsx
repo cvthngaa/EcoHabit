@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, CheckCircle, XCircle, Lock, Unlock, Shield } from 'lucide-react';
 import {
   useAdminPartnerDetail,
@@ -7,7 +7,8 @@ import {
   useUpdatePartnerUserStatus,
 } from '../services/queries';
 import { StatusPill } from '../../shared/admin-ui';
-import type { PartnerRoleType, PartnerApprovalStatus } from '../services/types';
+import { IconButton } from '../../../../shared/components';
+import type { PartnerApprovalStatus, PartnerRoleType } from '../services/types';
 
 const ROLE_LABELS: Record<PartnerRoleType, string> = {
   COLLECTOR: 'Thu gom rác',
@@ -20,6 +21,13 @@ const APPROVAL_STATUS_LABEL: Record<PartnerApprovalStatus, string> = {
   REJECTED: 'Từ chối',
 };
 
+type TabId = 'info' | 'roles';
+
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'info', label: 'Thông tin hồ sơ' },
+  { id: 'roles', label: 'Loại hình & Phân quyền' },
+];
+
 export const AdminPartnerDetailDrawer = ({
   partnerId,
   onClose,
@@ -28,11 +36,12 @@ export const AdminPartnerDetailDrawer = ({
   onClose: () => void;
 }) => {
   const { data: partner, isLoading } = useAdminPartnerDetail(partnerId);
-  const { mutate: updateApproval, isPending: isApprovingPending } = useUpdatePartnerApproval();
+  const { mutate: updateApproval, isPending: isApprovingPending } =
+    useUpdatePartnerApproval();
   const { mutate: updateRoles } = useUpdatePartnerRoles();
   const { mutate: updateUserStatus } = useUpdatePartnerUserStatus();
 
-  const [activeTab, setActiveTab] = useState<'info' | 'roles'>('info');
+  const [activeTab, setActiveTab] = useState<TabId>('info');
 
   if (isLoading || !partner) {
     return (
@@ -51,7 +60,10 @@ export const AdminPartnerDetailDrawer = ({
   const handleReject = () => {
     const reason = prompt('Nhập lý do từ chối:');
     if (reason) {
-      updateApproval({ id: partnerId, dto: { status: 'REJECTED', rejectionReason: reason } });
+      updateApproval({
+        id: partnerId,
+        dto: { status: 'REJECTED', rejectionReason: reason },
+      });
     }
   };
 
@@ -59,81 +71,106 @@ export const AdminPartnerDetailDrawer = ({
     const isActive = partner.user?.status === 'ACTIVE';
     if (isActive) {
       const reason = prompt('Nhập lý do khóa tài khoản đối tác:');
-      if (reason) updateUserStatus({ id: partnerId, dto: { status: 'LOCKED', reason } });
-    } else {
-      if (confirm('Mở khóa tài khoản đối tác này?')) {
-        updateUserStatus({ id: partnerId, dto: { status: 'ACTIVE' } });
+      if (reason) {
+        updateUserStatus({ id: partnerId, dto: { status: 'LOCKED', reason } });
       }
+      return;
+    }
+
+    if (confirm('Mở khóa tài khoản đối tác này?')) {
+      updateUserStatus({ id: partnerId, dto: { status: 'ACTIVE' } });
     }
   };
 
   const handleToggleRole = (role: PartnerRoleType) => {
     const current = partner.roleTypes ?? [];
     const next = current.includes(role)
-      ? current.filter((r) => r !== role)
+      ? current.filter((item) => item !== role)
       : [...current, role];
-    if (next.length === 0) return alert('Đối tác phải có ít nhất 1 loại hình.');
+
+    if (next.length === 0) {
+      alert('Đối tác phải có ít nhất 1 loại hình.');
+      return;
+    }
+
     updateRoles({ id: partnerId, dto: { roles: next } });
   };
 
-  const approvalColor = partner.approvalStatus === 'APPROVED'
-    ? 'bg-emerald-100 text-emerald-700'
-    : partner.approvalStatus === 'REJECTED'
-    ? 'bg-rose-100 text-rose-700'
-    : 'bg-amber-100 text-amber-700';
+  const approvalColor =
+    partner.approvalStatus === 'APPROVED'
+      ? 'bg-emerald-100 text-emerald-700'
+      : partner.approvalStatus === 'REJECTED'
+        ? 'bg-rose-100 text-rose-700'
+        : 'bg-amber-100 text-amber-700';
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm" onClick={onClose} />
+      <div
+        className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm"
+        onClick={onClose}
+      />
       <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl animate-in slide-in-from-right sm:w-[520px]">
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="text-lg font-bold text-slate-900">Chi tiết Đối tác</h2>
-          <button onClick={onClose} className="rounded-full p-2 hover:bg-slate-100">
-            <X className="h-5 w-5 text-slate-500" />
-          </button>
+          <IconButton
+            onClick={onClose}
+            icon={<X />}
+            variant="ghost"
+            size="sm"
+            aria-label="Đóng chi tiết"
+            className="text-slate-500"
+          />
         </div>
 
-        {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
-          {/* Profile Block */}
           <div className="p-6 pb-0">
             <div className="flex items-start gap-4">
               <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-2xl font-extrabold text-blue-700">
                 {partner.organizationName.charAt(0)}
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-bold text-slate-900">{partner.organizationName}</h3>
+                <h3 className="text-xl font-bold text-slate-900">
+                  {partner.organizationName}
+                </h3>
                 <p className="mt-0.5 text-sm text-slate-500">{partner.user?.email}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${approvalColor}`}>
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${approvalColor}`}
+                  >
                     {APPROVAL_STATUS_LABEL[partner.approvalStatus]}
                   </span>
                   {partner.user && <StatusPill status={partner.user.status} />}
-                  {(partner.roleTypes ?? []).map((r) => (
-                    <span key={r} className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold text-blue-700">
-                      {ROLE_LABELS[r]}
+                  {(partner.roleTypes ?? []).map((role) => (
+                    <span
+                      key={role}
+                      className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-bold text-blue-700"
+                    >
+                      {ROLE_LABELS[role]}
                     </span>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Stats */}
             <div className="mt-6 grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                <p className="text-[10px] font-bold uppercase text-slate-500">Ngày đăng ký</p>
+                <p className="text-[10px] font-bold uppercase text-slate-500">
+                  Ngày đăng ký
+                </p>
                 <p className="mt-1 text-sm font-semibold text-slate-900">
                   {new Date(partner.createdAt).toLocaleDateString('vi-VN')}
                 </p>
               </div>
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                <p className="text-[10px] font-bold uppercase text-slate-500">Tài khoản</p>
-                <p className="mt-1 text-sm font-semibold text-slate-900">{partner.user?.fullName || '—'}</p>
+                <p className="text-[10px] font-bold uppercase text-slate-500">
+                  Tài khoản
+                </p>
+                <p className="mt-1 text-sm font-semibold text-slate-900">
+                  {partner.user?.fullName || '—'}
+                </p>
               </div>
             </div>
 
-            {/* Action Buttons */}
             {partner.approvalStatus === 'PENDING' && (
               <div className="mt-4 flex gap-2">
                 <button
@@ -163,24 +200,26 @@ export const AdminPartnerDetailDrawer = ({
                       : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
                 >
-                  {partner.user?.status === 'ACTIVE'
-                    ? <><Lock className="h-4 w-4" /> Khóa tài khoản đối tác</>
-                    : <><Unlock className="h-4 w-4" /> Mở khóa tài khoản</>}
+                  {partner.user?.status === 'ACTIVE' ? (
+                    <>
+                      <Lock className="h-4 w-4" /> Khóa tài khoản đối tác
+                    </>
+                  ) : (
+                    <>
+                      <Unlock className="h-4 w-4" /> Mở khóa tài khoản
+                    </>
+                  )}
                 </button>
               </div>
             )}
           </div>
 
-          {/* Tabs */}
           <div className="mt-6 border-b border-slate-100 px-6">
             <div className="flex gap-4">
-              {[
-                { id: 'info', label: 'Thông tin hồ sơ' },
-                { id: 'roles', label: 'Loại hình & Phân quyền' },
-              ].map((tab) => (
+              {TABS.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id)}
                   className={`border-b-2 py-3 text-sm font-bold transition-colors ${
                     activeTab === tab.id
                       ? 'border-emerald-500 text-emerald-700'
@@ -193,7 +232,6 @@ export const AdminPartnerDetailDrawer = ({
             </div>
           </div>
 
-          {/* Tab Content */}
           <div className="p-6">
             {activeTab === 'info' && (
               <div className="space-y-3 text-sm">
@@ -206,9 +244,14 @@ export const AdminPartnerDetailDrawer = ({
                   { label: 'Địa chỉ', value: partner.address || '—' },
                   { label: 'Mã số thuế', value: partner.taxCode || '—' },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-start justify-between rounded-lg border border-slate-100 p-3">
-                    <span className="font-semibold text-slate-600 shrink-0 mr-4">{item.label}</span>
-                    <span className="text-slate-900 text-right">{item.value}</span>
+                  <div
+                    key={item.label}
+                    className="flex items-start justify-between rounded-lg border border-slate-100 p-3"
+                  >
+                    <span className="mr-4 shrink-0 font-semibold text-slate-600">
+                      {item.label}
+                    </span>
+                    <span className="text-right text-slate-900">{item.value}</span>
                   </div>
                 ))}
               </div>
@@ -216,7 +259,9 @@ export const AdminPartnerDetailDrawer = ({
 
             {activeTab === 'roles' && (
               <div className="space-y-3">
-                <p className="text-xs text-slate-500 mb-4">Bấm để bật/tắt loại hình hoạt động của đối tác này.</p>
+                <p className="mb-4 text-xs text-slate-500">
+                  Bấm để bật/tắt loại hình hoạt động của đối tác này.
+                </p>
                 {(['COLLECTOR', 'REWARD_PROVIDER'] as PartnerRoleType[]).map((role) => {
                   const isActive = (partner.roleTypes ?? []).includes(role);
                   return (
@@ -230,18 +275,32 @@ export const AdminPartnerDetailDrawer = ({
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <Shield className={`h-5 w-5 ${isActive ? 'text-emerald-600' : 'text-slate-400'}`} />
+                        <Shield
+                          className={`h-5 w-5 ${
+                            isActive ? 'text-emerald-600' : 'text-slate-400'
+                          }`}
+                        />
                         <div className="text-left">
-                          <p className={`text-sm font-bold ${isActive ? 'text-emerald-800' : 'text-slate-700'}`}>
+                          <p
+                            className={`text-sm font-bold ${
+                              isActive ? 'text-emerald-800' : 'text-slate-700'
+                            }`}
+                          >
                             {ROLE_LABELS[role]}
                           </p>
                           <p className="text-[11px] text-slate-500">{role}</p>
                         </div>
                       </div>
-                      <div className={`h-5 w-5 rounded-full border-2 ${isActive ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'}`}>
-                        {isActive && <div className="h-full w-full rounded-full flex items-center justify-center">
-                          <div className="h-2 w-2 rounded-full bg-white" />
-                        </div>}
+                      <div
+                        className={`h-5 w-5 rounded-full border-2 ${
+                          isActive ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300'
+                        }`}
+                      >
+                        {isActive && (
+                          <div className="flex h-full w-full items-center justify-center rounded-full">
+                            <div className="h-2 w-2 rounded-full bg-white" />
+                          </div>
+                        )}
                       </div>
                     </button>
                   );

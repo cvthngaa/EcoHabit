@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, Lock, Unlock, ShieldAlert, Award, ArrowDownToLine, Zap, FileText } from 'lucide-react';
 import {
   useAdminUserDetail,
@@ -7,6 +7,7 @@ import {
   useAdminUserPoints,
 } from '../services/queries';
 import { StatusPill } from '../../shared/admin-ui';
+import { IconButton } from '../../../../shared/components';
 
 export const AdminUserDetailDrawer = ({
   userId,
@@ -61,9 +62,14 @@ export const AdminUserDetailDrawer = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="text-lg font-bold text-slate-900">Chi tiết người dùng</h2>
-          <button onClick={onClose} className="rounded-full p-2 hover:bg-slate-100">
-            <X className="h-5 w-5 text-slate-500" />
-          </button>
+          <IconButton
+            onClick={onClose}
+            icon={<X />}
+            variant="ghost"
+            size="sm"
+            aria-label="Đóng chi tiết"
+            className="text-slate-500"
+          />
         </div>
 
         {/* Content */}
@@ -115,11 +121,10 @@ export const AdminUserDetailDrawer = ({
               </button>
               <button
                 onClick={handleLockToggle}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${
-                  user.status === 'ACTIVE'
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold ${user.status === 'ACTIVE'
                     ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
+                  }`}
               >
                 {user.status === 'ACTIVE' ? (
                   <>
@@ -153,11 +158,10 @@ export const AdminUserDetailDrawer = ({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`border-b-2 py-3 text-sm font-bold transition-colors ${
-                    activeTab === tab.id
+                  className={`border-b-2 py-3 text-sm font-bold transition-colors ${activeTab === tab.id
                       ? 'border-emerald-500 text-emerald-700'
                       : 'border-transparent text-slate-500 hover:text-slate-800'
-                  }`}
+                    }`}
                 >
                   {tab.label}
                 </button>
@@ -200,12 +204,11 @@ const UserPointsTab = ({ userId }: { userId: string }) => {
       {data.data.map((tx) => (
         <div key={tx.id} className="flex items-center justify-between rounded-xl border border-slate-100 p-3">
           <div className="flex items-center gap-3">
-            <div className={`flex h-8 w-8 items-center justify-center rounded-full ${
-              tx.type === 'EARN' ? 'bg-emerald-100 text-emerald-600' :
-              tx.type === 'SPEND' ? 'bg-rose-100 text-rose-600' : 'bg-blue-100 text-blue-600'
-            }`}>
+            <div className={`flex h-8 w-8 items-center justify-center rounded-full ${tx.type === 'EARN' ? 'bg-emerald-100 text-emerald-600' :
+                tx.type === 'SPEND' ? 'bg-rose-100 text-rose-600' : 'bg-blue-100 text-blue-600'
+              }`}>
               {tx.type === 'EARN' ? <ArrowDownToLine className="h-4 w-4" /> :
-               tx.type === 'SPEND' ? <Zap className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                tx.type === 'SPEND' ? <Zap className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
             </div>
             <div>
               <p className="text-sm font-bold text-slate-900">
@@ -217,10 +220,9 @@ const UserPointsTab = ({ userId }: { userId: string }) => {
             </div>
           </div>
           <div className="text-right">
-            <p className={`text-sm font-bold ${
-              tx.type === 'EARN' ? 'text-emerald-600' :
-              tx.type === 'SPEND' ? 'text-rose-600' : 'text-blue-600'
-            }`}>
+            <p className={`text-sm font-bold ${tx.type === 'EARN' ? 'text-emerald-600' :
+                tx.type === 'SPEND' ? 'text-rose-600' : 'text-blue-600'
+              }`}>
               {tx.type === 'SPEND' ? '-' : '+'}{tx.points}
             </p>
             <p className="text-[10px] text-slate-500">Dư: {tx.balanceAfter}</p>

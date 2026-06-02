@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Between, ILike, IsNull, Not, Repository } from 'typeorm';
+import { Between, ILike, Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { UserRole } from '../enums/user-role.enum';
 import { UserStatus } from '../enums/user-status.enum';
@@ -104,7 +104,11 @@ export class AdminUsersService {
 
   async getUserStats() {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     const [
@@ -119,10 +123,7 @@ export class AdminUsersService {
       this.userRepository.count(),
       this.userRepository.count({ where: { status: UserStatus.ACTIVE } }),
       this.userRepository.count({
-        where: [
-          { status: UserStatus.LOCKED },
-          { status: UserStatus.BANNED },
-        ],
+        where: [{ status: UserStatus.LOCKED }, { status: UserStatus.BANNED }],
       }),
       this.userRepository.count({ where: { role: UserRole.PARTNER } }),
       this.userRepository.count({ where: { role: UserRole.ADMIN } }),
@@ -201,11 +202,17 @@ export class AdminUsersService {
     await this.userRepository.save(user);
 
     // Ghi audit log
-    await this.auditService.log(adminId, adminEmail, AdminAuditAction.USER_STATUS_CHANGE, id, {
-      previousStatus,
-      newStatus: dto.status,
-      reason: dto.reason ?? null,
-    });
+    await this.auditService.log(
+      adminId,
+      adminEmail,
+      AdminAuditAction.USER_STATUS_CHANGE,
+      id,
+      {
+        previousStatus,
+        newStatus: dto.status,
+        reason: dto.reason ?? null,
+      },
+    );
 
     return {
       message: `Trạng thái user đã được cập nhật thành ${dto.status}`,
@@ -241,9 +248,15 @@ export class AdminUsersService {
 
     await this.userRepository.save(user);
 
-    await this.auditService.log(adminId, adminEmail, AdminAuditAction.USER_PROFILE_UPDATE, id, {
-      changes,
-    });
+    await this.auditService.log(
+      adminId,
+      adminEmail,
+      AdminAuditAction.USER_PROFILE_UPDATE,
+      id,
+      {
+        changes,
+      },
+    );
 
     return {
       message: 'Hồ sơ user đã được cập nhật',

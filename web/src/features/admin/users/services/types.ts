@@ -112,3 +112,8 @@ export interface UserActivity {
   dropoffs: DropoffTransaction[];
   trashClassifications: TrashClassification[];
 }
+
+export interface UpdateUserProfileDto {
+  fullName?: string;
+  avatarUrl?: string;
+}

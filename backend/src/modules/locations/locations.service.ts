@@ -40,7 +40,7 @@ export class LocationsService {
     @InjectRepository(AcceptedWasteType)
     private readonly acceptedWasteTypeRepo: Repository<AcceptedWasteType>,
     private readonly partnersService: PartnersService,
-  ) {}
+  ) { }
 
   private toCoordinateNumber(value?: string | number | null) {
     if (typeof value === 'number' && Number.isFinite(value)) {
@@ -203,7 +203,7 @@ export class LocationsService {
 
   async createCollectionPoint(userId: string, data: CreateCollectionPointDto) {
     const partnerProfile = await this.partnersService.getPartnerSummaryByUserId(userId);
-    
+
     if (!partnerProfile || !partnerProfile.roleTypes.includes(PartnerRoleType.COLLECTOR)) {
       throw new ForbiddenException('Only approved partners with COLLECTOR role can create collection points');
     }
@@ -219,7 +219,7 @@ export class LocationsService {
       createdBy: { id: userId },
       partnerProfile: { id: partnerProfile.id },
     });
-    
+
     const savedLocation = await this.locationRepo.save(location);
 
     if (data.capabilities && data.capabilities.length > 0) {

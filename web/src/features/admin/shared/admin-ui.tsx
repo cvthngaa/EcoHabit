@@ -71,12 +71,14 @@ export const AdminStatCard = ({
   </div>
 );
 
-export const AdminToolbar = ({ placeholder = 'Tìm kiếm...' }: { placeholder?: string }) => (
+export const AdminToolbar = ({ placeholder = 'Tìm kiếm...', value, onChange }: { placeholder?: string, value?: string, onChange?: React.ChangeEventHandler<HTMLInputElement> }) => (
   <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
     <div className="relative max-w-md flex-1">
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
       <input
         placeholder={placeholder}
+        value={value}
+        onChange={onChange}
         className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm outline-none transition focus:border-slate-400 focus:bg-white"
       />
     </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Gift, ChevronLeft, ChevronRight } from 'lucide-react';
-import { DataTable, type ColumnDef } from '../../../../shared/components/DataTable';
+import { DataTable, Button, type ColumnDef } from '../../../../shared/components';
 import { AdminPageHeader, AdminStatCard, StatusPill } from '../../shared/admin-ui';
 import { useAdminRewards, useAdminRewardStats } from '../services/queries';
 import { AdminRewardDetailDrawer } from '../components/AdminRewardDetailDrawer';
@@ -58,9 +58,13 @@ export const AdminRewardsPage: React.FC = () => {
         title="Quà tặng & Voucher"
         description="Quản lý kho quà, voucher, trạng thái tồn kho và hiệu quả đổi thưởng trên toàn hệ thống."
         action={
-          <button className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-slate-800 transition-colors">
-            <Gift className="h-4 w-4" />Thêm quà
-          </button>
+          <Button
+            variant="primary"
+            leftIcon={<Gift />}
+            className="shadow-sm"
+          >
+            Thêm quà
+          </Button>
         }
       />
       

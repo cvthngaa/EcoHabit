@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { UserPlus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { DataTable, type ColumnDef } from '../../../../shared/components/DataTable';
-import { AdminPageHeader, AdminStatCard, AdminToolbar, StatusPill } from '../../shared/admin-ui';
+import { AdminPageHeader, AdminStatCard, StatusPill } from '../../shared/admin-ui';
 import { useAdminUsers, useAdminUserStats } from '../services/queries';
 import { AdminUserDetailDrawer } from '../components/AdminUserDetailDrawer';
 import type { User } from '../services/types';
@@ -79,24 +79,24 @@ export const AdminUsersPage: React.FC = () => {
           </button>
         }
       />
-      
+
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <AdminStatCard 
-          label="Tổng người dùng" 
-          value={stats?.totalUsers.toLocaleString('vi-VN') || '-'} 
-          change={stats ? `+${stats.newUsersThisMonth} tháng này` : undefined} 
-          tone="blue" 
+        <AdminStatCard
+          label="Tổng người dùng"
+          value={stats?.totalUsers.toLocaleString('vi-VN') || '-'}
+          change={stats ? `+${stats.newUsersThisMonth} tháng này` : undefined}
+          tone="blue"
         />
-        <AdminStatCard 
-          label="Đang hoạt động" 
-          value={stats?.activeUsers.toLocaleString('vi-VN') || '-'} 
-          change={stats ? `${Math.round((stats.activeUsers / Math.max(1, stats.totalUsers)) * 100)}%` : undefined} 
-          tone="emerald" 
+        <AdminStatCard
+          label="Đang hoạt động"
+          value={stats?.activeUsers.toLocaleString('vi-VN') || '-'}
+          change={stats ? `${Math.round((stats.activeUsers / Math.max(1, stats.totalUsers)) * 100)}%` : undefined}
+          tone="emerald"
         />
-        <AdminStatCard 
-          label="Bị khóa / Cấm" 
-          value={stats?.suspendedUsers.toLocaleString('vi-VN') || '-'} 
-          tone="rose" 
+        <AdminStatCard
+          label="Bị khóa / Cấm"
+          value={stats?.suspendedUsers.toLocaleString('vi-VN') || '-'}
+          tone="rose"
         />
       </div>
 
@@ -111,13 +111,13 @@ export const AdminUsersPage: React.FC = () => {
         </div>
       </div>
 
-      <DataTable 
-        data={usersData?.data || []} 
-        columns={columns} 
+      <DataTable
+        data={usersData?.data || []}
+        columns={columns}
         isLoading={isLoading}
         containerClassName="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm"
       />
-        
+
       {/* Pagination Controls */}
       {usersData && usersData.meta.totalPages > 1 && (
         <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white px-6 py-3 shadow-sm mt-4">

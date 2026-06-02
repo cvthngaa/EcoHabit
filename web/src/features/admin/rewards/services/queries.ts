@@ -7,7 +7,12 @@ import {
   getAdminRedemptions,
   updateAdminRedemptionStatus,
 } from './api';
-import type { ListRewardsQuery, ListRedemptionsQuery, UpdateRewardStatusDto, UpdateRedemptionStatusDto } from './types';
+import type {
+  ListRedemptionsQuery,
+  ListRewardsQuery,
+  UpdateRedemptionStatusDto,
+  UpdateRewardStatusDto,
+} from './types';
 
 // Rewards
 export const useAdminRewards = (params: ListRewardsQuery) => {
@@ -59,7 +64,7 @@ export const useUpdateRedemptionStatus = () => {
   return useMutation({
     mutationFn: ({ id, dto }: { id: string; dto: UpdateRedemptionStatusDto }) =>
       updateAdminRedemptionStatus(id, dto),
-    onSuccess: (_, { id }) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-redemptions'] });
       queryClient.invalidateQueries({ queryKey: ['admin-reward-stats'] });
     },
