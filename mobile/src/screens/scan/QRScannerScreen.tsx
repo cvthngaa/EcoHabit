@@ -19,8 +19,10 @@ import {
   scanFromURLAsync,
   useCameraPermissions,
 } from 'expo-camera';
+import * as Location from 'expo-location';
 import Colors from '../../theme/colors';
 import { useToast } from '../../context/ToastContext';
+import { checkIn } from '../../services/transactions/checkin';
 
 const { width } = Dimensions.get('window');
 const FRAME_SIZE = width * 0.65;
@@ -72,24 +74,69 @@ const QRScannerScreen: React.FC = () => {
     }
   }, []);
 
-  const finishScan = useCallback((data: string, source: 'camera' | 'library') => {
+  const finishScan = useCallback(async (data: string, source: 'camera' | 'library') => {
     if (isProcessingRef.current) {
       return;
     }
 
     isProcessingRef.current = true;
     setScanned(true);
-    showToast(
-      source === 'camera'
-        ? 'Check-in thành công! +50 điểm xanh'
-        : 'Đã quét QR từ thư viện thành công! +50 điểm xanh',
-      'success',
-    );
-    console.log('[QRScannerScreen] Scanned QR data:', data);
 
-    successTimeoutRef.current = setTimeout(() => {
-      nav.goBack();
-    }, 1600);
+    try {
+      // 1. Parse data
+      let qrPayload;
+      try {
+        qrPayload = JSON.parse(data);
+      } catch (err) {
+        throw new Error('Mã QR không đúng định dạng. Vui lòng quét mã hợp lệ của điểm thu gom.');
+      }
+      
+      console.log('[QRScannerScreen] Scanned QR for type:', qrPayload?.type, 'location:', qrPayload?.locationId);
+      
+      if (qrPayload.type !== 'ECOHABIT_LOCATION_CHECKIN') {
+        throw new Error('Mã QR không hợp lệ. Vui lòng quét mã check-in của điểm thu gom.');
+      }
+      
+      if (!qrPayload.locationId || (!qrPayload.token && !qrPayload.secret)) {
+        throw new Error('Mã QR không đúng định dạng (thiếu thông tin).');
+      }
+
+      const qrTokenOrSecret = qrPayload.secret || qrPayload.token;
+
+      // 2. Request Location Permission
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        throw new Error('Cần cấp quyền vị trí để kiểm tra khoảng cách đến điểm thu gom.');
+      }
+
+      // 3. Get Current Position
+      const location = await Location.getCurrentPositionAsync({});
+      
+      // 4. Call Check-in API
+      await checkIn({
+        locationId: qrPayload.locationId,
+        qrToken: qrTokenOrSecret,
+        userLatitude: location.coords.latitude,
+        userLongitude: location.coords.longitude,
+      });
+
+      showToast(
+        source === 'camera'
+          ? 'Check-in thành công! Giao dịch đang chờ duyệt.'
+          : 'Đã quét QR từ thư viện! Giao dịch đang chờ duyệt.',
+        'success',
+      );
+
+      successTimeoutRef.current = setTimeout(() => {
+        nav.goBack();
+      }, 1600);
+    } catch (error: any) {
+      console.log('[QRScannerScreen] Check-in error:', error?.response?.data || error);
+      isProcessingRef.current = false;
+      setScanned(false);
+      const msg = error?.response?.data?.message || error.message || 'Có lỗi xảy ra khi check-in.';
+      showToast(msg, 'error');
+    }
   }, [nav, showToast]);
 
   const handleBarcodeScanned = useCallback(({ data }: BarcodeScanningResult) => {

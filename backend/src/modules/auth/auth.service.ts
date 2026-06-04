@@ -215,6 +215,7 @@ export class AuthService implements OnModuleDestroy {
       sub: user.id,
       role: user.role,
       fullName: user.fullName,
+      email: user.email,
     };
 
     // Fetch partner profile if user is a PARTNER

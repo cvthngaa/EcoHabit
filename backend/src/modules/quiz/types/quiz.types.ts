@@ -1,5 +1,5 @@
-export type QuizDifficulty = 'easy' | 'medium' | 'hard';
-export type DailyQuizDifficulty = QuizDifficulty | 'mixed';
+export type QuizDifficulty = 'easy' | 'medium' | 'hard' | 'mixed';
+export type DailyQuizDifficulty = QuizDifficulty;
 export type QuizTopic = 'recycling' | 'plastic' | 'battery' | 'general';
 
 export interface QuizQuestion {

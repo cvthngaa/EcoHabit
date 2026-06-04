@@ -5,7 +5,7 @@ import type { QrResponse } from './types';
 export function useGenerateQr() {
   return useMutation({
     mutationFn: async (locationId: string): Promise<QrResponse> => {
-      const res = await apiClient.post<QrResponse>(`/partner/locations/${locationId}/qr`);
+      const res = await apiClient.post<QrResponse>(`/partner/locations/${locationId}/qr/regenerate`);
       return res.data;
     },
   });

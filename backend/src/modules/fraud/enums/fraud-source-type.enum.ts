@@ -1,0 +1,7 @@
+export enum FraudSourceType {
+  COLLECTION = 'COLLECTION',
+  QUIZ = 'QUIZ',
+  POINTS = 'POINTS',
+  REWARD = 'REWARD',
+  AI_CLASSIFICATION = 'AI_CLASSIFICATION',
+}

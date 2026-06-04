@@ -1,4 +1,5 @@
-import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, OneToOne, BeforeInsert } from 'typeorm';
+import * as crypto from 'crypto';
 import { BaseEntity } from '../../../common/database/base.entity';
 import { User } from '../../users/entities/user.entity';
 import { LocationType } from '../enums/location-type.enum';
@@ -94,4 +95,19 @@ export class Location extends BaseEntity {
 
   @OneToMany(() => CollectionQrSession, (session) => session.location)
   qrSessions: CollectionQrSession[];
+
+  @Column({
+    name: 'qr_secret',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
+  qrSecret?: string | null;
+
+  @BeforeInsert()
+  generateQrSecret() {
+    if (!this.qrSecret) {
+      this.qrSecret = crypto.randomUUID().replace(/-/g, '');
+    }
+  }
 }

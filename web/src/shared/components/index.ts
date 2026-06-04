@@ -6,3 +6,4 @@ export * from './Modal';
 export * from './StatCard';
 export * from './IconButton';
 export * from './Button';
+export * from './Pagination';

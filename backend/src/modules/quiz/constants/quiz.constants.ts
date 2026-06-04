@@ -1,0 +1,3 @@
+export const DAILY_QUIZ_TOPIC_COUNT = 3;
+export const DAILY_QUIZ_QUESTION_COUNT = 5;
+export const POINTS_PER_CORRECT_ANSWER = 2;

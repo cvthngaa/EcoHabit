@@ -1,0 +1,6 @@
+export enum QuizQuestionStatus {
+  PENDING_REVIEW = 'PENDING_REVIEW',
+  ACTIVE = 'ACTIVE',
+  INACTIVE = 'INACTIVE',
+  REJECTED = 'REJECTED',
+}

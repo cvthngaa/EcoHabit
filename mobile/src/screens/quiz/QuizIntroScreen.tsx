@@ -109,7 +109,7 @@ const QuizIntroScreen: React.FC = () => {
                     <View className="flex-row items-center gap-1">
                       <Ionicons name="flash" size={12} color={accentColor} />
                       <Text className="text-[10px] font-bold uppercase" style={{ color: accentColor }}>
-                        {topic.difficulty}
+                        {{ easy: 'Dễ', medium: 'Trung bình', hard: 'Khó', mixed: 'Hỗn hợp' }[topic.difficulty] ?? topic.difficulty}
                       </Text>
                     </View>
                   </View>

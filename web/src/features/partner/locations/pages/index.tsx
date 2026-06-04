@@ -3,10 +3,11 @@ import {
   Plus, Search, Eye, Pencil, QrCode, Loader2, X, Check,
   AlertTriangle, CheckCircle2, Phone, MapPin, Info,
   Shield, Download, SlidersHorizontal, RefreshCw,
-  ChevronDown, Package, Recycle, XCircle, Clock,
+  ChevronDown, Package, Recycle, XCircle,
   Map, List,
 } from 'lucide-react';
 import { useGetLocations } from '../services/use-get-locations';
+import { useGetQr } from '../services/use-get-qr';
 import { useGenerateQr } from '../services/use-generate-qr';
 import { useCreateLocation } from '../services/use-create-location';
 import { useUpdateLocation } from '../services/use-update-location';
@@ -38,6 +39,7 @@ import type {
 import { locationFormSchema } from '../services/schemas';
 import LocationMap from '../components/location-map';
 import { Badge, Modal, DataTable, IconButton } from '../../../../shared/components';
+import { QRCodeSVG } from 'qrcode.react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -468,23 +470,46 @@ interface DetailPanelProps {
 }
 
 const DetailPanel: React.FC<DetailPanelProps> = ({ location, onClose, onEdit }) => {
+  const { data: getQrData, isLoading: isLoadingQr, refetch: refetchQr } = useGetQr(location.id, true);
   const generateQrMutation = useGenerateQr();
-  const [qrData, setQrData] = useState<{ qrToken: string; expiresAt?: string } | null>(null);
   const [qrError, setQrError] = useState('');
 
   const handleGenerateQr = () => {
+    if (!confirm('Bạn có chắc chắn muốn tạo lại mã QR? Mã cũ sẽ mất hiệu lực ngay lập tức.')) return;
     setQrError('');
-    setQrData(null);
     generateQrMutation.mutate(location.id, {
-      onSuccess: (data) => setQrData(data),
+      onSuccess: () => refetchQr(),
       onError: (err: any) =>
         setQrError(err?.response?.data?.message || 'Không thể tạo mã QR'),
     });
   };
 
-  const qrImageUrl = qrData
-    ? `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrData.qrToken)}&size=200x200&bgcolor=ffffff&color=1a5c38&margin=10`
-    : null;
+  const qrToken = getQrData?.qrToken;
+  const qrPayload = qrToken ? JSON.stringify({ type: 'ECOHABIT_LOCATION_CHECKIN', locationId: location.id, secret: qrToken }) : null;
+
+  const downloadQR = () => {
+    const svg = document.getElementById('qr-code-svg');
+    if (!svg) return;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      if (ctx) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+      }
+      const pngFile = canvas.toDataURL('image/png');
+      const downloadLink = document.createElement('a');
+      downloadLink.download = `qr-${location.id}.png`;
+      downloadLink.href = `${pngFile}`;
+      downloadLink.click();
+    };
+    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
@@ -623,13 +648,13 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ location, onClose, onEdit }) 
                 type="button"
                 onClick={handleGenerateQr}
                 disabled={generateQrMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg cursor-pointer disabled:bg-slate-300 transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer disabled:opacity-50 transition-all"
               >
                 {generateQrMutation.isPending
                   ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  : <QrCode className="w-3.5 h-3.5" />
+                  : <RefreshCw className="w-3.5 h-3.5" />
                 }
-                Tạo QR mới
+                Tạo lại QR
               </button>
             </div>
 
@@ -640,40 +665,42 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ location, onClose, onEdit }) 
               </div>
             )}
 
-            {qrData && (
-              <div className="bg-slate-50 rounded-2xl p-4 text-center space-y-3">
-                {qrImageUrl && (
-                  <img
-                    src={qrImageUrl}
-                    alt="QR Code"
-                    className="w-48 h-48 mx-auto rounded-lg border border-slate-200"
-                  />
-                )}
-                <p className="text-xs font-mono text-slate-600 break-all bg-white rounded-lg p-2 border border-slate-200">
-                  {qrData.qrToken}
-                </p>
-                <p className="text-xs text-amber-600 flex items-center justify-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  Mã QR hết hạn sau 5 phút
-                </p>
-                {qrImageUrl && (
-                  <a
-                    href={qrImageUrl}
-                    download={`qr-${location.id}.png`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Tải ảnh QR
-                  </a>
-                )}
+            {isLoadingQr ? (
+              <div className="py-8 flex justify-center">
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
               </div>
-            )}
-
-            {!qrData && !qrError && (
+            ) : qrPayload ? (
+              <div className="bg-slate-50 rounded-2xl p-4 text-center space-y-3">
+                <div className="flex justify-center bg-white p-4 rounded-xl border border-slate-200 w-fit mx-auto">
+                  <QRCodeSVG
+                    id="qr-code-svg"
+                    value={qrPayload}
+                    size={180}
+                    level="Q"
+                    bgColor="#ffffff"
+                    fgColor="#1a5c38"
+                    marginSize={1}
+                  />
+                </div>
+                <p className="text-xs font-mono text-slate-600 break-all bg-white rounded-lg p-2 border border-slate-200">
+                  Secret: {qrToken}
+                </p>
+                <p className="text-xs text-slate-500 flex items-center justify-center gap-1">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                  Mã QR tĩnh, có thể in ra để sử dụng
+                </p>
+                <button
+                  type="button"
+                  onClick={downloadQR}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Tải ảnh QR
+                </button>
+              </div>
+            ) : (
               <p className="text-xs text-slate-400 text-center py-2">
-                Nhấn "Tạo QR mới" để tạo mã check-in cho điểm này
+                Chưa có mã QR. Nhấn "Tạo lại QR" để tạo mới.
               </p>
             )}
           </div>

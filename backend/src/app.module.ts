@@ -17,6 +17,7 @@ import { PartnersModule } from './modules/partner/partners.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { FraudModule } from './modules/fraud/fraud.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     AdminModule,
     AuditModule,
     DashboardModule,
+    FraudModule,
   ],
   controllers: [AppController],
   providers: [AppService],

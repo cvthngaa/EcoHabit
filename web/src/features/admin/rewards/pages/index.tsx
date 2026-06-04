@@ -4,6 +4,7 @@ import { DataTable, Button, type ColumnDef } from '../../../../shared/components
 import { AdminPageHeader, AdminStatCard, StatusPill } from '../../shared/admin-ui';
 import { useAdminRewards, useAdminRewardStats } from '../services/queries';
 import { AdminRewardDetailDrawer } from '../components/AdminRewardDetailDrawer';
+import { AdminRewardFormModal } from '../components/AdminRewardFormModal';
 import type { Reward } from '../services/types';
 
 export const AdminRewardsPage: React.FC = () => {
@@ -11,6 +12,7 @@ export const AdminRewardsPage: React.FC = () => {
   const [limit] = useState(20);
   const [search, setSearch] = useState('');
   const [selectedRewardId, setSelectedRewardId] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   const { data: stats } = useAdminRewardStats();
   const { data: rewardsData, isLoading } = useAdminRewards({ page, limit, search: search || undefined });
@@ -61,6 +63,7 @@ export const AdminRewardsPage: React.FC = () => {
           <Button
             variant="primary"
             leftIcon={<Gift />}
+            onClick={() => setIsCreating(true)}
             className="shadow-sm"
           >
             Thêm quà
@@ -145,6 +148,10 @@ export const AdminRewardsPage: React.FC = () => {
           rewardId={selectedRewardId}
           onClose={() => setSelectedRewardId(null)}
         />
+      )}
+
+      {isCreating && (
+        <AdminRewardFormModal onClose={() => setIsCreating(false)} />
       )}
     </div>
   );

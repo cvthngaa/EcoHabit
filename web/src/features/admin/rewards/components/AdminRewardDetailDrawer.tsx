@@ -5,9 +5,12 @@ import {
   useUpdateRewardStatus,
   useAdminRedemptions,
   useUpdateRedemptionStatus,
+  useDeleteReward,
 } from '../services/queries';
 import { StatusPill } from '../../shared/admin-ui';
 import { IconButton } from '../../../../shared/components';
+import { AdminRewardFormModal } from './AdminRewardFormModal';
+import { Edit2, Trash2 } from 'lucide-react';
 import type { RewardStatus, RedemptionStatus } from '../services/types';
 
 export const AdminRewardDetailDrawer = ({
@@ -19,8 +22,10 @@ export const AdminRewardDetailDrawer = ({
 }) => {
   const { data: reward, isLoading } = useAdminRewardDetail(rewardId);
   const { mutate: updateStatus } = useUpdateRewardStatus();
+  const { mutateAsync: deleteReward, isPending: isDeleting } = useDeleteReward();
 
   const [activeTab, setActiveTab] = useState<'info' | 'redemptions'>('info');
+  const [isEditing, setIsEditing] = useState(false);
 
   if (isLoading || !reward) {
     return (
@@ -37,6 +42,18 @@ export const AdminRewardDetailDrawer = ({
     }
   };
 
+  const handleDelete = async () => {
+    if (confirm('Bạn có chắc chắn muốn xóa phần quà này không? Hành động này không thể hoàn tác.')) {
+      try {
+        await deleteReward(rewardId);
+        onClose();
+      } catch (error) {
+        console.error('Failed to delete reward', error);
+        alert('Xóa phần quà thất bại');
+      }
+    }
+  };
+
   return (
     <>
       <div className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm" onClick={onClose} />
@@ -44,14 +61,34 @@ export const AdminRewardDetailDrawer = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
           <h2 className="text-lg font-bold text-slate-900">Chi tiết phần quà</h2>
-          <IconButton
-            onClick={onClose}
-            icon={<X />}
-            variant="ghost"
-            size="sm"
-            aria-label="Đóng chi tiết"
-            className="text-slate-500"
-          />
+          <div className="flex items-center gap-2">
+            <IconButton
+              onClick={() => setIsEditing(true)}
+              icon={<Edit2 className="w-4 h-4" />}
+              variant="ghost"
+              size="sm"
+              aria-label="Chỉnh sửa"
+              className="text-blue-500 hover:text-blue-600 hover:bg-blue-50"
+            />
+            <IconButton
+              onClick={handleDelete}
+              icon={<Trash2 className="w-4 h-4" />}
+              variant="ghost"
+              size="sm"
+              aria-label="Xóa"
+              disabled={isDeleting}
+              className="text-rose-500 hover:text-rose-600 hover:bg-rose-50"
+            />
+            <div className="w-px h-4 bg-slate-200 mx-1" />
+            <IconButton
+              onClick={onClose}
+              icon={<X />}
+              variant="ghost"
+              size="sm"
+              aria-label="Đóng chi tiết"
+              className="text-slate-500"
+            />
+          </div>
         </div>
 
         {/* Content */}
@@ -147,6 +184,13 @@ export const AdminRewardDetailDrawer = ({
           </div>
         </div>
       </div>
+
+      {isEditing && reward && (
+        <AdminRewardFormModal
+          reward={reward}
+          onClose={() => setIsEditing(false)}
+        />
+      )}
     </>
   );
 };

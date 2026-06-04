@@ -19,6 +19,7 @@ import { BinType } from './enums/bin-type.enum';
 import { PointsService } from '../points/points.service';
 import { PointSourceType } from '../points/enums/point-source-type.enum';
 import { PointTransactionType } from '../points/enums/point-transaction-type.enum';
+import { FraudService } from '../fraud/fraud.service';
 
 @Injectable()
 export class AiService {
@@ -41,6 +42,7 @@ export class AiService {
     private readonly feedbackRepo: Repository<AiFeedback>,
     private readonly configService: ConfigService,
     private readonly pointsService: PointsService,
+    private readonly fraudService: FraudService,
   ) {
     this.aiServiceUrl =
       this.configService.get<string>('AI_SERVICE_URL') ||
@@ -159,6 +161,9 @@ export class AiService {
         awarded = true;
       }
     }
+
+    // Kiểm tra AI classification abuse — fire-and-forget
+    void this.fraudService.checkAiClassificationAbuse(userId);
 
     return {
       classificationId: saved.id,

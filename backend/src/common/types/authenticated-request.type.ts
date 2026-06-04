@@ -7,5 +7,6 @@ export type AuthenticatedRequest = Request & {
     sub?: string;
     role: UserRole;
     fullName?: string;
+    email: string;
   };
 };

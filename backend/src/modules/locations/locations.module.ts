@@ -13,7 +13,8 @@ import { CollectionTransactionsService } from './collection-transactions.service
 import { QrService } from './qr.service';
 import { PartnersModule } from '../partner/partners.module';
 import { PointsModule } from '../points/points.module';
-
+import { FraudModule } from '../fraud/fraud.module';
+import { AdminLocationsController } from './controllers/admin-locations.controller';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
@@ -26,8 +27,9 @@ import { PointsModule } from '../points/points.module';
     ]),
     PartnersModule,
     PointsModule,
+    FraudModule,
   ],
-  controllers: [CollectionPointsController, CollectionTransactionsController],
+  controllers: [CollectionPointsController, CollectionTransactionsController, AdminLocationsController],
   providers: [LocationsService, CollectionTransactionsService, QrService],
   exports: [TypeOrmModule, LocationsService],
 })

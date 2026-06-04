@@ -65,7 +65,7 @@ export class AdminUsersController {
       id,
       dto,
       req.user.userId,
-      req.user.fullName ?? req.user.userId,
+      req.user.email,
     );
   }
 
@@ -80,7 +80,7 @@ export class AdminUsersController {
       id,
       dto,
       req.user.userId,
-      req.user.fullName ?? req.user.userId,
+      req.user.email,
     );
   }
 
@@ -111,7 +111,7 @@ export class AdminUsersController {
       id,
       dto,
       req.user.userId,
-      req.user.fullName ?? req.user.userId,
+      req.user.email,
     );
   }
 

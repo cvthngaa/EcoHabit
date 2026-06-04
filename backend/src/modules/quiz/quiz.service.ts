@@ -1,59 +1,58 @@
 import {
   BadRequestException,
   Injectable,
-  OnModuleDestroy,
+  NotFoundException,
 } from '@nestjs/common';
-import { Redis } from 'ioredis';
-import { GeminiQuizQuestion } from '../gemini/types/gemini.types';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { PointSourceType } from '../points/enums/point-source-type.enum';
 import { PointTransactionType } from '../points/enums/point-transaction-type.enum';
 import { PointsService } from '../points/points.service';
 import { GeminiService } from '../gemini/gemini.service';
-import {
-  DAILY_QUIZ_CACHE_TTL_SECONDS,
-  DAILY_QUIZ_DIFFICULTIES,
-  DAILY_QUIZ_QUESTION_COUNT,
-  DAILY_QUIZ_TOPIC_COUNT,
-  DAILY_QUIZ_TOPICS,
-  POINTS_PER_CORRECT_ANSWER,
-} from './constants/daily-quiz-topics.constant';
-import { QUIZ_BANK } from './constants/quiz-bank.constant';
+import { FraudService } from '../fraud/fraud.service';
+import { QuizQuestion } from './entities/quiz-question.entity';
+import { QuizAttempt } from './entities/quiz-attempt.entity';
+import { QuizAttemptAnswer } from './entities/quiz-attempt-answer.entity';
+import { DailyQuizSet } from './entities/daily-quiz-set.entity';
+import { DailyQuizSetQuestion } from './entities/daily-quiz-set-question.entity';
+import { QuizQuestionStatus } from './enums/quiz-question-status.enum';
+import { QuizDifficulty } from './enums/quiz-difficulty.enum';
 import { GenerateQuizDto } from './dto/generate-quiz.dto';
-import {
-  DailyQuizAnswerDetail,
-  DailyQuizResult,
-  QuizQuestion,
-  QuizTopic,
-  SelectedDailyQuizTopic,
-} from './types/quiz.types';
+import { ListQuizHistoryQueryDto } from './dto/list-quiz-history-query.dto';
 import { getTodayInVietnam } from './utils/quiz-date.util';
-import { seededShuffle, shuffle } from './utils/quiz-random.util';
-
-type QuizServiceQuestion = QuizQuestion | GeminiQuizQuestion;
+import { shuffle } from './utils/quiz-random.util';
+import {
+  DAILY_QUIZ_TOPIC_COUNT,
+  DAILY_QUIZ_QUESTION_COUNT,
+  POINTS_PER_CORRECT_ANSWER,
+} from './constants/quiz.constants';
 
 @Injectable()
-export class QuizService implements OnModuleDestroy {
-  private readonly redisClient: Redis;
-
+export class QuizService {
   constructor(
+    @InjectRepository(QuizQuestion)
+    private readonly questionRepo: Repository<QuizQuestion>,
+    @InjectRepository(QuizAttempt)
+    private readonly attemptRepo: Repository<QuizAttempt>,
+    @InjectRepository(QuizAttemptAnswer)
+    private readonly attemptAnswerRepo: Repository<QuizAttemptAnswer>,
+    @InjectRepository(DailyQuizSet)
+    private readonly dailyQuizSetRepo: Repository<DailyQuizSet>,
+    @InjectRepository(DailyQuizSetQuestion)
+    private readonly dailyQuizSetQuestionRepo: Repository<DailyQuizSetQuestion>,
     private readonly geminiService: GeminiService,
     private readonly pointsService: PointsService,
-  ) {
-    this.redisClient = this.createRedisClient();
-  }
-
-  onModuleDestroy() {
-    this.redisClient.disconnect();
-  }
+    private readonly fraudService: FraudService,
+  ) { }
 
   async generateQuiz(dto: GenerateQuizDto) {
     const count = dto.count ?? DAILY_QUIZ_QUESTION_COUNT;
     const difficulty = dto.difficulty;
-    const topic = dto.topic ?? 'moi truong';
+    const topic = dto.topic ?? 'general';
 
     const aiQuestions = await this.geminiService.generateQuizQuestions({
       topic,
-      difficulty,
+      difficulty: difficulty === QuizDifficulty.MIXED ? undefined : (difficulty as any),
       count,
     });
 
@@ -67,54 +66,52 @@ export class QuizService implements OnModuleDestroy {
       };
     }
 
-    const fallbackQuestions = this.pickFallbackQuestions(dto, count);
-
-    return {
-      topic,
-      difficulty: difficulty ?? 'mixed',
-      count: fallbackQuestions.length,
-      questions: fallbackQuestions.map((question) =>
-        this.toPublicQuestion(question),
-      ),
-      source: 'fallback',
-    };
+    throw new BadRequestException('Không thể sinh câu hỏi vào lúc này.');
   }
 
   async getDailyQuiz(userId: string) {
     const today = getTodayInVietnam();
-    const topics = this.getTodaysTopics(today);
+    const topics = await this.getOrGenerateTodaysTopics(today);
 
     return Promise.all(
       topics.map(async (topic) => {
-        const completedResult = await this.getCompletedDailyQuiz(
-          userId,
-          today,
-          topic.id,
-        );
+        const completedAttempt = await this.attemptRepo.findOne({
+          where: { userId, topicId: topic.id, quizDate: today, isRewarded: true },
+          order: { createdAt: 'DESC' }
+        });
 
-        if (completedResult) {
+        if (completedAttempt) {
           return {
             ...topic,
             completed: true,
+            rewarded: true,
             date: today,
-            score: completedResult.score,
-            total: completedResult.total,
-            pointsEarned: completedResult.pointsEarned,
-            completedAt: completedResult.completedAt,
+            score: completedAttempt.score,
+            total: completedAttempt.totalQuestions,
+            pointsEarned: completedAttempt.pointsEarned,
+            completedAt: completedAttempt.createdAt,
             questions: [],
           };
         }
 
-        const questions = await this.getQuestionsForDailyTopic(today, topic);
+        const questions = await this.getQuestionsForDailyTopic(today, topic.id);
 
         return {
           ...topic,
           completed: false,
+          rewarded: false,
           date: today,
           count: questions.length,
-          questions: questions.map((question) =>
-            this.toPublicQuestion(question),
-          ),
+          questions: questions.map((q) => {
+            const sortedOptions = q.options.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+            return {
+              id: q.id,
+              question: q.content,
+              options: sortedOptions.map((o: any) => o.content),
+              correctIndex: sortedOptions.findIndex((o: any) => o.isCorrect),
+              explanation: q.explanation,
+            };
+          }),
         };
       }),
     );
@@ -122,266 +119,243 @@ export class QuizService implements OnModuleDestroy {
 
   async submitDailyQuiz(userId: string, topicId: string, answers: number[]) {
     const today = getTodayInVietnam();
-    const topic = this.findTodaysTopic(today, topicId);
+    const topics = await this.getOrGenerateTodaysTopics(today);
+    const topic = topics.find((t) => t.id === topicId);
 
     if (!topic) {
-      throw new BadRequestException(
-        'Chu de khong hop le hoac khong co trong ngay hom nay.',
-      );
+      throw new BadRequestException('Chủ đề không hợp lệ hoặc không có trong ngày hôm nay.');
     }
 
-    const completedKey = this.completedQuizKey(userId, today, topicId);
-    const alreadyCompleted = await this.redisClient.get(completedKey);
-
-    if (alreadyCompleted) {
-      throw new BadRequestException(
-        'Ban da hoan thanh chu de nay hom nay roi.',
-      );
-    }
-
-    const questions = await this.getQuestionsForDailyTopic(today, topic);
+    const questions = await this.getQuestionsForDailyTopic(today, topic.id);
 
     if (answers.length !== questions.length) {
-      throw new BadRequestException(
-        `Can tra loi dung ${questions.length} cau, nhan duoc ${answers.length} cau.`,
-      );
+      throw new BadRequestException(`Cần trả lời đúng ${questions.length} câu, nhận được ${answers.length} câu.`);
     }
 
-    const { score, details } = this.gradeAnswers(questions, answers);
-    const pointsEarned = score * POINTS_PER_CORRECT_ANSWER;
+    let score = 0;
+    const details: any[] = [];
 
-    await this.rewardQuizPoints(userId, topicId, pointsEarned);
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i];
+      const userAnswerIndex = answers[i];
+      
+      const sortedOptions = question.options.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
+      const correctIndex = sortedOptions.findIndex((o: any) => o.isCorrect);
+      const isCorrect = userAnswerIndex === correctIndex;
+      const explanation = question.explanation;
+      const optionsList = sortedOptions.map((o: any) => o.content);
+      const contentStr = question.content;
 
-    const result: DailyQuizResult = {
+      if (isCorrect) score++;
+
+      details.push({
+        questionId: question.id,
+        question: contentStr,
+        options: optionsList,
+        userAnswer: userAnswerIndex,
+        correctAnswer: correctIndex,
+        correct: isCorrect,
+        explanation,
+        dbQuestionId: question.id,
+      });
+    }
+
+    const alreadyRewarded = await this.attemptRepo.findOne({
+      where: { userId, topicId, quizDate: today, isRewarded: true }
+    });
+
+    let pointsEarned = 0;
+    let isRewarded = false;
+
+    if (!alreadyRewarded) {
+      pointsEarned = score * POINTS_PER_CORRECT_ANSWER;
+      if (pointsEarned > 0) {
+        await this.pointsService.addPoint(
+          userId,
+          pointsEarned,
+          PointTransactionType.EARN,
+          PointSourceType.QUIZ,
+          `${topicId}-${today}`,
+        );
+        isRewarded = true;
+      } else {
+        isRewarded = true;
+      }
+    } else {
+      void this.fraudService.checkQuizAbuse(userId, topicId);
+    }
+
+    const attempt = this.attemptRepo.create({
+      userId,
+      topicId,
+      quizDate: today,
       score,
-      total: questions.length,
+      totalQuestions: questions.length,
       pointsEarned,
-      details,
-      completedAt: new Date().toISOString(),
-    };
+      isRewarded,
+      answers: details.map((d) =>
+        this.attemptAnswerRepo.create({
+          questionId: d.dbQuestionId,
+          questionSnapshot: {
+            question: d.question,
+            options: d.options,
+            explanation: d.explanation
+          },
+          selectedOptionIndex: d.userAnswer,
+          correctOptionIndex: d.correctAnswer,
+          isCorrect: d.correct,
+          explanation: d.explanation,
+        })
+      ),
+    });
 
-    await this.cacheDailyQuizResult(completedKey, result);
+    await this.attemptRepo.save(attempt);
 
     return {
       score,
       total: questions.length,
       pointsEarned,
-      details,
+      rewarded: isRewarded,
+      details: details.map(d => ({
+        questionId: d.questionId,
+        question: d.question,
+        options: d.options,
+        userAnswer: d.userAnswer,
+        correctAnswer: d.correctAnswer,
+        correct: d.correct,
+        explanation: d.explanation,
+      })),
     };
   }
 
-  private createRedisClient(): Redis {
-    const redisUrl = process.env.REDIS_URL?.trim();
+  async getQuizHistory(userId: string, query: ListQuizHistoryQueryDto) {
+    const { page = 1, limit = 20 } = query;
+    const skip = (page - 1) * limit;
 
-    if (redisUrl?.startsWith('redis')) {
-      return new Redis(redisUrl);
-    }
-
-    return new Redis();
-  }
-
-  private pickFallbackQuestions(
-    dto: GenerateQuizDto,
-    count: number,
-  ): QuizQuestion[] {
-    const topic = this.resolveTopic((dto.topic ?? '').trim().toLowerCase());
-    const filteredQuestions = QUIZ_BANK.filter((question) => {
-      const matchesTopic = topic
-        ? question.topic === topic || question.topic === 'general'
-        : true;
-      const matchesDifficulty = dto.difficulty
-        ? question.difficulty === dto.difficulty
-        : true;
-
-      return matchesTopic && matchesDifficulty;
+    const [data, total] = await this.attemptRepo.findAndCount({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
     });
 
-    const fallback =
-      filteredQuestions.length > 0 ? filteredQuestions : QUIZ_BANK;
-
-    return shuffle(fallback).slice(0, Math.min(count, fallback.length));
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
-  private resolveTopic(topic: string): QuizTopic | null {
-    if (!topic) return null;
-    if (topic.includes('nhua') || topic.includes('plastic')) return 'plastic';
-    if (topic.includes('pin') || topic.includes('battery')) return 'battery';
-
-    if (
-      topic.includes('tai che') ||
-      topic.includes('phan loai') ||
-      topic.includes('recycling')
-    ) {
-      return 'recycling';
-    }
-
-    return 'general';
-  }
-
-  private getTodaysTopics(today: string): SelectedDailyQuizTopic[] {
-    return seededShuffle(DAILY_QUIZ_TOPICS, today)
-      .slice(0, DAILY_QUIZ_TOPIC_COUNT)
-      .map((topic) => ({
-        ...topic,
-        difficulty: seededShuffle(
-          DAILY_QUIZ_DIFFICULTIES,
-          `${today}-${topic.id}-difficulty`,
-        )[0],
-      }));
-  }
-
-  private findTodaysTopic(
-    today: string,
-    topicId: string,
-  ): SelectedDailyQuizTopic | undefined {
-    return this.getTodaysTopics(today).find((topic) => topic.id === topicId);
-  }
-
-  private async getQuestionsForDailyTopic(
-    today: string,
-    topic: SelectedDailyQuizTopic,
-  ): Promise<QuizServiceQuestion[]> {
-    const cacheKey = this.dailyQuestionsKey(today, topic.id);
-    const cachedQuestions =
-      await this.readJson<QuizServiceQuestion[]>(cacheKey);
-
-    if (cachedQuestions) {
-      return cachedQuestions;
-    }
-
-    const questions =
-      (await this.generateDailyQuestions(topic)) ??
-      this.pickFallbackDailyQuestions(today, topic);
-
-    await this.writeJson(cacheKey, questions, DAILY_QUIZ_CACHE_TTL_SECONDS);
-
-    return questions;
-  }
-
-  private async generateDailyQuestions(
-    topic: SelectedDailyQuizTopic,
-  ): Promise<GeminiQuizQuestion[] | null> {
-    const questions = await this.geminiService.generateQuizQuestions({
-      topic: topic.name,
-      difficulty: topic.difficulty === 'mixed' ? undefined : topic.difficulty,
-      count: DAILY_QUIZ_QUESTION_COUNT,
+  async getAttemptDetail(userId: string, attemptId: string) {
+    const attempt = await this.attemptRepo.findOne({
+      where: { id: attemptId, userId },
+      relations: ['answers'],
     });
 
-    return questions.length > 0 ? questions : null;
-  }
-
-  private pickFallbackDailyQuestions(
-    today: string,
-    topic: SelectedDailyQuizTopic,
-  ): QuizQuestion[] {
-    const topicQuestions = this.getFallbackBankForDailyTopic(topic.id);
-
-    return seededShuffle(topicQuestions, `${today}-${topic.id}`).slice(
-      0,
-      Math.min(DAILY_QUIZ_QUESTION_COUNT, topicQuestions.length),
-    );
-  }
-
-  private getFallbackBankForDailyTopic(topicId: string): QuizQuestion[] {
-    if (topicId === 'general') {
-      return QUIZ_BANK;
+    if (!attempt) {
+      throw new NotFoundException('Không tìm thấy lượt làm quiz này.');
     }
 
-    const topicQuestions = QUIZ_BANK.filter(
-      (question) => question.topic === topicId,
-    );
-
-    return topicQuestions.length >= 3 ? topicQuestions : QUIZ_BANK;
+    return attempt;
   }
 
-  private async getCompletedDailyQuiz(
-    userId: string,
-    today: string,
-    topicId: string,
-  ): Promise<DailyQuizResult | null> {
-    return this.readJson<DailyQuizResult>(
-      this.completedQuizKey(userId, today, topicId),
-    );
-  }
+  private async getOrGenerateTodaysTopics(today: string): Promise<any[]> {
+    let sets = await this.dailyQuizSetRepo.find({
+      where: { quizDate: today }
+    });
 
-  private gradeAnswers(
-    questions: QuizServiceQuestion[],
-    answers: number[],
-  ): { score: number; details: DailyQuizAnswerDetail[] } {
-    let score = 0;
+    if (sets.length === 0) {
+      const distinctTopicsResult = await this.questionRepo
+        .createQueryBuilder('q')
+        .select('DISTINCT q.topic', 'topic')
+        .where('q.status = :status', { status: QuizQuestionStatus.ACTIVE })
+        .getRawMany();
 
-    const details = questions.map((question, index) => {
-      const correct = question.correctIndex === answers[index];
+      const availableTopics = distinctTopicsResult.map((t) => t.topic);
 
-      if (correct) {
-        score += 1;
+      if (availableTopics.length > 0) {
+        const topicIds = shuffle(availableTopics).slice(0, DAILY_QUIZ_TOPIC_COUNT);
+
+        for (const tId of topicIds) {
+          await this.findOrCreateDailyQuizSet(today, tId);
+        }
+        
+        sets = await this.dailyQuizSetRepo.find({
+          where: { quizDate: today }
+        });
       }
+    }
 
+    return sets.map((set) => {
+      const name = set.topicId.charAt(0).toUpperCase() + set.topicId.slice(1);
       return {
-        questionId: question.id,
-        userAnswer: answers[index],
-        correctAnswer: question.correctIndex,
-        correct,
+        id: set.topicId,
+        name: name,
+        icon: 'earth',
+        description: `Câu đố về ${name}`,
+        difficulty: set.difficulty || 'medium',
       };
     });
-
-    return { score, details };
   }
 
-  private async rewardQuizPoints(
-    userId: string,
-    topicId: string,
-    pointsEarned: number,
-  ): Promise<void> {
-    if (pointsEarned <= 0) return;
-
-    await this.pointsService.addPoint(
-      userId,
-      pointsEarned,
-      PointTransactionType.EARN,
-      PointSourceType.QUIZ,
-      topicId,
-    );
+  private async getQuestionsForDailyTopic(today: string, topicId: string): Promise<any[]> {
+    return this.findOrCreateDailyQuizSet(today, topicId);
   }
 
-  private async cacheDailyQuizResult(
-    cacheKey: string,
-    result: DailyQuizResult,
-  ): Promise<void> {
-    await this.writeJson(cacheKey, result, DAILY_QUIZ_CACHE_TTL_SECONDS);
-  }
+  private async findOrCreateDailyQuizSet(today: string, topicId: string): Promise<any[]> {
+    let set = await this.dailyQuizSetRepo.findOne({
+      where: { quizDate: today, topicId },
+      relations: ['questions', 'questions.question', 'questions.question.options'],
+    });
 
-  private toPublicQuestion(question: QuizServiceQuestion) {
-    const {
-      topic: _topic,
-      difficulty: _difficulty,
-      ...publicQuestion
-    } = question as QuizServiceQuestion & Partial<QuizQuestion>;
-    return publicQuestion;
-  }
+    if (set && set.questions && set.questions.length > 0) {
+      const sortedQuestions = set.questions.sort((a, b) => a.sortOrder - b.sortOrder);
+      return sortedQuestions.map(sq => sq.question);
+    }
 
-  private dailyQuestionsKey(today: string, topicId: string): string {
-    return `quiz:daily_questions:${today}:${topicId}`;
-  }
+    const dbQuestions = await this.questionRepo.find({
+      where: { status: QuizQuestionStatus.ACTIVE, topic: topicId },
+      relations: ['options'],
+    });
 
-  private completedQuizKey(
-    userId: string,
-    today: string,
-    topicId: string,
-  ): string {
-    return `quiz:completed:${userId}:${today}:${topicId}`;
-  }
+    const validQuestions = dbQuestions.filter(q => {
+      if (!q.options || q.options.length < 4) return false;
+      const correctCount = q.options.filter(o => o.isCorrect).length;
+      return correctCount === 1;
+    });
 
-  private async readJson<T>(key: string): Promise<T | null> {
-    const value = await this.redisClient.get(key);
-    return value ? (JSON.parse(value) as T) : null;
-  }
+    const selected = shuffle(validQuestions).slice(0, DAILY_QUIZ_QUESTION_COUNT);
+    
+    if (selected.length === 0) return [];
 
-  private async writeJson<T>(
-    key: string,
-    value: T,
-    ttlSeconds: number,
-  ): Promise<void> {
-    await this.redisClient.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+    let totalScore = 0;
+    selected.forEach(q => {
+      if (q.difficulty === 'easy') totalScore += 1;
+      else if (q.difficulty === 'medium') totalScore += 2;
+      else if (q.difficulty === 'hard') totalScore += 3;
+      else totalScore += 2;
+    });
+    const avg = totalScore / selected.length;
+    const difficulty = avg < 1.6 ? 'easy' : (avg > 2.4 ? 'hard' : 'medium');
+
+    const newSet = this.dailyQuizSetRepo.create({
+      quizDate: today,
+      topicId: topicId,
+      difficulty: difficulty,
+    });
+    await this.dailyQuizSetRepo.save(newSet);
+
+    const setQuestions = selected.map((q, index) => this.dailyQuizSetQuestionRepo.create({
+      dailyQuizSetId: newSet.id,
+      questionId: q.id,
+      sortOrder: index,
+    }));
+    await this.dailyQuizSetQuestionRepo.save(setQuestions);
+
+    return selected;
   }
 }

@@ -1,4 +1,6 @@
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, Min, IsEnum } from 'class-validator';
+
+import { QuizDifficulty } from '../enums/quiz-difficulty.enum';
 
 export class GenerateQuizDto {
   @IsOptional()
@@ -6,8 +8,8 @@ export class GenerateQuizDto {
   topic?: string;
 
   @IsOptional()
-  @IsIn(['easy', 'medium', 'hard'])
-  difficulty?: 'easy' | 'medium' | 'hard';
+  @IsEnum(QuizDifficulty)
+  difficulty?: QuizDifficulty;
 
   @IsOptional()
   @IsInt()

@@ -23,6 +23,7 @@ import { AdminAuditAction } from '../audit/enums/admin-audit-action.enum';
 import { ListRewardsQueryDto } from './dto/list-rewards-query.dto';
 import { ListRedemptionsQueryDto } from './dto/list-redemptions-query.dto';
 import { UpdateRewardStatusDto } from './dto/update-reward-status.dto';
+import { FraudService } from '../fraud/fraud.service';
 
 @Injectable()
 export class RewardsService {
@@ -36,10 +37,13 @@ export class RewardsService {
     private readonly dataSource: DataSource,
     private readonly pointsService: PointsService,
     private readonly auditService: AuditService,
+    private readonly fraudService: FraudService,
   ) {}
 
   async getAllRewards() {
-    return this.rewardRepo.find();
+    return this.rewardRepo.find({
+      where: { status: RewardStatus.ACTIVE }
+    });
   }
 
   async getTopRewards(limit = 5) {
@@ -351,6 +355,9 @@ export class RewardsService {
         reward.stock = stock - 1;
         await rewardRepo.save(reward);
       }
+
+      // Kiểm tra redemption abuse — fire-and-forget
+      void this.fraudService.checkRewardAbuse(userId, reward.id);
 
       return {
         redemption: savedRedemption,

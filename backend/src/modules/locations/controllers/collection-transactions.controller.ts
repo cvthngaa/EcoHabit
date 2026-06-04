@@ -59,14 +59,31 @@ export class CollectionTransactionsController {
   @UseGuards(PartnerRoleGuard)
   @Roles(UserRole.PARTNER)
   @PartnerRoles(PartnerRoleType.COLLECTOR)
-  @Post('partner/locations/:locationId/qr')
-  async generateQr(
+  @Get('partner/locations/:locationId/qr')
+  async getQr(
     @Request() req: any,
     @Param('locationId') locationId: string,
   ) {
     const qrToken = await this.transactionsService.generateLocationQr(
       req.user.userId,
       locationId,
+      false, // Do not regenerate, just get existing or create if null
+    );
+    return { qrToken };
+  }
+
+  @UseGuards(PartnerRoleGuard)
+  @Roles(UserRole.PARTNER)
+  @PartnerRoles(PartnerRoleType.COLLECTOR)
+  @Post('partner/locations/:locationId/qr/regenerate')
+  async regenerateQr(
+    @Request() req: any,
+    @Param('locationId') locationId: string,
+  ) {
+    const qrToken = await this.transactionsService.generateLocationQr(
+      req.user.userId,
+      locationId,
+      true, // Force regenerate
     );
     return { qrToken };
   }

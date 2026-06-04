@@ -32,6 +32,6 @@ export class CreateCheckinDto {
   quantityUnit?: string;
 
   @IsString()
-  @IsOptional()
-  qrToken?: string;
+  @IsNotEmpty()
+  qrToken: string;
 }

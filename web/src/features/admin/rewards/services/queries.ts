@@ -4,6 +4,9 @@ import {
   getAdminRewardStats,
   getAdminRewardDetail,
   updateAdminRewardStatus,
+  createAdminReward,
+  updateAdminReward,
+  deleteAdminReward,
   getAdminRedemptions,
   updateAdminRedemptionStatus,
 } from './api';
@@ -12,6 +15,8 @@ import type {
   ListRewardsQuery,
   UpdateRedemptionStatusDto,
   UpdateRewardStatusDto,
+  CreateRewardDto,
+  UpdateRewardDto,
 } from './types';
 
 // Rewards
@@ -46,6 +51,41 @@ export const useUpdateRewardStatus = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-rewards'] });
       queryClient.invalidateQueries({ queryKey: ['admin-reward-stats'] });
       queryClient.invalidateQueries({ queryKey: ['admin-reward-detail', id] });
+    },
+  });
+};
+
+export const useCreateReward = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (dto: CreateRewardDto) => createAdminReward(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-rewards'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-reward-stats'] });
+    },
+  });
+};
+
+export const useUpdateReward = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: UpdateRewardDto }) =>
+      updateAdminReward(id, dto),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-rewards'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-reward-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-reward-detail', id] });
+    },
+  });
+};
+
+export const useDeleteReward = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteAdminReward(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-rewards'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-reward-stats'] });
     },
   });
 };

@@ -50,7 +50,7 @@ export class AdminPartnersController {
       id,
       data,
       req.user.userId,
-      req.user.fullName ?? req.user.userId,
+      req.user.email,
     );
   }
 
@@ -64,7 +64,7 @@ export class AdminPartnersController {
       id,
       data,
       req.user.userId,
-      req.user.fullName ?? req.user.userId,
+      req.user.email,
     );
   }
 
@@ -78,7 +78,7 @@ export class AdminPartnersController {
       id,
       dto,
       req.user.userId,
-      req.user.fullName ?? req.user.userId,
+      req.user.email,
     );
   }
 }

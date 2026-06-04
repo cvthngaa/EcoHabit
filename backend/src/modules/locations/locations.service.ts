@@ -133,6 +133,7 @@ export class LocationsService {
       .leftJoinAndSelect('location.capabilities', 'capabilities')
       .leftJoinAndSelect('location.acceptedWasteTypes', 'acceptedWasteTypes')
       .leftJoinAndSelect('location.collectionProfile', 'collectionProfile')
+      .leftJoinAndSelect('location.partnerProfile', 'partnerProfile')
       .orderBy('location.createdAt', 'DESC');
 
     return query.getMany();

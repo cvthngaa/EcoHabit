@@ -5,6 +5,7 @@ import { Redemption } from './entities/redemption.entity';
 import { RewardPickupOption } from './entities/reward-pickup-option.entity';
 import { PointsModule } from '../points/points.module';
 import { PartnersModule } from '../partner/partners.module';
+import { FraudModule } from '../fraud/fraud.module';
 
 import { RewardsController } from './controllers/rewards.controller';
 import { AdminRewardsController } from './controllers/admin-rewards.controller';
@@ -20,6 +21,7 @@ import { AuditModule } from '../audit/audit.module';
     PointsModule,
     PartnersModule,
     AuditModule,
+    FraudModule,
   ],
   controllers: [
     RewardsController,

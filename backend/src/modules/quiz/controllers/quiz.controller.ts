@@ -3,13 +3,16 @@ import {
   Controller,
   Get,
   Post,
+  Param,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger';
 import { GenerateQuizDto } from '../dto/generate-quiz.dto';
 import { SubmitDailyQuizDto } from '../dto/submit-daily-quiz.dto';
+import { ListQuizHistoryQueryDto } from '../dto/list-quiz-history-query.dto';
 import { QuizService } from '../quiz.service';
 import type { AuthenticatedRequest } from '../../../common/types/authenticated-request.type';
 
@@ -33,17 +36,44 @@ export class QuizController {
     return this.quizService.getDailyQuiz(req.user.userId ?? req.user.sub);
   }
 
-  @Post('daily/submit')
+  @Post(['daily/submit', 'daily/:topicId/submit'])
   @ApiOperation({ summary: 'Nộp bài quiz hôm nay theo chủ đề' })
   @ApiBody({ type: SubmitDailyQuizDto })
+  @ApiParam({ name: 'topicId', required: false, description: 'ID của chủ đề' })
   submitDailyQuiz(
     @Request() req: AuthenticatedRequest,
     @Body() dto: SubmitDailyQuizDto,
+    @Param('topicId') topicId?: string,
   ) {
+    const resolvedTopicId = topicId || dto.topicId;
     return this.quizService.submitDailyQuiz(
       req.user.userId ?? req.user.sub,
-      dto.topicId,
+      resolvedTopicId,
       dto.answers,
+    );
+  }
+
+  @Get('history')
+  @ApiOperation({ summary: 'Lấy lịch sử làm quiz của user' })
+  getQuizHistory(
+    @Request() req: AuthenticatedRequest,
+    @Query() query: ListQuizHistoryQueryDto,
+  ) {
+    return this.quizService.getQuizHistory(
+      req.user.userId ?? req.user.sub,
+      query,
+    );
+  }
+
+  @Get('attempts/:id')
+  @ApiOperation({ summary: 'Lấy chi tiết một lượt làm quiz' })
+  getAttemptDetail(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    return this.quizService.getAttemptDetail(
+      req.user.userId ?? req.user.sub,
+      id,
     );
   }
 }

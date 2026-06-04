@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
+import * as crypto from 'crypto';
 import { DropoffTransaction } from './entities/dropoff-transaction.entity';
 import { Location } from './entities/location.entity';
 import { DropoffStatus } from './enums/dropoff-status.enum';
@@ -9,9 +10,10 @@ import { PartnersService } from '../partner/partners.service';
 import { PointsService } from '../points/points.service';
 import { PointTransactionType } from '../points/enums/point-transaction-type.enum';
 import { PointSourceType } from '../points/enums/point-source-type.enum';
-import { QrService } from './qr.service';
 import { PartnerRoleType } from '../partner/enum/partner-role-type.enum';
 import { CreateCheckinDto } from './dto/create-checkin.dto';
+import { FraudService } from '../fraud/fraud.service';
+import { LocationStatus } from './enums/location-status.enum';
 
 /** Maximum allowed distance (km) between user GPS and location for a valid check-in */
 const MAX_CHECKIN_DISTANCE_KM = 0.5; // 500 metres
@@ -25,7 +27,7 @@ export class CollectionTransactionsService {
     private readonly locationRepo: Repository<Location>,
     private readonly partnersService: PartnersService,
     private readonly pointsService: PointsService,
-    private readonly qrService: QrService,
+    private readonly fraudService: FraudService,
   ) {}
 
   /**
@@ -72,6 +74,10 @@ export class CollectionTransactionsService {
       throw new BadRequestException('Location does not support waste collection');
     }
 
+    if (location.status !== LocationStatus.APPROVED) {
+      throw new BadRequestException('Location is not active or approved for check-in');
+    }
+
     // --- GPS distance validation ---
     let distanceKm: number | null = null;
 
@@ -90,6 +96,15 @@ export class CollectionTransactionsService {
       distanceKm = Math.round(distanceKm * 1000) / 1000;
 
       if (distanceKm > MAX_CHECKIN_DISTANCE_KM) {
+        // Ghi fraud flag trước khi throw — fire-and-forget
+        void this.fraudService.flagCheckinTooFar({
+          userId,
+          locationId: location.id,
+          distanceKm,
+          userLatitude: data.userLatitude,
+          userLongitude: data.userLongitude,
+        });
+
         throw new BadRequestException(
           `You are too far from this location (${distanceKm.toFixed(2)} km). ` +
           `Please be within ${MAX_CHECKIN_DISTANCE_KM * 1000}m to check in.`,
@@ -98,8 +113,25 @@ export class CollectionTransactionsService {
     }
 
     // --- QR token validation ---
-    if (data.qrToken) {
-      await this.qrService.validateAndUseQr(location.id, data.qrToken);
+    if (!data.qrToken) {
+      throw new BadRequestException('Mã QR không hợp lệ (thiếu token).');
+    }
+    if (!location.qrSecret || location.qrSecret !== data.qrToken) {
+      throw new BadRequestException('Mã QR không hợp lệ. Vui lòng quét lại mã QR tại điểm thu gom.');
+    }
+
+    // --- Rate Limit Validation (10 mins cooldown) ---
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+    const recentCheckin = await this.dropoffRepo.findOne({
+      where: {
+        user: { id: userId },
+        location: { id: location.id },
+        createdAt: MoreThan(tenMinutesAgo),
+      },
+    });
+
+    if (recentCheckin) {
+      throw new BadRequestException('Bạn đã check-in tại địa điểm này gần đây. Vui lòng thử lại sau 10 phút.');
     }
 
     const dropoff = this.dropoffRepo.create({
@@ -114,7 +146,12 @@ export class CollectionTransactionsService {
       status: DropoffStatus.PENDING,
     });
 
-    return this.dropoffRepo.save(dropoff);
+    const result = await this.dropoffRepo.save(dropoff);
+
+    // Kiểm tra check-in quá thường xuyên — fire-and-forget, không chặn flow
+    void this.fraudService.checkDailyCollectionCheckins(userId, data.locationId);
+
+    return result;
   }
 
   async getMyCheckins(userId: string) {
@@ -220,7 +257,7 @@ export class CollectionTransactionsService {
     return this.dropoffRepo.save(dropoff);
   }
 
-  async generateLocationQr(userId: string, locationId: string): Promise<string> {
+  async generateLocationQr(userId: string, locationId: string, regenerate = false): Promise<string> {
     const partnerProfile = await this.partnersService.getPartnerSummaryByUserId(userId);
     if (!partnerProfile || !partnerProfile.roleTypes.includes(PartnerRoleType.COLLECTOR)) {
       throw new ForbiddenException('Only approved collectors can generate QR codes');
@@ -239,6 +276,13 @@ export class CollectionTransactionsService {
       throw new ForbiddenException('You can only generate QR codes for your own locations');
     }
 
-    return this.qrService.generateQr(locationId);
+    if (!regenerate && location.qrSecret) {
+      return location.qrSecret;
+    }
+
+    location.qrSecret = crypto.randomUUID().replace(/-/g, '');
+    await this.locationRepo.save(location);
+
+    return location.qrSecret;
   }
 }

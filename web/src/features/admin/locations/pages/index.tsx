@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, Map, List } from 'lucide-react';
 import { DataTable, Button, type ColumnDef } from '../../../../shared/components';
 import { AdminPageHeader, AdminStatCard, AdminToolbar, StatusPill } from '../../shared/admin-ui';
 import { useAdminCollectionPoints } from '../services/queries';
 import type { Location } from '../services/types';
+import AdminLocationMap from '../components/admin-location-map';
 
 const columns: ColumnDef<Location>[] = [
   { header: 'Điểm thu gom', render: (location) => <div><p className="font-bold text-slate-800">{location.name || 'Không tên'}</p><p className="text-xs text-slate-500">{location.partnerProfile?.organizationName || 'N/A'}</p></div> },
@@ -16,6 +17,7 @@ const columns: ColumnDef<Location>[] = [
 export const AdminLocationsPage: React.FC = () => {
   const { data, isLoading, isError } = useAdminCollectionPoints();
   const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   const filteredData = useMemo(() => {
     if (!data?.locations) return [];
@@ -52,16 +54,45 @@ export const AdminLocationsPage: React.FC = () => {
             <AdminStatCard label="Loại hình" value={Object.keys(data?.stats?.locationsByType || {}).length.toString()} change="types" tone="indigo" />
           </div>
           
-          <AdminToolbar 
-            placeholder="Tìm điểm thu gom, đối tác..." 
-            value={searchTerm}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-          />
+          <div className="flex flex-col sm:flex-row gap-4 mb-4 items-start sm:items-center justify-between">
+            <AdminToolbar 
+              placeholder="Tìm điểm thu gom, đối tác..." 
+              value={searchTerm}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+            />
+            
+            <div className="flex items-center bg-slate-100 p-0.5 rounded-lg shrink-0">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${viewMode === 'list'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                  }`}
+              >
+                <List className="w-3.5 h-3.5" />
+                Danh sách
+              </button>
+              <button
+                onClick={() => setViewMode('map')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${viewMode === 'map'
+                    ? 'bg-white text-slate-900 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                  }`}
+              >
+                <Map className="w-3.5 h-3.5" />
+                Bản đồ
+              </button>
+            </div>
+          </div>
           
-          <DataTable 
-            data={filteredData} 
-            columns={columns} 
-          />
+          {viewMode === 'map' ? (
+            <AdminLocationMap locations={filteredData} />
+          ) : (
+            <DataTable 
+              data={filteredData} 
+              columns={columns} 
+            />
+          )}
         </>
       )}
     </div>
