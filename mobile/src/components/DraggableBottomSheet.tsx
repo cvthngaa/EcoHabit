@@ -225,13 +225,13 @@ const DraggableBottomSheet: React.FC<DraggableBottomSheetProps> = ({
         pointerEvents={isMinimized ? 'none' : 'auto'}
         style={{ opacity: overlayOpacity }}
       >
-        <Pressable 
-          className="absolute inset-0" 
+        <Pressable
+          className="absolute inset-0"
           onPress={() => {
             if (enableBackdropPress) {
               animateTo(minimizedOffset);
             }
-          }} 
+          }}
         />
       </Animated.View>
 

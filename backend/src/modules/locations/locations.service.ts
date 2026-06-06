@@ -82,12 +82,12 @@ export class LocationsService {
       .select([
         'location.id',
         'location.name',
-        'location.type',
         'location.address',
         'location.latitude',
         'location.longitude',
         'location.status',
-      ]);
+      ])
+      .leftJoinAndSelect('location.collectionProfile', 'collectionProfile');
 
     if (
       latitude !== undefined &&
@@ -214,7 +214,6 @@ export class LocationsService {
       address: data.address,
       latitude: data.latitude,
       longitude: data.longitude,
-      type: data.type,
       contactPhone: data.contactPhone,
       status: LocationStatus.PENDING,
       createdBy: { id: userId },

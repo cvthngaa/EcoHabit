@@ -38,7 +38,7 @@ import type {
 } from '../services/types';
 import { locationFormSchema } from '../services/schemas';
 import LocationMap from '../components/location-map';
-import { Badge, Modal, DataTable, IconButton } from '../../../../shared/components';
+import { Badge, Modal, DataTable, IconButton, SearchFilterBar } from '../../../../shared/components';
 import { QRCodeSVG } from 'qrcode.react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -1057,109 +1057,76 @@ export const Locations: React.FC = () => {
       {activeTab === 'locations' && (
         <div className="space-y-4">
           {/* Filters */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-4">
-            <div className="flex flex-wrap gap-3 items-center">
-              {/* Search */}
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Tìm theo tên hoặc địa chỉ..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 text-sm rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-100 transition-all"
-                />
-              </div>
-
-              {/* Status filter */}
-              <div className="relative">
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value as LocationStatus | 'ALL')}
-                  className="pl-3 pr-8 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-emerald-400 appearance-none cursor-pointer"
-                >
-                  <option value="ALL">Tất cả trạng thái</option>
-                  {ALL_LOCATION_STATUSES.map((s) => (
-                    <option key={s} value={s}>{STATUS_LABEL[s]}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-              </div>
-
-              {/* Type filter */}
-              <div className="relative">
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value as LocationType | 'ALL')}
-                  className="pl-3 pr-8 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-emerald-400 appearance-none cursor-pointer"
-                >
-                  <option value="ALL">Tất cả loại</option>
-                  {ALL_LOCATION_TYPES.map((t) => (
-                    <option key={t} value={t}>{TYPE_LABEL[t]}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-              </div>
-
-              {/* Waste type filter */}
-              <div className="relative">
-                <select
-                  value={filterWaste}
-                  onChange={(e) => setFilterWaste(e.target.value as WasteType | 'ALL')}
-                  className="pl-3 pr-8 py-2 text-sm rounded-lg border border-slate-200 bg-white focus:outline-none focus:border-emerald-400 appearance-none cursor-pointer"
-                >
-                  <option value="ALL">Tất cả loại rác</option>
-                  {ALL_WASTE_TYPES.map((w) => (
-                    <option key={w} value={w}>{WASTE_LABEL[w]}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
-              </div>
-
-              {/* Filter indicator */}
-              <div className="flex items-center gap-1.5 text-xs text-slate-400 ml-auto">
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>{filteredLocations.length} / {locations.length} điểm</span>
-              </div>
-
-              {/* Map / List toggle */}
-              <div className="flex items-center bg-slate-100 p-0.5 rounded-lg">
+          <SearchFilterBar
+            searchPlaceholder="Tìm theo tên hoặc địa chỉ..."
+            searchValue={search}
+            onSearchChange={setSearch}
+            filters={[
+              {
+                key: 'status',
+                value: filterStatus,
+                onChange: (v) => setFilterStatus(v as LocationStatus | 'ALL'),
+                placeholder: 'Tất cả trạng thái',
+                options: ALL_LOCATION_STATUSES.map(s => ({ value: s, label: STATUS_LABEL[s] })),
+              },
+              {
+                key: 'type',
+                value: filterType,
+                onChange: (v) => setFilterType(v as LocationType | 'ALL'),
+                placeholder: 'Tất cả loại',
+                options: ALL_LOCATION_TYPES.map(t => ({ value: t, label: TYPE_LABEL[t] })),
+              },
+              {
+                key: 'waste',
+                value: filterWaste,
+                onChange: (v) => setFilterWaste(v as WasteType | 'ALL'),
+                placeholder: 'Tất cả loại rác',
+                options: ALL_WASTE_TYPES.map(w => ({ value: w, label: WASTE_LABEL[w] })),
+              }
+            ]}
+            actions={
+              <>
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 ml-auto">
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                  <span>{filteredLocations.length} / {locations.length} điểm</span>
+                </div>
+                <div className="flex items-center bg-slate-100 p-0.5 rounded-lg ml-2">
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${viewMode === 'list'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                  >
+                    <List className="w-3.5 h-3.5" />
+                    Danh sách
+                  </button>
+                  <button
+                    onClick={() => setViewMode('map')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${viewMode === 'map'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                  >
+                    <Map className="w-3.5 h-3.5" />
+                    Bản đồ
+                  </button>
+                </div>
                 <button
-                  onClick={() => setViewMode('list')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${viewMode === 'list'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
-                    }`}
+                  onClick={() => refetch()}
+                  className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 cursor-pointer ml-1"
                 >
-                  <List className="w-3.5 h-3.5" />
-                  Danh sách
+                  <RefreshCw className="w-4 h-4" />
                 </button>
-                <button
-                  onClick={() => setViewMode('map')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${viewMode === 'map'
-                      ? 'bg-white text-slate-900 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
-                    }`}
-                >
-                  <Map className="w-3.5 h-3.5" />
-                  Bản đồ
-                </button>
-              </div>
-
-              <button
-                onClick={() => refetch()}
-                className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 cursor-pointer"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+              </>
+            }
+          />
 
           {/* Locations Content: Map or List */}
           {viewMode === 'map' ? (
             <LocationMap
               locations={filteredLocations}
-              onViewDetail={(loc) => setDetailTarget(loc)}
+              onViewDetail={(loc) => setDetailTarget(loc as any)}
             />
           ) : (
             <DataTable

@@ -24,10 +24,11 @@ export class AdminLocationsController {
     const activeLocations = locations.filter(l => l.status === 'APPROVED').length;
     const pendingLocations = locations.filter(l => l.status === 'PENDING').length;
     
-    // Group by location type (assuming location.type exists, fallback to empty array)
-    const locationsByType = locations.reduce((acc, loc) => {
-      if (loc.type) {
-        acc[loc.type] = (acc[loc.type] || 0) + 1;
+    // Group by location site type (fallback to empty array)
+    const locationsBySiteType = locations.reduce((acc, loc) => {
+      const siteType = loc.collectionProfile?.siteType;
+      if (siteType) {
+        acc[siteType] = (acc[siteType] || 0) + 1;
       }
       return acc;
     }, {} as Record<string, number>);
@@ -38,7 +39,7 @@ export class AdminLocationsController {
         totalLocations,
         activeLocations,
         pendingLocations,
-        locationsByType,
+        locationsBySiteType,
       },
     };
   }

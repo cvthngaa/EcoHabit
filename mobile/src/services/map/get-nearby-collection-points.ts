@@ -27,15 +27,13 @@ function formatDistance(distanceKm: number) {
   return `${distanceKm.toFixed(1)} km`;
 }
 
-function mapTypeToLabel(type?: string | null) {
-  if (!type) return 'Tong hop';
-  switch (type) {
-    case 'COLLECTION_POINT':
-      return 'Tong hop';
-    case 'RECYCLING_CENTER':
-      return 'Trung tam tai che';
+function mapTypeToLabel(siteType?: string | null) {
+  if (!siteType) return 'Tổng hợp';
+  switch (siteType) {
+    case 'CENTER':
+      return 'Trung tâm tái chế';
     default:
-      return type.replace(/_/g, ' ');
+      return 'Tổng hợp';
   }
 }
 
@@ -106,7 +104,7 @@ export async function getNearbyCollectionPoints(
           open: point.status === 'APPROVED',
           distanceKm,
           distanceLabel: formatDistance(distanceKm),
-          types: mapTypeToLabel(point.type),
+          types: mapTypeToLabel(point.collectionProfile?.siteType),
           hours: 'Lien he diem thu gom',
           phone: '1900 000 000',
         };

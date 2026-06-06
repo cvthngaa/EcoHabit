@@ -10,7 +10,6 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { LocationType } from '../enums/location-type.enum';
 import { LocationCapabilityType } from '../enums/location-capability-type.enum';
 import { CollectionSiteType } from '../enums/collection-site-type.enum';
 import { WasteType } from '../../ai/enums/waste-type.enum';
@@ -55,10 +54,6 @@ export class CreateCollectionPointDto {
   @IsLongitude()
   @IsOptional()
   longitude?: number;
-
-  @IsEnum(LocationType)
-  @IsNotEmpty()
-  type: LocationType;
 
   @IsString()
   @IsOptional()

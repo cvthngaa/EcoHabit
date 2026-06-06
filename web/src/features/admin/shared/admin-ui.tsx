@@ -12,13 +12,13 @@ const toneMap: Record<string, string> = {
 
 export const statusClass = (status: string) => {
   const normalized = status.toUpperCase();
-  if (['ACTIVE', 'APPROVED', 'VERIFIED', 'LOW', 'CLOSED'].includes(normalized)) {
+  if (['ACTIVE', 'APPROVED', 'VERIFIED', 'LOW', 'CLOSED', 'SUCCESS', 'REVIEWED'].includes(normalized)) {
     return 'bg-emerald-100 text-emerald-700';
   }
   if (['PENDING', 'REVIEWING', 'NEEDS_REVIEW', 'MEDIUM', 'LOW_STOCK', 'DRAFT'].includes(normalized)) {
     return 'bg-amber-100 text-amber-700';
   }
-  if (['SUSPENDED', 'REJECTED', 'HIGH', 'OUT_OF_STOCK', 'OPEN', 'PAUSED', 'INACTIVE'].includes(normalized)) {
+  if (['SUSPENDED', 'REJECTED', 'HIGH', 'OUT_OF_STOCK', 'OPEN', 'PAUSED', 'INACTIVE', 'FAILED'].includes(normalized)) {
     return 'bg-rose-100 text-rose-700';
   }
   return 'bg-slate-100 text-slate-700';
@@ -71,7 +71,19 @@ export const AdminStatCard = ({
   </div>
 );
 
-export const AdminToolbar = ({ placeholder = 'Tìm kiếm...', value, onChange }: { placeholder?: string, value?: string, onChange?: React.ChangeEventHandler<HTMLInputElement> }) => (
+export const AdminToolbar = ({
+  placeholder = 'Tìm kiếm...',
+  value,
+  onChange,
+  children,
+  showFilterButton = false
+}: {
+  placeholder?: string;
+  value?: string;
+  onChange?: React.ChangeEventHandler<HTMLInputElement>;
+  children?: React.ReactNode;
+  showFilterButton?: boolean;
+}) => (
   <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
     <div className="relative max-w-md flex-1">
       <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -82,10 +94,17 @@ export const AdminToolbar = ({ placeholder = 'Tìm kiếm...', value, onChange }
         className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-3 text-sm outline-none transition focus:border-slate-400 focus:bg-white"
       />
     </div>
-    <button className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-      <SlidersHorizontal className="h-4 w-4" />
-      Bộ lọc
-    </button>
+    {(children || showFilterButton) && (
+      <div className="flex items-center gap-2">
+        {children}
+        {showFilterButton && (
+          <button className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors">
+            <SlidersHorizontal className="h-4 w-4" />
+            Bộ lọc
+          </button>
+        )}
+      </div>
+    )}
   </div>
 );
 

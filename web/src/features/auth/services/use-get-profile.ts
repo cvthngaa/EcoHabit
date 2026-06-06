@@ -13,6 +13,7 @@ export interface PartnerProfile {
   address?: string;
   approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
   approvedAt?: string;
+  roleTypes?: Array<{ roleType: 'COLLECTOR' | 'REWARD_PROVIDER'; isActive: boolean }>;
 }
 
 export function useGetProfile() {

@@ -14,6 +14,12 @@ import { CreateCheckinDto } from '../dto/create-checkin.dto';
 export class CollectionTransactionsController {
   constructor(private readonly transactionsService: CollectionTransactionsService) {}
 
+  @Get('admin/collection-transactions')
+  @Roles(UserRole.ADMIN)
+  getAdminTransactions() {
+    return this.transactionsService.getAdminTransactions();
+  }
+
   @Post('collection-transactions/check-in')
   checkIn(@Request() req: any, @Body() data: CreateCheckinDto) {
     return this.transactionsService.checkIn(req.user.userId, data);

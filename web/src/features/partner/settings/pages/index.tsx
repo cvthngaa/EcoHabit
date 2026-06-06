@@ -84,14 +84,12 @@ const ToggleRow: React.FC<ToggleRowProps> = ({ label, hint, checked, onChange, b
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative inline-flex w-10 h-5.5 flex-shrink-0 rounded-full transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-400 ${
-        checked ? 'bg-emerald-500' : 'bg-slate-200'
-      }`}
+      className={`relative inline-flex w-10 h-5.5 flex-shrink-0 rounded-full transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-emerald-400 ${checked ? 'bg-emerald-500' : 'bg-slate-200'
+        }`}
     >
       <span
-        className={`inline-block w-4 h-4 mt-0.5 ml-0.5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ${
-          checked ? 'translate-x-4.5' : 'translate-x-0'
-        }`}
+        className={`inline-block w-4 h-4 mt-0.5 ml-0.5 rounded-full bg-white shadow-sm transform transition-transform duration-200 ${checked ? 'translate-x-4.5' : 'translate-x-0'
+          }`}
       />
     </button>
   </div>
@@ -120,11 +118,10 @@ interface ToastProps {
 
 const Toast: React.FC<ToastProps> = ({ message, type = 'success' }) => (
   <div
-    className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium border ${
-      type === 'success'
+    className={`fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg text-sm font-medium border ${type === 'success'
         ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
         : 'bg-rose-50 border-rose-200 text-rose-800'
-    }`}
+      }`}
   >
     {type === 'success' ? <Check className="w-4 h-4 text-emerald-500" /> : <TriangleAlert className="w-4 h-4 text-rose-500" />}
     {message}
@@ -199,7 +196,7 @@ export const Settings: React.FC = () => {
     if (!currentPw) { setPwError('Vui lòng nhập mật khẩu hiện tại'); return; }
     if (newPw.length < 8) { setPwError('Mật khẩu mới phải có ít nhất 8 ký tự'); return; }
     if (newPw !== confirmPw) { setPwError('Mật khẩu xác nhận không khớp'); return; }
-    
+
     try {
       await apiClient.post('/auth/change-password', {
         oldPassword: currentPw,
@@ -621,11 +618,10 @@ export const Settings: React.FC = () => {
             <button
               type="button"
               onClick={handleDisableAccount}
-              className={`flex-shrink-0 px-4 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer border active:scale-[0.98] ${
-                confirmDisable
+              className={`flex-shrink-0 px-4 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer border active:scale-[0.98] ${confirmDisable
                   ? 'bg-rose-600 text-white border-rose-600 hover:bg-rose-700'
                   : 'text-rose-600 border-rose-200 hover:bg-rose-50'
-              }`}
+                }`}
             >
               {confirmDisable ? '⚠️ Xác nhận vô hiệu hoá' : 'Vô hiệu hoá tài khoản'}
             </button>
@@ -647,11 +643,10 @@ export const Settings: React.FC = () => {
             <button
               type="button"
               onClick={handleDeleteAccount}
-              className={`flex-shrink-0 px-4 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer border active:scale-[0.98] ${
-                confirmDelete
+              className={`flex-shrink-0 px-4 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer border active:scale-[0.98] ${confirmDelete
                   ? 'bg-rose-700 text-white border-rose-700 hover:bg-rose-800'
                   : 'text-rose-700 border-rose-200 hover:bg-rose-50'
-              }`}
+                }`}
             >
               {confirmDelete ? '🗑️ Xác nhận yêu cầu xoá' : 'Yêu cầu xoá tài khoản'}
             </button>

@@ -18,7 +18,9 @@ export type BackendCollectionPoint = {
   address?: string | null;
   latitude?: number | string | null;
   longitude?: number | string | null;
-  type?: string | null;
+  collectionProfile?: {
+    siteType: string;
+  } | null;
   status?: string | null;
 };
 

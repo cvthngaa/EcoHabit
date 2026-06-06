@@ -36,7 +36,7 @@ function SelectableChipTabs<T extends string | number>({
         return (
           <TouchableOpacity
             key={String(item.key)}
-            className="mr-2 flex-row items-center rounded-full border px-[13px] py-[7px]"
+            className="mr-2 flex-row items-center rounded-full border px-[13px] py-[7px] h-[35px]"
             style={{
               backgroundColor: isActive ? activeColor : Colors.white,
               borderColor: isActive ? activeColor : Colors.border,

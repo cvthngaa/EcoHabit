@@ -88,6 +88,9 @@ def process_results(results):
     cls_id = int(boxes.cls[0])
     conf = float(boxes.conf[0])
     label = model.names[cls_id]
+    
+    # Tọa độ hộp bao chuẩn hóa [x_min, y_min, x_max, y_max]
+    bbox = boxes.xyxyn[0].tolist()
 
     mapping_info = get_mapping(label)
 
@@ -96,6 +99,7 @@ def process_results(results):
         "confidence": round(conf, 4),
         "modelName": "YOLOv8",
         "modelVersion": "v8n",
+        "boundingBox": bbox,
         **mapping_info
     }
 

@@ -17,11 +17,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
-import { Colors } from '../../theme';
+import { Colors, Tokens } from '../../theme';
 import { useToast } from '../../context/ToastContext';
 import ConfirmAlert from '../../components/ConfirmAlert';
 import DraggableBottomSheet from '../../components/DraggableBottomSheet';
 import SelectableChipTabs from '../../components/SelectableChipTabs';
+import MapSearchBar from './components/MapSearchBar';
 import {
   CollectionPointItem,
   getNearbyCollectionPoints,
@@ -255,7 +256,7 @@ const MapScreen: React.FC = () => {
       if (Platform.OS === 'android' && !providerStatus.networkAvailable) {
         try {
           await Location.enableNetworkProviderAsync();
-        } catch (providerError) {}
+        } catch (providerError) { }
       }
 
       let current = await Location.getLastKnownPositionAsync();
@@ -528,95 +529,21 @@ const MapScreen: React.FC = () => {
         </Text>
       </View>
 
-      <View
-        className="absolute left-4 right-4 rounded-[14px] bg-surface px-[14px] py-[10px]"
-        style={[
-          { top: insets.top + 56 },
-          searchShadowStyle,
-        ]}
-      >
-        <View className="flex-row items-center">
-          <Ionicons
-            name="location-outline"
-            size={18}
-            color={Colors.textMuted}
-            style={{ marginRight: 8 }}
-          />
-          <TextInput
-            className="flex-1 text-[14px] text-text"
-            placeholder="Nhập địa chỉ để tìm điểm thu gom"
-            placeholderTextColor={Colors.textMuted}
-            value={addressQuery}
-            onChangeText={text => {
-              setAddressQuery(text);
-              if (addressError) {
-                setAddressError('');
-              }
-            }}
-            onFocus={handleAddressFocus}
-            onSubmitEditing={handleSubmitAddress}
-            returnKeyType="search"
-          />
-          {isAddressSearching || isSubmittingAddress ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
-          ) : (
-            <TouchableOpacity
-              onPress={handleSubmitAddress}
-              activeOpacity={0.8}
-              disabled={!canSubmitAddress}
-            >
-              <Ionicons
-                name="search"
-                size={18}
-                color={canSubmitAddress ? Colors.primary : Colors.textMuted}
-              />
-            </TouchableOpacity>
-          )}
-          <View className="ml-2 rounded-[10px] bg-primary px-2 py-[2px]">
-            <Text className="text-[11px] font-bold text-white">{filtered.length}</Text>
-          </View>
-        </View>
-
-        {!addressQuery && currentAddress ? (
-          <Text className="mt-1 text-[12px] text-text-muted" numberOfLines={1}>
-            {currentAddress}
-          </Text>
-        ) : null}
-
-        {addressError ? (
-          <Text className="mt-1 text-[12px] text-status-error">{addressError}</Text>
-        ) : null}
-
-        {showAddressSuggestions && addressSuggestions.length ? (
-          <View className="mt-3 overflow-hidden rounded-[16px] border border-green-200 bg-surface">
-            <FlatList
-              data={addressSuggestions}
-              keyExtractor={item => item.id}
-              keyboardShouldPersistTaps="handled"
-              scrollEnabled={false}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  className="flex-row items-start border-b border-border-subtle/40 px-4 py-3"
-                  onPress={() => handleSelectSuggestion(item)}
-                  activeOpacity={0.8}
-                >
-                  <View className="mt-0.5 h-9 w-9 items-center justify-center rounded-xl bg-status-successBg">
-                    <Ionicons name="location-outline" size={18} color={Colors.primary} />
-                  </View>
-                  <View className="ml-3 flex-1">
-                    <Text className="text-[14px] font-semibold text-text">
-                      {item.title}
-                    </Text>
-                    <Text className="mt-1 text-[12px] leading-5 text-text-muted">
-                      {item.subtitle}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        ) : null}
-      </View>
+      <MapSearchBar
+        addressQuery={addressQuery}
+        setAddressQuery={setAddressQuery}
+        addressError={addressError}
+        setAddressError={setAddressError}
+        isAddressSearching={isAddressSearching}
+        isSubmittingAddress={isSubmittingAddress}
+        currentAddress={currentAddress}
+        showAddressSuggestions={showAddressSuggestions}
+        setShowAddressSuggestions={setShowAddressSuggestions}
+        addressSuggestions={addressSuggestions}
+        handleAddressFocus={handleAddressFocus}
+        handleSubmitAddress={handleSubmitAddress}
+        handleSelectSuggestion={handleSelectSuggestion}
+      />
 
       <View className="absolute right-4 top-[150px] items-center gap-[10px]">
         <TouchableOpacity
@@ -636,17 +563,12 @@ const MapScreen: React.FC = () => {
         </TouchableOpacity>
 
         <TouchableOpacity
-          className="mt-1 rounded-2xl"
+          className="mt-1 h-[52px] w-[52px] items-center justify-center rounded-2xl bg-green-300"
           style={fabShadowStyle}
           onPress={() => navigation.navigate('QRScanner')}
           activeOpacity={0.85}
         >
-          <LinearGradient
-            colors={[Colors.primaryGradientStart, Colors.primaryLight]}
-            className="h-[52px] w-[52px] items-center justify-center rounded-2xl"
-          >
-            <Ionicons name="qr-code" size={22} color={Colors.white} />
-          </LinearGradient>
+          <Ionicons name="qr-code" size={22} color={Colors.white} />
         </TouchableOpacity>
       </View>
 
@@ -656,7 +578,7 @@ const MapScreen: React.FC = () => {
         bottomInset={insets.bottom}
         initialSnap="collapsed"
       >
-        <View className="w-full px-4 pb-2">
+        <View className="flex-1 w-full px-4 pb-2">
           <SelectableChipTabs
             items={filterChipItems}
             activeKey={filter}
@@ -679,12 +601,9 @@ const MapScreen: React.FC = () => {
                   style={selectedCardShadowStyle}
                 >
                   <View className="mb-[10px] flex-row items-start">
-                    <LinearGradient
-                      colors={[Colors.primaryGradientStart, Colors.primaryLight]}
-                      className="h-10 w-10 items-center justify-center rounded-xl"
-                    >
+                    <View className="h-10 w-10 items-center justify-center rounded-xl bg-green-300">
                       <Ionicons name="location" size={20} color={Colors.white} />
-                    </LinearGradient>
+                    </View>
 
                     <View className="ml-[10px] flex-1">
                       <Text className="mb-0.5 text-[15px] font-bold text-text">
@@ -747,18 +666,13 @@ const MapScreen: React.FC = () => {
 
                   <View className="flex-row">
                     <TouchableOpacity
-                      className="mr-[10px] flex-1 overflow-hidden rounded-xl"
+                      className="mr-[10px] flex-1 flex-row items-center justify-center overflow-hidden rounded-xl bg-green-300 py-[10px]"
                       onPress={() => handleNavigate(selected)}
                     >
-                      <LinearGradient
-                        colors={[Colors.primaryGradientStart, Colors.primaryLight]}
-                        className="flex-row items-center justify-center py-[10px]"
-                      >
-                        <Ionicons name="navigate" size={16} color={Colors.white} />
-                        <Text className="ml-1.5 text-[13px] font-bold text-white">
-                          Chỉ đường
-                        </Text>
-                      </LinearGradient>
+                      <Ionicons name="navigate" size={16} color={Colors.white} />
+                      <Text className="ml-1.5 text-[13px] font-bold text-white">
+                        Chỉ đường
+                      </Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -782,7 +696,7 @@ const MapScreen: React.FC = () => {
                 {filtered.map(point => (
                   <TouchableOpacity
                     key={point.id}
-                    className={`flex-row items-center rounded-[10px] border-b border-border-subtle/40 px-1 py-[10px] ${selected?.id === point.id ? 'mx-[-4px] bg-green-100 px-2' : ''}`}
+                    className={`mb-3 flex-row items-center rounded-[16px] bg-green-300 p-3 shadow-sm ${selected?.id === point.id ? 'border-2 border-white' : ''}`}
                     onPress={() => {
                       setSelected(point);
                       animateToRegion({
@@ -794,41 +708,31 @@ const MapScreen: React.FC = () => {
                     }}
                     activeOpacity={0.82}
                   >
-                    <View
-                      className="mr-[10px] h-[42px] w-[42px] items-center justify-center rounded-xl"
-                      style={{ backgroundColor: point.open ? Colors.surfaceLight : '#F5F5F5' }}
-                    >
+                    <View className="mr-3 h-10 w-10 items-center justify-center rounded-lg bg-white/20">
                       <Ionicons
-                        name="location"
+                        name="leaf"
                         size={20}
-                        color={point.open ? Colors.primary : '#9E9E9E'}
+                        color="#FFF"
                       />
                     </View>
 
-                    <View className="flex-1">
-                      <Text className="text-[14px] font-semibold text-text">
+                    <View className="flex-1 justify-center">
+                      <Text className="text-[15px] font-bold text-white">
                         {point.name}
                       </Text>
-                      <Text className="mt-0.5 text-[11px] text-text-muted">{point.address}</Text>
-                      <Text className="mt-0.5 text-[11px] font-semibold text-primary">
-                        {point.types}
+                      <Text className="mt-1 text-[11px] text-white/80" numberOfLines={1}>
+                        {point.address}
                       </Text>
-                    </View>
-
-                    <View className="items-end">
-                      <Text className="text-[12px] font-bold text-primary">
-                        {point.distanceLabel}
-                      </Text>
-                      <View
-                        className="mt-[3px] h-1.5 w-1.5 rounded-full"
-                        style={{ backgroundColor: point.open ? Colors.primaryLight : '#9E9E9E' }}
-                      />
-                      <Text
-                        className="mt-[3px] text-[10px] font-semibold"
-                        style={{ color: point.open ? Colors.primary : '#9E9E9E' }}
-                      >
-                        {point.open ? 'Mở cửa' : 'Tạm dừng'}
-                      </Text>
+                      <View className="mt-1.5 flex-row items-center">
+                        <Ionicons name="star" size={10} color="#FFF" />
+                        <Ionicons name="star" size={10} color="#FFF" />
+                        <Ionicons name="star" size={10} color="#FFF" />
+                        <Ionicons name="star" size={10} color="#FFF" />
+                        <Ionicons name="star-outline" size={10} color="#FFF" />
+                        <Text className="ml-1.5 text-[10px] text-white/90">
+                          {point.distanceLabel} • {point.types}
+                        </Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 ))}

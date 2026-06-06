@@ -1,4 +1,4 @@
-import { X, Clock, User, Target, Database, Info } from 'lucide-react';
+import { X, Clock, User, Target, Info } from 'lucide-react';
 import { useAdminAuditLogDetail } from '../services/queries';
 import { IconButton } from '../../../../shared/components';
 import { formatAuditAction, formatMetadataKey } from '../services/formatters';
@@ -24,7 +24,7 @@ export const AdminAuditLogDetailDrawer = ({
     <>
       <div className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm" onClick={onClose} />
       <div className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl animate-in slide-in-from-right sm:w-[480px] border-l border-slate-200">
-        
+
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4 bg-slate-50">
           <div>
@@ -43,7 +43,7 @@ export const AdminAuditLogDetailDrawer = ({
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white">
-          
+
           {/* Action Badge */}
           <div className="flex items-center justify-between bg-slate-50 rounded-xl p-4 border border-slate-100">
             <span className="text-sm font-semibold text-slate-600">Loại thao tác</span>

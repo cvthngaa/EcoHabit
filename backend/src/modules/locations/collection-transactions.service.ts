@@ -162,6 +162,14 @@ export class CollectionTransactionsService {
     });
   }
 
+  async getAdminTransactions() {
+    return this.dropoffRepo.find({
+      relations: ['user', 'location', 'acceptedWasteType'],
+      order: { createdAt: 'DESC' },
+      take: 100
+    });
+  }
+
   async getPartnerTransactions(userId: string) {
     const partnerProfile = await this.partnersService.getPartnerSummaryByUserId(userId);
     if (!partnerProfile || !partnerProfile.roleTypes.includes(PartnerRoleType.COLLECTOR)) {

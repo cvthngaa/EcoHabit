@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Building2, User, Phone, Mail, FileText, MapPin, 
-  Edit3, Save, Loader2, CheckCircle2, ShieldCheck, 
+import {
+  Building2, User, Phone, Mail, FileText, MapPin,
+  Edit3, Save, Loader2, CheckCircle2, ShieldCheck,
   AlertTriangle, Clock
 } from 'lucide-react';
 import { useGetProfile } from '../../../auth/services/use-get-profile';
@@ -14,7 +14,7 @@ export const Profile: React.FC = () => {
   const updateMutation = useUpdateProfile();
 
   const [isEditing, setIsEditing] = useState(false);
-  
+
   // Form fields state
   const [organizationName, setOrganizationName] = useState('');
   const [organizationType, setOrganizationType] = useState('');
@@ -126,7 +126,7 @@ export const Profile: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-4xl font-sans">
-      
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -180,7 +180,7 @@ export const Profile: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
+
             {/* Organization Name */}
             <div className="space-y-1.5 md:col-span-2">
               <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider pl-1">
@@ -354,10 +354,10 @@ export const Profile: React.FC = () => {
                 <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-sm text-slate-700 flex gap-2 items-center truncate">
                   <FileText className="w-4 h-4 text-slate-400 flex-shrink-0" />
                   {businessLicenseUrl ? (
-                    <a 
-                      href={businessLicenseUrl} 
-                      target="_blank" 
-                      rel="noreferrer" 
+                    <a
+                      href={businessLicenseUrl}
+                      target="_blank"
+                      rel="noreferrer"
                       className="text-emerald-600 hover:text-emerald-700 font-semibold underline truncate"
                     >
                       Xem tài liệu giấy phép

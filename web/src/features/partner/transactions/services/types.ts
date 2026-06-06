@@ -11,7 +11,7 @@ export type {
   TransactionStatus,
   WasteType,
   QuantityUnit,
-} from '../../locations/services/types';
+} from '../../../../shared/domain';
 
 // ── DTOs ─────────────────────────────────────────────────────────────────────
 

@@ -2,13 +2,12 @@ import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { Location } from '../services/types';
+import type { Location, LocationCapabilityType } from '../../../../shared/domain';
 import {
   STATUS_LABEL,
   STATUS_COLOR,
-  TYPE_LABEL,
   CAPABILITY_LABEL,
-} from '../services/constants';
+} from '../../../../shared/domain';
 
 // Fix Leaflet default marker icons broken by bundlers (Vite/Webpack)
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -104,11 +103,7 @@ const LocationMap: React.FC<LocationMapProps> = ({ locations, onViewDetail }) =>
                   </span>
                 </div>
 
-                {/* Type */}
-                <div className="text-[11px] text-slate-500">
-                  <span className="font-semibold text-slate-700">Loại: </span>
-                  {TYPE_LABEL[loc.type]}
-                </div>
+
 
                 {/* Address */}
                 <div className="text-[11px] text-slate-600 leading-relaxed">
@@ -125,7 +120,7 @@ const LocationMap: React.FC<LocationMapProps> = ({ locations, onViewDetail }) =>
                 {/* Capabilities */}
                 {loc.capabilities && loc.capabilities.length > 0 && (
                   <div className="flex flex-wrap gap-1">
-                    {loc.capabilities.map((cap) => (
+                    {loc.capabilities.map((cap: any) => (
                       <span
                         key={cap}
                         className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
@@ -134,7 +129,7 @@ const LocationMap: React.FC<LocationMapProps> = ({ locations, onViewDetail }) =>
                             : 'bg-indigo-100 text-indigo-700'
                         }`}
                       >
-                        {CAPABILITY_LABEL[cap]}
+                        {CAPABILITY_LABEL[cap as LocationCapabilityType]}
                       </span>
                     ))}
                   </div>

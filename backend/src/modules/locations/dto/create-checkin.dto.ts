@@ -7,7 +7,7 @@ import {
 } from 'class-validator';
 
 export class CreateCheckinDto {
-  @IsUUID()
+  @IsString()
   @IsNotEmpty()
   locationId: string;
 

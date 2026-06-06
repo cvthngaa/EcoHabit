@@ -95,4 +95,47 @@ export class TrashClassification extends BaseEntity {
 
   @OneToMany(() => AiFeedback, (aiFeedback) => aiFeedback.classification)
   feedbacks: AiFeedback[];
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'reviewed_by_id' })
+  reviewedBy?: User | null;
+
+  @Column({ name: 'reviewed_at', type: 'timestamp', nullable: true })
+  reviewedAt?: Date | null;
+
+  @Column({ name: 'review_note', type: 'text', nullable: true })
+  reviewNote?: string | null;
+
+  @Column({
+    name: 'corrected_label',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  correctedLabel?: string | null;
+
+  @Column({
+    name: 'corrected_waste_type',
+    type: 'enum',
+    enum: WasteType,
+    enumName: 'waste_type',
+    nullable: true,
+  })
+  correctedWasteType?: WasteType | null;
+
+  @Column({
+    name: 'corrected_bin',
+    type: 'enum',
+    enum: BinType,
+    enumName: 'bin_type',
+    nullable: true,
+  })
+  correctedBin?: BinType | null;
+
+  @Column({
+    name: 'corrected_bounding_box',
+    type: 'json',
+    nullable: true,
+  })
+  correctedBoundingBox?: number[] | null;
 }

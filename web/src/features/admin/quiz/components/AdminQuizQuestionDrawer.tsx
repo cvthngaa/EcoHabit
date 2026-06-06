@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, Trash2, Plus, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Save, Trash2, Plus } from 'lucide-react';
 import { useUpdateQuizQuestion, useDeleteQuizQuestion } from '../services/queries';
 import { IconButton, Button } from '../../../../shared/components';
 import type { QuizQuestion, QuizDifficulty, QuizOption } from '../services/types';

@@ -134,7 +134,17 @@ const QRScannerScreen: React.FC = () => {
       console.log('[QRScannerScreen] Check-in error:', error?.response?.data || error);
       isProcessingRef.current = false;
       setScanned(false);
-      const msg = error?.response?.data?.message || error.message || 'Có lỗi xảy ra khi check-in.';
+      
+      let msg = error?.response?.data?.message || error.message || 'Có lỗi xảy ra khi check-in.';
+      
+      // Handle missing device location settings
+      if (typeof msg === 'string' && msg.includes('unsatisfied device settings')) {
+        msg = 'Vui lòng bật tính năng GPS (Vị trí) trên điện thoại/máy ảo để check-in.';
+      } else if (Array.isArray(msg)) {
+        // Class-validator returns an array of messages
+        msg = msg[0];
+      }
+      
       showToast(msg, 'error');
     }
   }, [nav, showToast]);

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { FileClock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FileClock } from 'lucide-react';
 import { DataTable, type ColumnDef } from '../../../../shared/components/DataTable';
-import { AdminPageHeader, AdminToolbar } from '../../shared/admin-ui';
+import { SearchFilterBar } from '../../../../shared/components/SearchFilterBar';
+import { AdminPageHeader } from '../../shared/admin-ui';
 import { useAdminAuditLogs } from '../services/queries';
 import { AdminAuditLogDetailDrawer } from '../components/AdminAuditLogDetailDrawer';
 import { formatAuditAction } from '../services/formatters';
@@ -12,7 +13,7 @@ export const AdminAuditLogsPage: React.FC = () => {
   const [limit] = useState(20);
   const [search, setSearch] = useState(''); // Thêm tìm kiếm cơ bản
   const [selectedLogId, setSelectedLogId] = useState<string | null>(null);
-  const [actorEmail, setActorEmail] = useState('');
+  
 
   // Pass search directly to actorEmail to use ILIKE on backend
   const { data: logsData, isLoading } = useAdminAuditLogs({
@@ -94,11 +95,6 @@ export const AdminAuditLogsPage: React.FC = () => {
     },
   ];
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
-    setPage(1);
-  };
-
   return (
     <div className="space-y-6">
       <AdminPageHeader
@@ -111,16 +107,11 @@ export const AdminAuditLogsPage: React.FC = () => {
         }
       />
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
-        <div className="relative max-w-md flex-1">
-          <input
-            placeholder="Tìm email hoặc action..."
-            value={search}
-            onChange={handleSearch}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-4 pr-3 text-sm outline-none transition focus:border-slate-400 focus:bg-white"
-          />
-        </div>
-      </div>
+      <SearchFilterBar
+        searchPlaceholder="Tìm email hoặc action..."
+        searchValue={search}
+        onSearchChange={(v) => { setSearch(v); setPage(1); }}
+      />
 
       <DataTable 
         data={logsData?.data || []} 

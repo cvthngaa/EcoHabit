@@ -5,8 +5,8 @@ import { LoadingState } from '../../../../shared/components/LoadingState';
 import { EmptyState } from '../../../../shared/components/EmptyState';
 import { StatCard } from '../../../../shared/components/StatCard';
 import { DataTable } from '../../../../shared/components/DataTable';
-import { WASTE_LABEL } from '../../locations/services/constants';
-import type { WasteType } from '../../locations/services/types';
+import { WASTE_LABEL } from '../../../../shared/domain';
+import type { WasteType } from '../../../../shared/domain';
 import {
   MapPin, Clock, Award,
   CheckCircle2, ArrowRight, Activity, BarChart3,

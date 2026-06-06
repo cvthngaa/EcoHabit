@@ -4,6 +4,7 @@ import {
   DefaultValuePipe,
   Get,
   Param,
+  Patch,
   ParseIntPipe,
   Post,
   Query,
@@ -25,7 +26,12 @@ import {
 } from '@nestjs/swagger';
 import { AiService } from './ai.service';
 import { SubmitFeedbackDto } from './dto/submit-feedback.dto';
+import { ReviewClassificationDto } from './dto/review-classification.dto';
+import { ListClassificationsQueryDto } from './dto/list-classifications-query.dto';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request.type';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '../users/enums/user-role.enum';
 
 @ApiTags('AI Classification')
 @ApiBearerAuth()
@@ -95,5 +101,33 @@ export class AiController {
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
   ) {
     return this.aiService.getHistory(req.user.userId, limit, page);
+  }
+
+  @Get('admin/feedback')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Admin xem lich su phan hoi' })
+  async getAdminFeedbacks() {
+    return this.aiService.getAdminFeedbacks();
+  }
+
+  @Get('admin/classifications')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Admin xem danh sach phan loai AI' })
+  async getAdminClassifications(@Query() query: ListClassificationsQueryDto) {
+    return this.aiService.getAdminClassifications(query);
+  }
+
+  @Patch('admin/classifications/:id/review')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Admin duyet phan loai AI' })
+  async reviewClassification(
+    @Param('id') id: string,
+    @Body() dto: ReviewClassificationDto,
+    @Request() req: AuthenticatedRequest,
+  ) {
+    return this.aiService.reviewClassification(id, req.user.userId, req.user.email, dto);
   }
 }

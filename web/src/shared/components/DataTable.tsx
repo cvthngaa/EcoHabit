@@ -13,7 +13,7 @@ export interface DataTableProps<T> {
   data: T[];
   columns: ColumnDef<T>[];
   keyExtractor?: (item: T, index: number) => string | number;
-  
+
   isLoading?: boolean;
   loadingMessage?: string;
   loadingMinHeight?: string;
@@ -23,10 +23,10 @@ export interface DataTableProps<T> {
   emptyDescription?: string;
   emptyAction?: React.ReactNode;
   emptyClassName?: string;
-  
+
   tableClassName?: string; // applies to the <table> element
   containerClassName?: string; // applies to the outermost wrapper
-  
+
   pagination?: {
     currentPage: number;
     totalPages: number;

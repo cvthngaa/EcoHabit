@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Sparkles, Loader2, Plus, X } from 'lucide-react';
 import { Modal, Button } from '../../../../shared/components';
 import { useGenerateQuizQuestions } from '../services/queries';

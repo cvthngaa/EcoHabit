@@ -20,11 +20,14 @@ import { PointsService } from '../points/points.service';
 import { PointSourceType } from '../points/enums/point-source-type.enum';
 import { PointTransactionType } from '../points/enums/point-transaction-type.enum';
 import { FraudService } from '../fraud/fraud.service';
-
+import { AuditService } from '../audit/audit.service';
+import { AdminAuditAction } from '../audit/enums/admin-audit-action.enum';
+import { ReviewClassificationDto, ReviewAction } from './dto/review-classification.dto';
+import { ListClassificationsQueryDto } from './dto/list-classifications-query.dto';
 @Injectable()
 export class AiService {
   private readonly aiServiceUrl: string;
-  private readonly classificationAwardThreshold = 0.5;
+  private readonly classificationAwardThreshold = 0.7;
   private readonly classificationPointsByWasteType: Record<WasteType, number> =
     {
       [WasteType.PLASTIC]: 20,
@@ -43,6 +46,7 @@ export class AiService {
     private readonly configService: ConfigService,
     private readonly pointsService: PointsService,
     private readonly fraudService: FraudService,
+    private readonly auditService: AuditService,
   ) {
     this.aiServiceUrl =
       this.configService.get<string>('AI_SERVICE_URL') ||
@@ -118,6 +122,12 @@ export class AiService {
       }
     }
 
+    const confidence = Number(aiResult.confidence);
+    const isHighConfidence = confidence >= this.classificationAwardThreshold;
+    const initialStatus = isHighConfidence
+      ? ClassificationStatus.SUCCESS
+      : ClassificationStatus.PENDING;
+
     const classification = this.classificationRepo.create({
       user: { id: userId } as any,
       imageUrl,
@@ -125,40 +135,44 @@ export class AiService {
       predictedWasteType: aiResult.wasteType as WasteType,
       confidence: aiResult.confidence,
       suggestedBin: aiResult.suggestedBin as BinType,
-      status: ClassificationStatus.SUCCESS,
+      status: initialStatus,
       modelName: aiResult.modelName ?? null,
       modelVersion: aiResult.modelVersion ?? null,
       resultJson: aiResult as any,
     });
 
     const saved = await this.classificationRepo.save(classification);
-    const pointsEarned = this.calculateClassificationPoints(
-      saved.predictedWasteType ?? null,
-      Number(saved.confidence),
-    );
-    let balanceAfter = await this.pointsService.getBalanceByUserId(userId);
+    
+    let pointsEarned = 0;
     let awarded = false;
+    let balanceAfter = await this.pointsService.getBalanceByUserId(userId);
 
-    if (pointsEarned > 0) {
-      const alreadyAwarded = await this.pointsService.hasTransactionForSource(
-        userId,
-        PointSourceType.TRASH_CLASSIFICATION,
-        saved.id,
-        PointTransactionType.EARN,
+    if (isHighConfidence) {
+      pointsEarned = this.calculateClassificationPoints(
+        saved.predictedWasteType ?? null,
+        confidence,
       );
-
-      if (!alreadyAwarded) {
-        const transaction = await this.pointsService.addPoint(
+      if (pointsEarned > 0) {
+        const alreadyAwarded = await this.pointsService.hasTransactionForSource(
           userId,
-          pointsEarned,
-          PointTransactionType.EARN,
           PointSourceType.TRASH_CLASSIFICATION,
           saved.id,
-          'CLASSIFICATION_CORRECT',
-          `Awarded for trash classification ${saved.id}`,
+          PointTransactionType.EARN,
         );
-        balanceAfter = transaction.balanceAfter;
-        awarded = true;
+
+        if (!alreadyAwarded) {
+          const transaction = await this.pointsService.addPoint(
+            userId,
+            pointsEarned,
+            PointTransactionType.EARN,
+            PointSourceType.TRASH_CLASSIFICATION,
+            saved.id,
+            'CLASSIFICATION_CORRECT',
+            `Awarded for trash classification ${saved.id}`,
+          );
+          balanceAfter = transaction.balanceAfter;
+          awarded = true;
+        }
       }
     }
 
@@ -179,6 +193,7 @@ export class AiService {
       pointsEarned,
       awarded,
       balanceAfter,
+      requiresReview: !isHighConfidence,
     };
   }
 
@@ -207,7 +222,7 @@ export class AiService {
     await this.feedbackRepo.save(feedback);
 
     await this.classificationRepo.update(classificationId, {
-      status: ClassificationStatus.REVIEWED,
+      status: dto.isCorrect ? ClassificationStatus.REVIEWED : ClassificationStatus.PENDING,
     });
 
     return { message: 'Cam on ban da phan hoi!' };
@@ -228,6 +243,138 @@ export class AiService {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  }
+
+  async getAdminFeedbacks() {
+    return this.feedbackRepo.find({
+      relations: ['user', 'classification'],
+      order: { createdAt: 'DESC' },
+      take: 100
+    });
+  }
+
+  async getAdminClassifications(query: ListClassificationsQueryDto) {
+    const { status, page = 1, limit = 20 } = query;
+    const whereCondition = status ? { status } : {};
+
+    const [data, total] = await this.classificationRepo.findAndCount({
+      where: whereCondition,
+      relations: ['user', 'feedbacks'],
+      order: { createdAt: 'DESC' },
+      take: limit,
+      skip: (page - 1) * limit,
+    });
+
+    return {
+      data,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async reviewClassification(
+    classificationId: string,
+    adminId: string,
+    adminEmail: string,
+    dto: ReviewClassificationDto,
+  ) {
+    const classification = await this.classificationRepo.findOne({
+      where: { id: classificationId },
+      relations: ['user'],
+    });
+
+    if (!classification) {
+      throw new NotFoundException('Classification not found');
+    }
+
+    let newStatus: ClassificationStatus = classification.status;
+    let pointsToAward = 0;
+    const userId = classification.user.id;
+
+    if (dto.action === ReviewAction.APPROVE) {
+      newStatus = ClassificationStatus.SUCCESS;
+      pointsToAward = this.calculateClassificationPoints(
+        classification.predictedWasteType,
+        1, // Bypass confidence check
+      );
+    } else if (dto.action === ReviewAction.REJECT) {
+      newStatus = ClassificationStatus.FAILED;
+    } else if (dto.action === ReviewAction.CORRECT) {
+      newStatus = ClassificationStatus.REVIEWED;
+      if (dto.correctedLabel) classification.correctedLabel = dto.correctedLabel;
+      if (dto.correctedWasteType) classification.correctedWasteType = dto.correctedWasteType;
+      if (dto.correctedBin) classification.correctedBin = dto.correctedBin;
+      if (dto.correctedBoundingBox) classification.correctedBoundingBox = dto.correctedBoundingBox;
+      
+      pointsToAward = this.calculateClassificationPoints(
+        dto.correctedWasteType ?? classification.predictedWasteType,
+        1,
+      );
+    }
+
+    classification.status = newStatus;
+    classification.reviewedBy = { id: adminId } as any;
+    classification.reviewedAt = new Date();
+    classification.reviewNote = dto.reviewNote ?? null;
+
+    await this.classificationRepo.save(classification);
+
+    const existingTxs = await this.pointsService.listTransactions({
+      sourceType: PointSourceType.TRASH_CLASSIFICATION,
+      sourceId: classificationId,
+      limit: 100,
+    });
+
+    let alreadyAwarded = 0;
+    for (const tx of existingTxs.data) {
+      if (tx.type === PointTransactionType.EARN) alreadyAwarded += tx.points;
+      if (tx.type === PointTransactionType.SPEND) alreadyAwarded -= tx.points;
+    }
+
+    const diff = pointsToAward - alreadyAwarded;
+
+    if (diff > 0) {
+      await this.pointsService.addPoint(
+        userId,
+        diff,
+        PointTransactionType.EARN,
+        PointSourceType.TRASH_CLASSIFICATION,
+        classificationId,
+        'CLASSIFICATION_ADMIN_APPROVED',
+        `Admin approved classification ${classificationId}`,
+      );
+    } else if (diff < 0) {
+      const balance = await this.pointsService.getBalanceByUserId(userId);
+      const deductAmount = Math.min(Math.abs(diff), balance);
+      if (deductAmount > 0) {
+        await this.pointsService.deductPoints(
+          userId,
+          deductAmount,
+          PointSourceType.TRASH_CLASSIFICATION,
+          classificationId,
+          'CLASSIFICATION_ADMIN_REJECTED',
+          `Admin corrected classification ${classificationId}`,
+        );
+      }
+    }
+
+    await this.auditService.log(
+      adminId,
+      adminEmail,
+      AdminAuditAction.AI_CLASSIFICATION_REVIEW,
+      userId,
+      {
+        classificationId,
+        action: dto.action,
+        status: newStatus,
+        pointsAwarded: pointsToAward > 0,
+        note: dto.reviewNote,
+      }
+    );
+
+    return classification;
   }
 
   private calculateClassificationPoints(

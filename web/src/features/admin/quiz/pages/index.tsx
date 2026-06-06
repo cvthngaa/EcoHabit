@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import {
   Sparkles, Plus, Trash2, Check, X, Eye, Upload, ChevronDown,
   Loader2, AlertTriangle, CheckCircle2, Clock, FileText, Users,
-  Calendar, Award, BookOpen, BarChart2, RefreshCcw, Filter, Search,
+  Calendar, BookOpen, BarChart2, RefreshCcw, Search,
 } from 'lucide-react';
 import { DataTable, type ColumnDef } from '../../../../shared/components/DataTable';
 import { AdminPageHeader, AdminStatCard, StatusPill } from '../../shared/admin-ui';

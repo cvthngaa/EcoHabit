@@ -10,15 +10,13 @@ import { useRejectTransaction } from '../services/use-reject-transaction';
 import {
   WASTE_LABEL,
   TX_STATUS_LABEL,
-  TX_STATUS_COLOR
-} from '../../locations/services/constants';
+  TX_STATUS_COLOR,
+} from '../../../../shared/domain';
+import type { WasteType } from '../../../../shared/domain';
 import type { CollectionTransaction } from '../services/types';
-import type { WasteType } from '../../locations/services/types';
 import { Badge } from '../../../../shared/components/Badge';
 import { Modal } from '../../../../shared/components/Modal';
 import { DataTable } from '../../../../shared/components/DataTable';
-
-// ─── Modals ───────────────────────────────────────────────────────────────────
 
 const VerifyModal: React.FC<{ tx: CollectionTransaction; onClose: () => void; onSuccess: () => void }> = ({ tx, onClose, onSuccess }) => {
   const [points, setPoints] = useState('');
@@ -46,45 +44,45 @@ const VerifyModal: React.FC<{ tx: CollectionTransaction; onClose: () => void; on
       maxWidth="sm"
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-1.5">
-            <div className="flex justify-between">
-              <span className="text-slate-500">Người gửi</span>
-              <span className="font-semibold text-slate-800">{tx.user?.displayName || 'Ẩn danh'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Rác thu gom</span>
-              <span className="font-semibold text-slate-800">{tx.wasteType ? WASTE_LABEL[tx.wasteType] : '—'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Khối lượng</span>
-              <span className="font-semibold text-slate-800">{tx.quantityValue} {tx.quantityUnit}</span>
-            </div>
+        <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-1.5">
+          <div className="flex justify-between">
+            <span className="text-slate-500">Người gửi</span>
+            <span className="font-semibold text-slate-800">{tx.user?.displayName || 'Ẩn danh'}</span>
           </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Cấp điểm xanh *</label>
-            <div className="relative">
-              <input
-                required type="number" min={0}
-                value={points} onChange={e => setPoints(e.target.value)}
-                placeholder={`Gợi ý: ${suggested} điểm`}
-                className="w-full pl-3 pr-16 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500 transition-all"
-              />
-              <button
-                type="button"
-                onClick={() => setPoints(String(suggested))}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg cursor-pointer hover:bg-emerald-100"
-              >
-                Gợi ý
-              </button>
-            </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Rác thu gom</span>
+            <span className="font-semibold text-slate-800">{tx.wasteType ? WASTE_LABEL[tx.wasteType] : '—'}</span>
           </div>
-          <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer">Huỷ</button>
-            <button type="submit" disabled={isPending || !points} className="flex-1 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 rounded-xl cursor-pointer flex items-center justify-center gap-2">
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Xác nhận'}
+          <div className="flex justify-between">
+            <span className="text-slate-500">Khối lượng</span>
+            <span className="font-semibold text-slate-800">{tx.quantityValue} {tx.quantityUnit}</span>
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Cấp điểm xanh *</label>
+          <div className="relative">
+            <input
+              required type="number" min={0}
+              value={points} onChange={e => setPoints(e.target.value)}
+              placeholder={`Gợi ý: ${suggested} điểm`}
+              className="w-full pl-3 pr-16 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500 transition-all"
+            />
+            <button
+              type="button"
+              onClick={() => setPoints(String(suggested))}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg cursor-pointer hover:bg-emerald-100"
+            >
+              Gợi ý
             </button>
           </div>
-        </form>
+        </div>
+        <div className="flex gap-2 pt-2">
+          <button type="button" onClick={onClose} className="flex-1 py-2 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer">Huỷ</button>
+          <button type="submit" disabled={isPending || !points} className="flex-1 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 rounded-xl cursor-pointer flex items-center justify-center gap-2">
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Xác nhận'}
+          </button>
+        </div>
+      </form>
     </Modal>
   );
 };
@@ -108,32 +106,32 @@ const RejectModal: React.FC<{ tx: CollectionTransaction; onClose: () => void; on
       maxWidth="sm"
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-1.5">
-            <div className="flex justify-between">
-              <span className="text-slate-500">Người gửi</span>
-              <span className="font-semibold text-slate-800">{tx.user?.displayName || 'Ẩn danh'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Rác thu gom</span>
-              <span className="font-semibold text-slate-800">{tx.wasteType ? WASTE_LABEL[tx.wasteType] : '—'}</span>
-            </div>
+        <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-1.5">
+          <div className="flex justify-between">
+            <span className="text-slate-500">Người gửi</span>
+            <span className="font-semibold text-slate-800">{tx.user?.displayName || 'Ẩn danh'}</span>
           </div>
-          <div>
-            <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Lý do từ chối *</label>
-            <textarea
-              required rows={3}
-              value={reason} onChange={e => setReason(e.target.value)}
-              placeholder="VD: Rác không đúng phân loại..."
-              className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-rose-400 resize-none transition-all"
-            />
+          <div className="flex justify-between">
+            <span className="text-slate-500">Rác thu gom</span>
+            <span className="font-semibold text-slate-800">{tx.wasteType ? WASTE_LABEL[tx.wasteType] : '—'}</span>
           </div>
-          <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer">Huỷ</button>
-            <button type="submit" disabled={isPending || !reason.trim()} className="flex-1 py-2 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-60 rounded-xl cursor-pointer flex items-center justify-center gap-2">
-              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Từ chối'}
-            </button>
-          </div>
-        </form>
+        </div>
+        <div>
+          <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Lý do từ chối *</label>
+          <textarea
+            required rows={3}
+            value={reason} onChange={e => setReason(e.target.value)}
+            placeholder="VD: Rác không đúng phân loại..."
+            className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-rose-400 resize-none transition-all"
+          />
+        </div>
+        <div className="flex gap-2 pt-2">
+          <button type="button" onClick={onClose} className="flex-1 py-2 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer">Huỷ</button>
+          <button type="submit" disabled={isPending || !reason.trim()} className="flex-1 py-2 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-60 rounded-xl cursor-pointer flex items-center justify-center gap-2">
+            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Từ chối'}
+          </button>
+        </div>
+      </form>
     </Modal>
   );
 };
@@ -360,7 +358,7 @@ export const TransactionsHistory: React.FC = () => {
             header: 'Trạng thái',
             render: (tx) => (
               <div className="text-xs">
-                <Badge 
+                <Badge
                   className={`text-[10px] uppercase py-1 ${TX_STATUS_COLOR[tx.status]}`}
                   label={TX_STATUS_LABEL[tx.status]}
                 />

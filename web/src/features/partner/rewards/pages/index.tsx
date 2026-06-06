@@ -9,7 +9,7 @@ import { useCreateReward } from '../services/use-create-reward';
 import { useUpdateReward } from '../services/use-update-reward';
 import { useDeleteReward } from '../services/use-delete-reward';
 import { useUpdateRedemptionStatus } from '../services/use-update-redemption-status';
-import { useGetLocations } from '../../locations/services/use-get-locations';
+import { useGetLocations } from '../../locations/services/queries';
 import type { Reward, Redemption, RewardStatus, RedemptionStatus, CreateRewardDto } from '../services/types';
 import { Badge, Modal, StatCard, DataTable, IconButton } from '../../../../shared/components';
 
@@ -109,94 +109,94 @@ const RewardFormModal: React.FC<RewardFormModalProps> = ({ reward, onClose }) =>
       <div className="px-6 py-5">
         <form id="reward-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
-              <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Tên quà tặng <span className="text-rose-500">*</span></label>
+            <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Tên quà tặng <span className="text-rose-500">*</span></label>
+            <input
+              required
+              type="text"
+              value={formData.name}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+              placeholder="VD: Voucher Trà sữa 50K"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Mô tả</label>
+            <textarea
+              rows={3}
+              value={formData.description}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 resize-none"
+              placeholder="Điều kiện áp dụng, hạn sử dụng..."
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Điểm cần đổi <span className="text-rose-500">*</span></label>
               <input
                 required
-                type="text"
-                value={formData.name}
-                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                type="number"
+                min={1}
+                value={formData.pointsCost}
+                onChange={e => setFormData({ ...formData, pointsCost: parseInt(e.target.value) || 0 })}
                 className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                placeholder="VD: Voucher Trà sữa 50K"
               />
             </div>
-
             <div>
-              <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Mô tả</label>
-              <textarea
-                rows={3}
-                value={formData.description}
-                onChange={e => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 resize-none"
-                placeholder="Điều kiện áp dụng, hạn sử dụng..."
+              <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Tồn kho <span className="text-rose-500">*</span></label>
+              <input
+                required
+                type="number"
+                min={0}
+                value={formData.stock}
+                onChange={e => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
+                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
               />
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Điểm cần đổi <span className="text-rose-500">*</span></label>
-                <input
-                  required
-                  type="number"
-                  min={1}
-                  value={formData.pointsCost}
-                  onChange={e => setFormData({ ...formData, pointsCost: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Tồn kho <span className="text-rose-500">*</span></label>
-                <input
-                  required
-                  type="number"
-                  min={0}
-                  value={formData.stock}
-                  onChange={e => setFormData({ ...formData, stock: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                />
-              </div>
-            </div>
+          <div>
+            <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Trạng thái</label>
+            <select
+              value={formData.status}
+              onChange={e => setFormData({ ...formData, status: e.target.value as RewardStatus })}
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
+            >
+              <option value="DRAFT">Nháp</option>
+              <option value="ACTIVE">Đang hoạt động</option>
+              <option value="INACTIVE">Tạm ẩn</option>
+            </select>
+          </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Trạng thái</label>
-              <select
-                value={formData.status}
-                onChange={e => setFormData({ ...formData, status: e.target.value as RewardStatus })}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white"
-              >
-                <option value="DRAFT">Nháp</option>
-                <option value="ACTIVE">Đang hoạt động</option>
-                <option value="INACTIVE">Tạm ẩn</option>
-              </select>
+          <div>
+            <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Điểm hỗ trợ nhận quà</label>
+            <div className="border border-slate-200 rounded-lg overflow-hidden max-h-40 overflow-y-auto">
+              {locations.length === 0 ? (
+                <p className="p-3 text-xs text-slate-500 text-center">Chưa có điểm thu gom nào.</p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {locations.map(loc => {
+                    const isChecked = formData.pickupLocationIds?.includes(loc.id);
+                    return (
+                      <label key={loc.id} className="flex items-start gap-3 p-3 hover:bg-slate-50 cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleLocation(loc.id)}
+                          className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <div>
+                          <p className="text-xs font-semibold text-slate-800">{loc.name}</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">{loc.address}</p>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Điểm hỗ trợ nhận quà</label>
-              <div className="border border-slate-200 rounded-lg overflow-hidden max-h-40 overflow-y-auto">
-                {locations.length === 0 ? (
-                  <p className="p-3 text-xs text-slate-500 text-center">Chưa có điểm thu gom nào.</p>
-                ) : (
-                  <div className="divide-y divide-slate-100">
-                    {locations.map(loc => {
-                      const isChecked = formData.pickupLocationIds?.includes(loc.id);
-                      return (
-                        <label key={loc.id} className="flex items-start gap-3 p-3 hover:bg-slate-50 cursor-pointer transition-colors">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => toggleLocation(loc.id)}
-                            className="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500"
-                          />
-                          <div>
-                            <p className="text-xs font-semibold text-slate-800">{loc.name}</p>
-                            <p className="text-[10px] text-slate-500 mt-0.5">{loc.address}</p>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
+          </div>
         </form>
       </div>
     </Modal>
@@ -235,40 +235,40 @@ const RedemptionStatusModal: React.FC<RedemptionStatusModalProps> = ({ redemptio
     >
       <div className="px-6 py-4 space-y-4">
         <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-2">
-            <div className="flex justify-between">
-              <span className="text-slate-500">Mã đổi quà</span>
-              <span className="font-mono text-slate-800">{redemption.id.slice(0, 8).toUpperCase()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Quà tặng</span>
-              <span className="font-semibold text-slate-800 max-w-[160px] truncate">{redemption.reward?.name}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Người dùng</span>
-              <span className="font-medium text-slate-800">{redemption.user?.displayName || 'Ẩn danh'}</span>
-            </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Mã đổi quà</span>
+            <span className="font-mono text-slate-800">{redemption.id.slice(0, 8).toUpperCase()}</span>
           </div>
-
-          <div>
-            <p className="text-xs font-semibold text-slate-600 mb-2">Chọn trạng thái mới:</p>
-            <div className="grid grid-cols-1 gap-2">
-              {allowedStatus.map(s => (
-                <button
-                  key={s}
-                  disabled={mut.isPending}
-                  onClick={() => handleUpdate(s)}
-                  className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm font-medium transition-all cursor-pointer disabled:opacity-50
-                    ${s === 'APPROVED' ? 'hover:bg-blue-50 border-blue-200 text-blue-700' :
-                      s === 'FULFILLED' ? 'hover:bg-emerald-50 border-emerald-200 text-emerald-700' :
-                        s === 'REJECTED' ? 'hover:bg-rose-50 border-rose-200 text-rose-700' :
-                          'hover:bg-slate-50 border-slate-200 text-slate-700'}`}
-                >
-                  Chuyển sang <strong>{REDEMPTION_STATUS_MAP[s].label}</strong>
-                </button>
-              ))}
-            </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Quà tặng</span>
+            <span className="font-semibold text-slate-800 max-w-[160px] truncate">{redemption.reward?.name}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Người dùng</span>
+            <span className="font-medium text-slate-800">{redemption.user?.displayName || 'Ẩn danh'}</span>
           </div>
         </div>
+
+        <div>
+          <p className="text-xs font-semibold text-slate-600 mb-2">Chọn trạng thái mới:</p>
+          <div className="grid grid-cols-1 gap-2">
+            {allowedStatus.map(s => (
+              <button
+                key={s}
+                disabled={mut.isPending}
+                onClick={() => handleUpdate(s)}
+                className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm font-medium transition-all cursor-pointer disabled:opacity-50
+                    ${s === 'APPROVED' ? 'hover:bg-blue-50 border-blue-200 text-blue-700' :
+                    s === 'FULFILLED' ? 'hover:bg-emerald-50 border-emerald-200 text-emerald-700' :
+                      s === 'REJECTED' ? 'hover:bg-rose-50 border-rose-200 text-rose-700' :
+                        'hover:bg-slate-50 border-slate-200 text-slate-700'}`}
+              >
+                Chuyển sang <strong>{REDEMPTION_STATUS_MAP[s].label}</strong>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
     </Modal>
   );
 };
@@ -488,7 +488,7 @@ export const Rewards: React.FC = () => {
                 {
                   header: 'Trạng thái',
                   render: (r) => (
-                    <Badge 
+                    <Badge
                       className={`text-[10px] ${REWARD_STATUS_MAP[r.status].color}`}
                       label={REWARD_STATUS_MAP[r.status].label}
                     />
@@ -586,7 +586,7 @@ export const Rewards: React.FC = () => {
                 {
                   header: 'Trạng thái',
                   render: (r) => (
-                    <Badge 
+                    <Badge
                       className={`text-[10px] ${REDEMPTION_STATUS_MAP[r.status].color}`}
                       label={REDEMPTION_STATUS_MAP[r.status].label}
                     />
@@ -652,7 +652,7 @@ export const Rewards: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-slate-500">Trạng thái</p>
-                  <Badge 
+                  <Badge
                     className={`text-[10px] ${REWARD_STATUS_MAP[detailReward.status].color}`}
                     label={REWARD_STATUS_MAP[detailReward.status].label}
                   />
@@ -710,7 +710,7 @@ export const Rewards: React.FC = () => {
             <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
               <div className="flex justify-between items-center bg-slate-50 p-3 rounded-lg">
                 <span className="text-slate-500">Trạng thái</span>
-                <Badge 
+                <Badge
                   className={`text-[10px] ${REDEMPTION_STATUS_MAP[detailRedemption.status].color}`}
                   label={REDEMPTION_STATUS_MAP[detailRedemption.status].label}
                 />
