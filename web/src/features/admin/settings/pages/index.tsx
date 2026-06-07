@@ -2,9 +2,10 @@ import React from 'react';
 import { Settings } from 'lucide-react';
 import { DataTable, type ColumnDef } from '../../../../shared/components/DataTable';
 import { AdminPageHeader, AdminSection, AdminStatCard } from '../../shared/admin-ui';
-import { systemSettings } from '../../shared/mock-data';
 
-type SettingRow = (typeof systemSettings)[number];
+type SettingRow = { key: string; value: string; scope: string; };
+
+const systemSettings: SettingRow[] = [];
 
 const columns: ColumnDef<SettingRow>[] = [
   { header: 'Thiết lập', render: (setting) => <span className="font-bold text-slate-800">{setting.key}</span> },

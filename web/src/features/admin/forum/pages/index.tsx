@@ -2,15 +2,16 @@ import React from 'react';
 import { MessageSquareWarning } from 'lucide-react';
 import { DataTable, type ColumnDef } from '../../../../shared/components/DataTable';
 import { AdminPageHeader, AdminStatCard, AdminToolbar, StatusPill } from '../../shared/admin-ui';
-import { forumReports } from '../../shared/mock-data';
 
-type ForumReportRow = (typeof forumReports)[number];
+type ForumReportRow = { id: string; post: string; reporter: string; reason: string; status: string; };
+
+const forumReports: ForumReportRow[] = [];
 
 const columns: ColumnDef<ForumReportRow>[] = [
   { header: 'Bài viết', render: (report) => <span className="font-bold text-slate-800">{report.post}</span> },
   { header: 'Báo cáo', render: (report) => report.reporter },
   { header: 'Lý do', render: (report) => report.reason },
-  { header: 'Trạng thái', render: (report) => <StatusPill status={report.status} /> },
+  { header: 'Trạng thái', render: (report) => <StatusPill status={report.status as any} /> },
 ];
 
 export const AdminForumPage: React.FC = () => (
