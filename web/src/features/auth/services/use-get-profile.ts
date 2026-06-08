@@ -13,6 +13,7 @@ export interface PartnerProfile {
   address?: string;
   approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
   approvedAt?: string;
+  autoConfirmCheckin?: boolean;
   roleTypes?: Array<{ roleType: 'COLLECTOR' | 'REWARD_PROVIDER'; isActive: boolean }>;
 }
 

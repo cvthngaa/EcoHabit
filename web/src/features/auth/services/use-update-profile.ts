@@ -11,6 +11,7 @@ export interface UpdatePartnerProfileDto {
   taxCode?: string;
   businessLicenseUrl?: string;
   address?: string;
+  autoConfirmCheckin?: boolean;
 }
 
 export function useUpdateProfile() {

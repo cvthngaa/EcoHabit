@@ -59,7 +59,7 @@ export class CollectionTransactionsService {
   async checkIn(userId: string, data: CreateCheckinDto) {
     const location = await this.locationRepo.findOne({
       where: { id: data.locationId },
-      relations: ['capabilities'],
+      relations: ['capabilities', 'partnerProfile'],
     });
 
     if (!location) {
@@ -145,6 +145,27 @@ export class CollectionTransactionsService {
       distanceKm,
       status: DropoffStatus.PENDING,
     });
+
+    if (location.partnerProfile?.autoConfirmCheckin) {
+      dropoff.status = DropoffStatus.VERIFIED;
+      dropoff.confirmedAt = new Date();
+      // Default 10 points per unit
+      const pointsAwarded = Math.max(1, Math.round((data.quantityValue || 1) * 10));
+      dropoff.pointsAwarded = pointsAwarded;
+      
+      const result = await this.dropoffRepo.save(dropoff);
+      
+      await this.pointsService.addPoint(
+        userId,
+        pointsAwarded,
+        PointTransactionType.EARN,
+        PointSourceType.DROPOFF_TRANSACTION,
+        result.id,
+      );
+
+      void this.fraudService.checkDailyCollectionCheckins(userId, data.locationId);
+      return result;
+    }
 
     const result = await this.dropoffRepo.save(dropoff);
 

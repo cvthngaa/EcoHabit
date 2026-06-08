@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import HeroHeader from '../../components/home/HeroHeader';
 import FeatureCards from '../../components/home/FeatureCards';
-import PointsCard from '../../components/PointsCard';
+import RecentActivitiesCard from '../../components/home/RecentActivitiesCard';
+import DailyTipCard from '../../components/home/DailyTipCard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useGetProfile } from '../../services/auth';
@@ -29,37 +31,7 @@ const DAILY_TIP_FALLBACK: DailyTipResponse = {
   source: 'fallback',
 };
 
-const timeAgo = (dateStr: string) => {
-  const d = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
 
-  if (diffMins < 60) return `${Math.max(1, diffMins)} phút trước`;
-
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours} giờ trước`;
-
-  return `${Math.floor(diffHours / 24)} ngày trước`;
-};
-
-const getActivityDetails = (activity: any) => {
-  const { sourceType, title } = activity;
-  const label = title || 'Hoạt động';
-
-  switch (sourceType) {
-    case 'TRASH_CLASSIFICATION':
-      return { icon: 'scan-outline' as const, label, color: PRIMARY_COLOR };
-    case 'REDEMPTION':
-      return { icon: 'gift-outline' as const, label, color: '#FF5252' };
-    case 'DROPOFF_TRANSACTION':
-      return { icon: 'location-outline' as const, label, color: '#2196F3' };
-    case 'ADMIN':
-      return { icon: 'star-outline' as const, label, color: '#FF9800' };
-    default:
-      return { icon: 'leaf-outline' as const, label, color: '#888' };
-  }
-};
 
 const quickActions = [
   { id: '1', label: 'Phân loại rác', icon: 'scan-outline' as const, route: 'ScanTab', color: PRIMARY_COLOR },
@@ -244,104 +216,14 @@ const HomeScreen: React.FC = () => {
           onPressRedeem={() => navigation.navigate('Rewards')}
         />
 
-        <PointsCard
-          pointsBalance={userProfile?.pointsBalance || 0}
-          onPressRedeem={() => navigation.navigate('Rewards')}
-        />
+        {/* Redesigned "Mẹo vặt hôm nay" Banner */}
+        <DailyTipCard dailyTip={dailyTip} />
 
         <FeatureCards />
 
-        <View className="mb-6">
-          <Text className="mx-5 mb-4 text-[18px] font-extrabold text-text">
-            Hoạt động gần đây
-          </Text>
-          <View
-            className="mx-5 rounded-[20px] bg-surface px-4"
-            style={cardShadow}
-          >
-            {recentActivities.length === 0 ? (
-              <View className="items-center p-5">
-                <Ionicons name="leaf-outline" size={32} color="#CCC" />
-                <Text className="mt-2 text-[14px] text-text-muted">
-                  Chưa có hoạt động nào
-                </Text>
-              </View>
-            ) : (
-              recentActivities.map((activity, index) => {
-                const details = getActivityDetails(activity);
-                const isEarn = activity.type === 'EARN';
+        <RecentActivitiesCard recentActivities={recentActivities} />
 
-                return (
-                  <View key={activity.id}>
-                    <View className="flex-row items-center py-4">
-                      <View
-                        className="mr-3 h-11 w-11 items-center justify-center rounded-[14px]"
-                        style={{ backgroundColor: `${details.color}15` }}
-                      >
-                        <Ionicons
-                          name={details.icon}
-                          size={20}
-                          color={details.color}
-                        />
-                      </View>
-                      <View className="flex-1">
-                        <Text className="mb-1 text-[15px] font-bold capitalize text-text">
-                          {details.label}
-                        </Text>
-                        <Text className="text-[12px] font-medium text-text-muted">
-                          {timeAgo(activity.createdAt)}
-                        </Text>
-                      </View>
-                      <View
-                        className="rounded-[10px] px-2.5 py-1.5"
-                        style={{ backgroundColor: isEarn ? '#E8F5E9' : '#FFEBEE' }}
-                      >
-                        <Text
-                          className="text-[12px] font-extrabold"
-                          style={{ color: isEarn ? PRIMARY_COLOR : '#FF5252' }}
-                        >
-                          {isEarn ? '+' : '-'}
-                          {Math.abs(activity.points)} đ
-                        </Text>
-                      </View>
-                    </View>
-                    {index < recentActivities.length - 1 && (
-                      <View className="h-px bg-border-subtle/60" />
-                    )}
-                  </View>
-                );
-              })
-            )}
-          </View>
-        </View>
 
-        <View className="mb-6">
-          <View
-            className="mx-5 rounded-xl border border-green-200 bg-green-100 p-[18px]"
-            style={{
-              shadowColor: '#86A95C',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.08,
-              shadowRadius: 12,
-              elevation: 2,
-            }}
-          >
-            <View className="mb-3 flex-row items-center justify-between">
-              <View className="rounded-full bg-green-200 px-2.5 py-1.5">
-                <Text className="text-[11px] font-extrabold uppercase tracking-[0.3px] text-green-700">
-                  Mẹo vặt hôm nay
-                </Text>
-              </View>
-              <Text className="text-[26px]">{dailyTip.emoji}</Text>
-            </View>
-            <Text className="mb-2 text-[18px] font-extrabold text-green-800">
-              {dailyTip.title}
-            </Text>
-            <Text className="text-[14px] font-medium leading-[21px] text-text-muted">
-              {dailyTip.content}
-            </Text>
-          </View>
-        </View>
 
         <View className="mb-6">
           <Text className="mx-5 mb-4 text-[18px] font-extrabold text-text">

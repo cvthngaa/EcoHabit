@@ -42,6 +42,9 @@ export class PartnerProfile extends BaseEntity {
   })
   approvalStatus: PartnerApprovalStatus;
 
+  @Column({ name: 'auto_confirm_checkin', type: 'boolean', default: false })
+  autoConfirmCheckin: boolean;
+
   @Column({ name: 'approved_by', type: 'uuid', nullable: true })
   approvedBy?: string;
 

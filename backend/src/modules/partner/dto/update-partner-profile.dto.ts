@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength, IsBoolean } from 'class-validator';
 
 export class UpdatePartnerProfileDto {
   @IsOptional()
@@ -38,4 +38,8 @@ export class UpdatePartnerProfileDto {
   @IsOptional()
   @IsString()
   address?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  autoConfirmCheckin?: boolean;
 }

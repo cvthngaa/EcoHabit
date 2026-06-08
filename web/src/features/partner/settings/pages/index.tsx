@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   User, Lock, Bell, SlidersHorizontal, Palette, TriangleAlert,
   Eye, EyeOff, LogOut, ChevronRight, Check,
@@ -6,6 +6,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth, clearToken } from '../../../auth/store/auth.store';
 import { apiClient } from '../../../../shared/services/api-client';
+import { useGetProfile } from '../../../auth/services/use-get-profile';
+import { useUpdateProfile } from '../../../auth/services/use-update-profile';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -134,28 +136,13 @@ export const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { setIsLoggedIn } = useAuth();
 
-  // ── Read stored user/profile data ────────────────────────────────────────
-  const storedUser = (() => {
-    try {
-      const raw = localStorage.getItem('user');
-      return raw ? (JSON.parse(raw) as { email?: string; fullName?: string }) : null;
-    } catch {
-      return null;
-    }
-  })();
+  // ── Fetch Profile Data ───────────────────────────────────────────────────
+  const { data: profile } = useGetProfile();
+  const updateProfileMutation = useUpdateProfile();
 
-  const storedProfile = (() => {
-    try {
-      const raw = localStorage.getItem('partnerProfile');
-      return raw
-        ? (JSON.parse(raw) as { roleTypes?: string[] })
-        : null;
-    } catch {
-      return null;
-    }
-  })();
-
-  const roleTypes: string[] = storedProfile?.roleTypes ?? ['COLLECTOR', 'REWARD_PROVIDER'];
+  const roleTypes = profile?.roleTypes
+    ?.filter((r) => r.isActive)
+    .map((r) => r.roleType) ?? [];
   const isCollector = roleTypes.includes('COLLECTOR');
   const isRewardProvider = roleTypes.includes('REWARD_PROVIDER');
 
@@ -167,11 +154,25 @@ export const Settings: React.FC = () => {
   };
 
   // ── Section: Tài khoản ───────────────────────────────────────────────────
-  const [displayName, setDisplayName] = useState(storedUser?.fullName ?? '');
-  const [loginEmail] = useState(storedUser?.email ?? '');
+  const [displayName, setDisplayName] = useState('');
+  const [loginEmail, setLoginEmail] = useState('');
+
+  useEffect(() => {
+    if (profile) {
+      setDisplayName(profile.contactName || profile.organizationName || '');
+      setLoginEmail(profile.contactEmail || '');
+      setOps((prev) => ({ ...prev, autoConfirmCheckin: profile.autoConfirmCheckin ?? false }));
+    }
+  }, [profile]);
 
   const handleUpdateAccount = () => {
-    showToast('Đã cập nhật thông tin tài khoản');
+    updateProfileMutation.mutate(
+      { contactName: displayName },
+      {
+        onSuccess: () => showToast('Đã cập nhật thông tin tài khoản'),
+        onError: () => showToast('Cập nhật thất bại', 'error'),
+      }
+    );
   };
 
   const handleLogoutAll = () => {
@@ -230,6 +231,17 @@ export const Settings: React.FC = () => {
   });
   const setOpsKey = (key: keyof typeof ops) => (v: boolean) =>
     setOps((prev) => ({ ...prev, [key]: v }));
+
+  const handleUpdateOperations = () => {
+    updateProfileMutation.mutate(
+      { autoConfirmCheckin: ops.autoConfirmCheckin },
+      {
+        onSuccess: () => showToast('Đã lưu tuỳ chọn vận hành'),
+        onError: () => showToast('Lưu thất bại', 'error'),
+      }
+    );
+  };
+
   const [weightLimit, setWeightLimit] = useState('50');
   const [voucherDefaultDays, setVoucherDefaultDays] = useState('30');
 
@@ -303,10 +315,11 @@ export const Settings: React.FC = () => {
             <button
               type="button"
               onClick={handleUpdateAccount}
-              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors cursor-pointer shadow-sm shadow-emerald-600/20 active:scale-[0.98]"
+              disabled={updateProfileMutation.isPending}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-lg transition-colors cursor-pointer shadow-sm shadow-emerald-600/20 active:scale-[0.98]"
             >
               <Check className="w-3.5 h-3.5" />
-              Cập nhật tài khoản
+              {updateProfileMutation.isPending ? 'Đang lưu...' : 'Cập nhật tài khoản'}
             </button>
           </div>
         </div>
@@ -514,14 +527,18 @@ export const Settings: React.FC = () => {
           </div>
         )}
 
-        <div className="px-6 py-4 flex justify-end bg-slate-50/50">
+        <div className="px-6 py-4 flex justify-end bg-slate-50/50 items-center gap-3">
+          <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+            Tính năng đang phát triển (UI-only)
+          </span>
           <button
             type="button"
-            onClick={() => showToast('Đã lưu tuỳ chọn vận hành')}
-            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors cursor-pointer active:scale-[0.98] shadow-sm shadow-emerald-600/20"
+            onClick={handleUpdateOperations}
+            disabled={updateProfileMutation.isPending}
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white rounded-lg transition-colors cursor-pointer active:scale-[0.98] shadow-sm shadow-emerald-600/20"
           >
             <Check className="w-3.5 h-3.5" />
-            Lưu cài đặt vận hành
+            {updateProfileMutation.isPending ? 'Đang lưu...' : 'Lưu cài đặt vận hành'}
           </button>
         </div>
       </SettingSection>
@@ -577,10 +594,13 @@ export const Settings: React.FC = () => {
           </div>
         </FieldRow>
 
-        <div className="px-6 py-4 flex justify-end bg-slate-50/50">
+        <div className="px-6 py-4 flex justify-end bg-slate-50/50 items-center gap-3">
+          <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded border border-amber-200">
+            Tính năng đang phát triển (UI-only)
+          </span>
           <button
             type="button"
-            onClick={() => showToast('Đã lưu tuỳ chọn giao diện')}
+            onClick={() => showToast('Đã lưu tuỳ chọn giao diện (Demo)')}
             className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition-colors cursor-pointer active:scale-[0.98] shadow-sm shadow-emerald-600/20"
           >
             <Check className="w-3.5 h-3.5" />
