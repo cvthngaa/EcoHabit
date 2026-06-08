@@ -3,6 +3,7 @@ import { Gift } from 'lucide-react';
 import { Modal, Button } from '../../../../shared/components';
 import { useCreateReward, useUpdateReward } from '../services/queries';
 import type { Reward, CreateRewardDto } from '../services/types';
+import { apiClient } from '../../../../shared/services/api-client';
 
 interface AdminRewardFormModalProps {
   onClose: () => void;
@@ -17,6 +18,7 @@ export const AdminRewardFormModal: React.FC<AdminRewardFormModalProps> = ({ onCl
   const [formData, setFormData] = useState<CreateRewardDto>({
     name: '',
     description: '',
+    thumbnailUrl: '',
     pointsCost: 0,
     stock: 0,
     status: 'ACTIVE',
@@ -27,12 +29,38 @@ export const AdminRewardFormModal: React.FC<AdminRewardFormModalProps> = ({ onCl
       setFormData({
         name: reward.name,
         description: reward.description || '',
+        thumbnailUrl: reward.thumbnailUrl || '',
         pointsCost: reward.pointsCost,
         stock: reward.stock,
         status: reward.status,
       });
     }
   }, [reward]);
+
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fd = new FormData();
+    fd.append('file', file);
+
+    setIsUploading(true);
+    try {
+      const res = await apiClient.post('/uploads/image', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (res.data?.url) {
+        setFormData(prev => ({ ...prev, thumbnailUrl: res.data.url }));
+      }
+    } catch (error) {
+      console.error('Lỗi upload ảnh:', error);
+      alert('Không thể tải ảnh lên. Vui lòng thử lại.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -100,6 +128,27 @@ export const AdminRewardFormModal: React.FC<AdminRewardFormModalProps> = ({ onCl
             className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-slate-400 focus:bg-white resize-none"
             placeholder="Nhập mô tả hoặc điều kiện áp dụng..."
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-bold text-slate-700 mb-1">Ảnh minh họa</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleUploadImage}
+            disabled={isUploading}
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-slate-400 focus:bg-white file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+          />
+          {isUploading && <p className="text-xs text-emerald-600 mt-2 font-medium">Đang tải ảnh lên...</p>}
+          {formData.thumbnailUrl && (
+            <div className="mt-3 h-32 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+              <img
+                src={formData.thumbnailUrl}
+                alt="Ảnh quà tặng"
+                className="h-full w-full object-cover"
+              />
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">

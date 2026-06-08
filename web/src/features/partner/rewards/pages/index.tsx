@@ -12,6 +12,7 @@ import { useUpdateRedemptionStatus } from '../services/use-update-redemption-sta
 import { useGetLocations } from '../../locations/services/queries';
 import type { Reward, Redemption, RewardStatus, RedemptionStatus, CreateRewardDto } from '../services/types';
 import { Badge, Modal, StatCard, DataTable, IconButton } from '../../../../shared/components';
+import { apiClient } from '../../../../shared/services/api-client';
 
 // ── Helpers ──
 
@@ -55,11 +56,37 @@ const RewardFormModal: React.FC<RewardFormModalProps> = ({ reward, onClose }) =>
   const [formData, setFormData] = useState<CreateRewardDto>({
     name: reward?.name ?? '',
     description: reward?.description ?? '',
+    thumbnailUrl: reward?.thumbnailUrl ?? '',
     pointsCost: reward?.pointsCost ?? 100,
     stock: reward?.stock ?? 10,
     status: reward?.status ?? 'DRAFT',
     pickupLocationIds: reward?.pickupOptions?.map(p => p.location?.id).filter(Boolean) as string[] ?? [],
+    pickupLocationIds: reward?.pickupOptions?.map(p => p.location?.id).filter(Boolean) as string[] ?? [],
   });
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fd = new FormData();
+    fd.append('file', file);
+
+    setIsUploading(true);
+    try {
+      const res = await apiClient.post('/uploads/image', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (res.data?.url) {
+        setFormData(prev => ({ ...prev, thumbnailUrl: res.data.url }));
+      }
+    } catch (error) {
+      console.error('Lỗi upload ảnh:', error);
+      alert('Không thể tải ảnh lên. Vui lòng thử lại.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -129,6 +156,27 @@ const RewardFormModal: React.FC<RewardFormModalProps> = ({ reward, onClose }) =>
               className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 resize-none"
               placeholder="Điều kiện áp dụng, hạn sử dụng..."
             />
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Ảnh minh họa</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleUploadImage}
+              disabled={isUploading}
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+            />
+            {isUploading && <p className="text-xs text-emerald-600 mt-2 font-medium">Đang tải ảnh lên...</p>}
+            {formData.thumbnailUrl && (
+              <div className="mt-3 h-32 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                <img
+                  src={formData.thumbnailUrl}
+                  alt="Ảnh quà tặng"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -471,10 +519,19 @@ export const Rewards: React.FC = () => {
                 {
                   header: 'Quà tặng',
                   render: (r) => (
-                    <>
-                      <p className="font-bold text-slate-800">{r.name}</p>
-                      {r.description && <p className="text-slate-400 mt-0.5 truncate max-w-[200px]">{r.description}</p>}
-                    </>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                        {r.thumbnailUrl ? (
+                          <img src={r.thumbnailUrl} alt={r.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <Gift className="w-5 h-5 text-slate-400" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-bold text-slate-800">{r.name}</p>
+                        {r.description && <p className="text-slate-400 mt-0.5 truncate max-w-[200px]">{r.description}</p>}
+                      </div>
+                    </div>
                   ),
                 },
                 {
@@ -645,6 +702,15 @@ export const Rewards: React.FC = () => {
               />
             </div>
             <div className="flex-1 overflow-y-auto p-6 space-y-4 text-xs">
+              {detailReward.thumbnailUrl ? (
+                <div className="w-full h-40 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 mb-2">
+                  <img src={detailReward.thumbnailUrl} alt={detailReward.name} className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="w-full h-40 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center mb-2">
+                  <Gift className="w-10 h-10 text-slate-300" />
+                </div>
+              )}
               <div className="space-y-1">
                 <p className="text-slate-500">Tên quà tặng</p>
                 <p className="font-semibold text-slate-800 text-sm">{detailReward.name}</p>

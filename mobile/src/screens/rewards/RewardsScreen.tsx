@@ -9,6 +9,7 @@ import {
   Modal,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -307,9 +308,13 @@ const RewardsScreen: React.FC = () => {
                     ) : null}
 
                     <View
-                      style={[styles.rewardIcon, { backgroundColor: `${reward.color}22` }]}
+                      style={[styles.rewardIcon, { backgroundColor: `${reward.color}22`, overflow: 'hidden' }]}
                     >
-                      <Text style={styles.rewardEmoji}>{reward.emoji}</Text>
+                      {reward.thumbnailUrl ? (
+                        <Image source={{ uri: reward.thumbnailUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                      ) : (
+                        <Text style={styles.rewardEmoji}>{reward.emoji}</Text>
+                      )}
                     </View>
 
                     <Text style={styles.rewardName}>{reward.name}</Text>
@@ -459,8 +464,12 @@ const RewardsScreen: React.FC = () => {
 
             {modalItem && (
               <>
-                <View style={[styles.modalIcon, { backgroundColor: modalItem.bg }]}>
-                  <Text style={styles.modalEmoji}>{modalItem.emoji}</Text>
+                <View style={[styles.modalIcon, { backgroundColor: modalItem.bg, overflow: 'hidden' }]}>
+                  {modalItem.thumbnailUrl ? (
+                    <Image source={{ uri: modalItem.thumbnailUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                  ) : (
+                    <Text style={styles.modalEmoji}>{modalItem.emoji}</Text>
+                  )}
                 </View>
                 <Text style={styles.modalName}>{modalItem.name}</Text>
                 <Text style={styles.modalDesc}>{modalItem.description}</Text>

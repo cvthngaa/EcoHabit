@@ -14,6 +14,7 @@ export interface Reward {
   id: string;
   name: string;
   description?: string;
+  thumbnailUrl?: string;
   pointsCost: number;
   stock: number;
   status: RewardStatus;
@@ -43,6 +44,7 @@ export interface Redemption {
 export interface CreateRewardDto {
   name: string;
   description?: string;
+  thumbnailUrl?: string;
   pointsCost: number;
   stock: number;
   status: RewardStatus;

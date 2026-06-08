@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -86,9 +86,13 @@ const RewardDetailScreen: React.FC = () => {
             <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
           </TouchableOpacity>
 
-          {/* Large emoji */}
-          <View style={[styles.emojiWrap, { backgroundColor: reward.color + '22' }]}>
-            <Text style={styles.emoji}>{reward.emoji}</Text>
+          {/* Large emoji or image */}
+          <View style={[styles.emojiWrap, { backgroundColor: reward.color + '22', overflow: 'hidden' }]}>
+            {reward.thumbnailUrl ? (
+              <Image source={{ uri: reward.thumbnailUrl }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+            ) : (
+              <Text style={styles.emoji}>{reward.emoji}</Text>
+            )}
           </View>
 
           {/* Tag */}

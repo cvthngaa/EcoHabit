@@ -21,9 +21,18 @@ export const AdminRewardsPage: React.FC = () => {
     { 
       header: 'Quà/Voucher', 
       render: (reward) => (
-        <div className="cursor-pointer" onClick={() => setSelectedRewardId(reward.id)}>
-          <p className="font-bold text-slate-800 hover:text-emerald-600 transition-colors line-clamp-1">{reward.name}</p>
-          <p className="text-xs text-slate-500">{reward.partnerProfile?.organizationName || 'Hệ thống'}</p>
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setSelectedRewardId(reward.id)}>
+          <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+            {reward.thumbnailUrl ? (
+              <img src={reward.thumbnailUrl} alt={reward.name} className="w-full h-full object-cover" />
+            ) : (
+              <Gift className="w-5 h-5 text-slate-400" />
+            )}
+          </div>
+          <div>
+            <p className="font-bold text-slate-800 hover:text-emerald-600 transition-colors line-clamp-1">{reward.name}</p>
+            <p className="text-xs text-slate-500">{reward.partnerProfile?.organizationName || 'Hệ thống'}</p>
+          </div>
         </div>
       ) 
     },

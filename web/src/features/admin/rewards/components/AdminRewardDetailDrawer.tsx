@@ -96,9 +96,15 @@ export const AdminRewardDetailDrawer = ({
           {/* Summary */}
           <div className="p-6 pb-0">
             <div className="flex items-start gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
-                <Gift className="h-8 w-8" />
-              </div>
+              {reward.thumbnailUrl ? (
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-amber-100 overflow-hidden border border-slate-200">
+                  <img src={reward.thumbnailUrl} alt={reward.name} className="w-full h-full object-cover" />
+                </div>
+              ) : (
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-600">
+                  <Gift className="h-8 w-8" />
+                </div>
+              )}
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-slate-900 line-clamp-2">{reward.name}</h3>
                 <p className="text-sm text-slate-500 mt-1">{reward.partnerProfile?.organizationName || 'Hệ thống'}</p>

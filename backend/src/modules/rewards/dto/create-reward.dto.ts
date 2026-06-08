@@ -17,6 +17,10 @@ export class CreateRewardDto {
   @IsOptional()
   description?: string;
 
+  @IsString()
+  @IsOptional()
+  thumbnailUrl?: string;
+
   @IsInt()
   @IsOptional()
   pointsCost?: number;

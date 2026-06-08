@@ -2,6 +2,7 @@ export type Reward = {
   id: string | number;
   name?: string;
   description?: string;
+  thumbnailUrl?: string;
   pointsCost?: number;
   stock?: number;
   redeemCount?: number;

@@ -22,6 +22,13 @@ export class Reward extends BaseEntity {
   description?: string | null;
 
   @Column({
+    name: 'thumbnail_url',
+    type: 'text',
+    nullable: true,
+  })
+  thumbnailUrl?: string | null;
+
+  @Column({
     name: 'points_cost',
     type: 'int',
     nullable: true,
