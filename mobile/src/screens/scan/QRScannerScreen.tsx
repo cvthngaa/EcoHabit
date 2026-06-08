@@ -90,13 +90,13 @@ const QRScannerScreen: React.FC = () => {
       } catch (err) {
         throw new Error('Mã QR không đúng định dạng. Vui lòng quét mã hợp lệ của điểm thu gom.');
       }
-      
+
       console.log('[QRScannerScreen] Scanned QR for type:', qrPayload?.type, 'location:', qrPayload?.locationId);
-      
+
       if (qrPayload.type !== 'ECOHABIT_LOCATION_CHECKIN') {
         throw new Error('Mã QR không hợp lệ. Vui lòng quét mã check-in của điểm thu gom.');
       }
-      
+
       if (!qrPayload.locationId || (!qrPayload.token && !qrPayload.secret)) {
         throw new Error('Mã QR không đúng định dạng (thiếu thông tin).');
       }
@@ -111,7 +111,7 @@ const QRScannerScreen: React.FC = () => {
 
       // 3. Get Current Position
       const location = await Location.getCurrentPositionAsync({});
-      
+
       // 4. Call Check-in API
       await checkIn({
         locationId: qrPayload.locationId,
@@ -134,9 +134,9 @@ const QRScannerScreen: React.FC = () => {
       console.log('[QRScannerScreen] Check-in error:', error?.response?.data || error);
       isProcessingRef.current = false;
       setScanned(false);
-      
+
       let msg = error?.response?.data?.message || error.message || 'Có lỗi xảy ra khi check-in.';
-      
+
       // Handle missing device location settings
       if (typeof msg === 'string' && msg.includes('unsatisfied device settings')) {
         msg = 'Vui lòng bật tính năng GPS (Vị trí) trên điện thoại/máy ảo để check-in.';
@@ -144,7 +144,7 @@ const QRScannerScreen: React.FC = () => {
         // Class-validator returns an array of messages
         msg = msg[0];
       }
-      
+
       showToast(msg, 'error');
     }
   }, [nav, showToast]);

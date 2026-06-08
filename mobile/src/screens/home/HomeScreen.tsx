@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import HeroHeader from '../../components/home/HeroHeader';
+import FeatureCards from '../../components/home/FeatureCards';
 import PointsCard from '../../components/PointsCard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -239,36 +240,16 @@ const HomeScreen: React.FC = () => {
         <HeroHeader
           fullName={userProfile?.fullName || 'Bạn'}
           pointsBalance={userProfile?.pointsBalance || 0}
-          onPressNotification={() => {}}
+          onPressNotification={() => { }}
           onPressRedeem={() => navigation.navigate('Rewards')}
         />
 
-        <PointsCard 
+        <PointsCard
           pointsBalance={userProfile?.pointsBalance || 0}
           onPressRedeem={() => navigation.navigate('Rewards')}
         />
 
-        <View className="mb-6 flex-row flex-wrap justify-between px-5">
-          {quickActions.map((action) => (
-            <TouchableOpacity
-              key={action.id}
-              className="mb-4 w-[47.5%] flex-row items-center rounded-lg bg-surface p-[14px]"
-              style={cardShadow}
-              onPress={() => goQuickAction(action.route)}
-              activeOpacity={0.8}
-            >
-              <View
-                className="mr-3 h-11 w-11 items-center justify-center rounded-[14px]"
-                style={{ backgroundColor: `${action.color}15` }}
-              >
-                <Ionicons name={action.icon} size={24} color={action.color} />
-              </View>
-              <Text className="flex-1 text-[14px] font-semibold text-text">
-                {action.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <FeatureCards />
 
         <View className="mb-6">
           <Text className="mx-5 mb-4 text-[18px] font-extrabold text-text">
@@ -451,9 +432,8 @@ const HomeScreen: React.FC = () => {
                   </TouchableOpacity>
                   <View className="flex-1 flex-row items-center justify-between">
                     <Text
-                      className={`flex-1 text-[15px] font-semibold ${
-                        mission.completed ? 'text-[#A0A0A0] line-through' : 'text-text'
-                      }`}
+                      className={`flex-1 text-[15px] font-semibold ${mission.completed ? 'text-[#A0A0A0] line-through' : 'text-text'
+                        }`}
                     >
                       {mission.title}
                     </Text>

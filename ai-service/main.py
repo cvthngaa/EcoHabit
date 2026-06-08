@@ -1,15 +1,38 @@
 from fastapi import FastAPI, UploadFile, File
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from ultralytics import YOLO
 import urllib.request
 import io
+import shutil
 from PIL import Image
 
 app = FastAPI()
 
-# import os
-# model_path = "best.pt" if os.path.exists("best.pt") else "yolov8n.pt"
-model_path = "yolov8n-waste-12cls-best.pt"
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+import os
+
+# Tự động nhận diện model mới
+# Bạn chỉ cần đổi tên file model của bạn thành "custom_model.pt" và thả vào thư mục này,
+# server sẽ tự động ưu tiên load file "custom_model.pt" thay vì file cũ.
+CUSTOM_MODEL_PATH = "custom_model.pt"
+DEFAULT_MODEL_PATH = "yolov8n-waste-12cls-best.pt"
+
+if os.path.exists(CUSTOM_MODEL_PATH):
+    model_path = CUSTOM_MODEL_PATH
+else:
+    model_path = DEFAULT_MODEL_PATH
+
+print(f"=====================================")
+print(f" LOADING MODEL: {model_path}")
+print(f"=====================================")
 
 model = YOLO(model_path)
 
@@ -122,3 +145,23 @@ async def predict_url(req: PredictUrlRequest):
     img = Image.open(io.BytesIO(img_data)).convert("RGB")
     results = model(img)
     return process_results(results)
+
+@app.post("/upload-model")
+async def upload_model(file: UploadFile = File(...)):
+    global model, model_path
+    if not file.filename.endswith(".pt") and not file.filename.endswith(".bin"):
+        return {"success": False, "message": "Only .pt or .bin files are allowed."}
+    
+    # Save with its original extension
+    ext = os.path.splitext(file.filename)[1]
+    new_model_path = f"uploaded_model{ext}"
+    
+    with open(new_model_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    try:
+        model = YOLO(new_model_path)
+        model_path = new_model_path
+        return {"success": True, "message": f"Successfully loaded {file.filename} as the active model."}
+    except Exception as e:
+        return {"success": False, "message": f"Failed to load model: {str(e)}"}

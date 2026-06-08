@@ -94,19 +94,19 @@ const RewardsScreen: React.FC = () => {
 
       const mappedRewards = Array.isArray(rewardsData)
         ? rewardsData.map((reward: any, index: number) => {
-            const theme = getRewardTheme(index);
-            const category = categories[(index % 4) + 1].label;
+          const theme = getRewardTheme(index);
+          const category = categories[(index % 4) + 1].label;
 
-            return {
-              ...reward,
-              points: reward.pointsCost || 0,
-              color: theme.color,
-              bg: theme.bg,
-              emoji: theme.emoji,
-              category,
-              tag: reward.stock > 0 && reward.stock < 10 ? 'HOT' : null,
-            };
-          })
+          return {
+            ...reward,
+            points: reward.pointsCost || 0,
+            color: theme.color,
+            bg: theme.bg,
+            emoji: theme.emoji,
+            category,
+            tag: reward.stock > 0 && reward.stock < 10 ? 'HOT' : null,
+          };
+        })
         : [];
       setRewards(mappedRewards);
 
@@ -116,30 +116,30 @@ const RewardsScreen: React.FC = () => {
 
       const redemptions = Array.isArray(historyData)
         ? historyData
-            .filter((item: any) => item.sourceType === 'REDEMPTION')
-            .map((item: any, index: number) => {
-              const theme = getRewardTheme(index);
-              const createdAt = new Date(item.createdAt);
-              const fallbackCategory = categories[(index % 4) + 1].label;
-              const itemName = item.title || 'Đổi phần thưởng';
+          .filter((item: any) => item.sourceType === 'REDEMPTION')
+          .map((item: any, index: number) => {
+            const theme = getRewardTheme(index);
+            const createdAt = new Date(item.createdAt);
+            const fallbackCategory = categories[(index % 4) + 1].label;
+            const itemName = item.title || 'Đổi phần thưởng';
 
-              return {
-                id: item.id || `${item.createdAt}-${index}`,
-                name: itemName,
-                pts: item.points,
-                pointsUsed: Math.abs(item.points || 0),
-                date: createdAt.toLocaleDateString('vi-VN'),
-                time: createdAt.toLocaleTimeString('vi-VN', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                }),
-                category: rewardCategoryMap.get(itemName) || fallbackCategory,
-                status: 'Thành công',
-                color: theme.color,
-                bg: theme.bg,
-                emoji: theme.emoji,
-              };
-            })
+            return {
+              id: item.id || `${item.createdAt}-${index}`,
+              name: itemName,
+              pts: item.points,
+              pointsUsed: Math.abs(item.points || 0),
+              date: createdAt.toLocaleDateString('vi-VN'),
+              time: createdAt.toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit',
+              }),
+              category: rewardCategoryMap.get(itemName) || fallbackCategory,
+              status: 'Thành công',
+              color: theme.color,
+              bg: theme.bg,
+              emoji: theme.emoji,
+            };
+          })
         : [];
 
       setMyRewards(redemptions);

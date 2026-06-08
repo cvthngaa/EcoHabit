@@ -19,7 +19,7 @@ const RewardDetailScreen: React.FC = () => {
   const { showToast } = useToast();
   const { refetch: refetchProfile } = useGetProfile({ enabled: false });
   const { mutateAsync: redeemRewardAsync } = useRedeemReward();
-  
+
   const [redeeming, setRedeeming] = useState(false);
   const [redeemed, setRedeemed] = useState(false);
   const [userPoints, setUserPoints] = useState<number | null>(null);
@@ -50,7 +50,7 @@ const RewardDetailScreen: React.FC = () => {
   const handleRedeem = async () => {
     if (!canRedeem || redeemed) return;
     setRedeeming(true);
-    
+
     try {
       await redeemRewardAsync({ rewardId: reward.id });
       setRedeemed(true);
