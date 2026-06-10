@@ -1,7 +1,7 @@
 import { apiClient } from '../../../../shared/services/api-client';
 
 export type ClassificationStatus = 'PENDING' | 'SUCCESS' | 'FAILED' | 'REVIEWED';
-export type WasteType = 'PLASTIC' | 'PAPER' | 'BATTERY' | 'GLASS' | 'METAL' | 'OTHER';
+export type WasteType = 'PLASTIC' | 'PAPER' | 'BATTERY' | 'GLASS' | 'METAL' | 'E_WASTE' | 'TEXTILE' | 'OTHER';
 export type BinType = 'BIN' | 'CENTER' | 'COLLECTION_POINT';
 
 export interface AiFeedback {
@@ -28,6 +28,7 @@ export interface TrashClassification {
   };
   correctedBoundingBox?: number[];
   feedbacks?: AiFeedback[];
+  reviewedAt?: string;
   createdAt: string;
 }
 

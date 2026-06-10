@@ -19,11 +19,12 @@ import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request.type';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
 
   @Post('send-otp')
   @ApiOperation({ summary: 'Gửi mã OTP để đăng ký' })
@@ -56,6 +57,21 @@ export class AuthController {
   @ApiBody({ type: LoginDto })
   login(@Body() body: LoginDto) {
     return this.authService.login(body.email, body.password);
+  }
+
+  @Post('refresh-token')
+  @ApiOperation({ summary: 'Cấp lại access token bằng refresh token' })
+  @ApiBody({ type: RefreshTokenDto })
+  refreshToken(@Body() body: RefreshTokenDto) {
+    return this.authService.refreshToken(body.refreshToken);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('logout')
+  @ApiOperation({ summary: 'Đăng xuất và thu hồi refresh token' })
+  @ApiBody({ type: RefreshTokenDto })
+  logout(@Body() body: RefreshTokenDto) {
+    return this.authService.logout(body.refreshToken);
   }
 
   @Post('forgot-password/send-otp')
@@ -91,6 +107,13 @@ export class AuthController {
   @Get('me')
   async me(@Request() req: AuthenticatedRequest) {
     return this.authService.getProfile(req.user.userId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('me/qr')
+  @ApiOperation({ summary: 'Lấy mã QR cá nhân của User (có thời hạn 5 phút)' })
+  async getMyQr(@Request() req: AuthenticatedRequest) {
+    return this.authService.generatePersonalQr(req.user.userId);
   }
 
   @UseGuards(AuthGuard('jwt'), RolesGuard)

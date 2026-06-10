@@ -28,6 +28,8 @@ import LocationSettingsScreen from '../screens/profile/LocationSettingsScreen';
 import HelpFaqScreen from '../screens/profile/HelpFaqScreen';
 import RateAppScreen from '../screens/profile/RateAppScreen';
 import ShareEcoHabitScreen from '../screens/profile/ShareEcoHabitScreen';
+import BadgesScreen from '../screens/profile/BadgesScreen';
+import LeaderboardScreen from '../screens/profile/LeaderboardScreen';
 import { useAuth } from '../context/AuthContext';
 
 const Stack = createStackNavigator();
@@ -110,6 +112,8 @@ const RootNavigator: React.FC = () => {
           <Stack.Screen name="HelpFaq" component={HelpFaqScreen} />
           <Stack.Screen name="RateApp" component={RateAppScreen} />
           <Stack.Screen name="ShareEcoHabit" component={ShareEcoHabitScreen} />
+          <Stack.Screen name="Badges" component={BadgesScreen} />
+          <Stack.Screen name="Leaderboard" component={LeaderboardScreen} />
         </Stack.Navigator>
       ) : (
         <Stack.Navigator

@@ -11,7 +11,7 @@ interface DailyTipCardProps {
 
 const DailyTipCard: React.FC<DailyTipCardProps> = ({ dailyTip }) => {
   return (
-    <View style={{ marginHorizontal: Tokens.space[5], marginTop: 80, marginBottom: Tokens.space[6], overflow: 'visible', position: 'relative' }}>
+    <View style={{ marginHorizontal: Tokens.space[5], marginTop: 45, marginBottom: Tokens.space[6], overflow: 'visible', position: 'relative' }}>
       <LinearGradient
         colors={[Tokens.color.green[200], Tokens.color.green[300]]}
         start={{ x: 0, y: 0 }}
@@ -29,20 +29,20 @@ const DailyTipCard: React.FC<DailyTipCardProps> = ({ dailyTip }) => {
           elevation: 5,
         }}
       >
-        <Text 
+        <Text
           className="text-[16px] font-extrabold mb-1.5 leading-snug"
           style={{ color: Tokens.color.green[800] }}
         >
           {dailyTip.title}
         </Text>
-        <Text 
+        <Text
           className="text-[12px] font-semibold leading-[18px]"
           style={{ color: Tokens.color.green[700] }}
         >
           {dailyTip.content}
         </Text>
       </LinearGradient>
-      
+
       <View
         style={{
           position: 'absolute',

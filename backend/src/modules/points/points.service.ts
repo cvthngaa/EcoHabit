@@ -49,6 +49,16 @@ export class PointsService {
     return manager ? manager.getRepository(PointRule) : this.ruleRepo;
   }
 
+  async getRulePoints(
+    code: string,
+    defaultPoints: number = 0,
+    manager?: EntityManager,
+  ): Promise<number> {
+    const ruleRepo = this.getRuleRepository(manager);
+    const rule = await ruleRepo.findOne({ where: { code, isActive: true } });
+    return rule ? rule.points : defaultPoints;
+  }
+
   async addPoint(
     userId: string,
     amount: number,
@@ -63,21 +73,29 @@ export class PointsService {
       throw new BadRequestException('Amount must not be zero');
     }
 
-    const transactionRepo = this.getTransactionRepository(manager);
+    if (!manager) {
+      return await this.dataSource.transaction(async (em) => {
+        return await this.addPoint(userId, amount, type, sourceType, sourceId, reasonCode, note, em);
+      });
+    }
+
+    // Khóa user để tránh race condition khi tính toán balanceAfter
+    await manager.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
+
     const currentBalance = await this.getBalanceByUserId(userId, manager);
 
     const balanceAfter = currentBalance + amount;
 
     // Dùng raw query để bypass TypeORM tự động chèn các cột không tồn tại (reason_code, note)
     const id = randomUUID();
-    const res = await transactionRepo.query(
+    const res = await manager.query(
       `INSERT INTO point_transactions (id, user_id, type, points, balance_after, source_type, source_id)
              VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
       [id, userId, type, amount, balanceAfter, sourceType, sourceId],
     );
 
     // Update the points_balance directly on the users table
-    await transactionRepo.query(
+    await manager.query(
       `UPDATE users SET points_balance = points_balance + $1 WHERE id = $2`,
       [amount, userId],
     );

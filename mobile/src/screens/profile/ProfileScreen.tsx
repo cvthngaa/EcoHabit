@@ -16,6 +16,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { useGetProfile } from '../../services/auth';
+import { useGetMyBadges } from '../../services/badges';
 import { rankConfig } from '../../services/mockData';
 import { BackgroundTrees } from '../../components/NatureBackground';
 import FallingLeaves from '../../components/FallingLeaves';
@@ -23,6 +24,7 @@ import FallingLeaves from '../../components/FallingLeaves';
 type ProfileMenuRoute =
   | 'PersonalInfo'
   | 'Wallet'
+  | 'Leaderboard'
   | 'NotificationsSettings'
   | 'PrivacySecurity'
   | 'LanguageSettings'
@@ -30,16 +32,10 @@ type ProfileMenuRoute =
   | 'LocationSettings'
   | 'HelpFaq'
   | 'RateApp'
-  | 'ShareEcoHabit';
+  | 'ShareEcoHabit'
+  | 'Badges';
 
-const badges = [
-  { icon: '🌱', label: 'Người mới', unlocked: true },
-  { icon: '♻️', label: 'Nhà tái chế', unlocked: true },
-  { icon: '🦸', label: 'Anh hùng', unlocked: false },
-  { icon: '🌍', label: 'Xanh toàn cầu', unlocked: false },
-  { icon: '🔥', label: '30 ngày', unlocked: true },
-  { icon: '💎', label: 'Diamond', unlocked: false },
-];
+// Remove mock badges
 
 const menuItems: Array<{
   route: ProfileMenuRoute;
@@ -61,6 +57,13 @@ const menuItems: Array<{
       label: 'Lịch sử điểm',
       color: '#6A1B9A',
       group: 'account',
+    },
+    {
+      route: 'Leaderboard',
+      icon: 'podium-outline',
+      label: 'Bảng xếp hạng',
+      color: '#FF8F00',
+      group: 'app',
     },
     {
       route: 'NotificationsSettings',
@@ -131,6 +134,7 @@ const ProfileScreen: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { refetch: refetchProfile } = useGetProfile({ enabled: false });
+  const { data: myBadges = [], refetch: refetchBadges, isRefetching: isRefetchingBadges } = useGetMyBadges();
 
   const loadData = useCallback(async () => {
     try {
@@ -142,6 +146,7 @@ const ProfileScreen: React.FC = () => {
       }
 
       setUserProfile(data);
+      await refetchBadges();
     } catch (error) {
       console.log('Lỗi tải dữ liệu người dùng:', error);
     } finally {
@@ -263,7 +268,7 @@ const ProfileScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.sectionRow}>
             <Text style={styles.sectionTitle}>🏅 Huy hiệu của bạn</Text>
-            <TouchableOpacity onPress={() => openProfileDetail('HelpFaq')}>
+            <TouchableOpacity onPress={() => openProfileDetail('Badges')}>
               <Text style={styles.seeAll}>Xem tất cả</Text>
             </TouchableOpacity>
           </View>
@@ -272,21 +277,22 @@ const ProfileScreen: React.FC = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.badges}
           >
-            {badges.map((badge, index) => (
+            {myBadges.map((badge, index) => (
               <View
                 key={index}
-                style={[styles.badgeItem, !badge.unlocked && styles.badgeLocked]}
+                style={[styles.badgeItem, !badge.isEarned && styles.badgeLocked]}
               >
-                <Text style={styles.badgeEmoji}>{badge.icon}</Text>
+                <Text style={styles.badgeEmoji}>{badge.icon || '🏅'}</Text>
                 <Text
                   style={[
                     styles.badgeLabel,
-                    !badge.unlocked && styles.badgeLabelLocked,
+                    !badge.isEarned && styles.badgeLabelLocked,
                   ]}
+                  numberOfLines={1}
                 >
-                  {badge.label}
+                  {badge.name}
                 </Text>
-                {!badge.unlocked && (
+                {!badge.isEarned && (
                   <View style={styles.lockIcon}>
                     <Ionicons
                       name="lock-closed"

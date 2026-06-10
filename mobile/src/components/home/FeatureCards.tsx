@@ -6,11 +6,11 @@ import { useNavigation } from '@react-navigation/native';
 
 const FEATURES = [
   { id: 'scan', title: 'Phân loại rác', route: 'Scan' },
-  { id: 'map', title: 'Điểm thu gom', route: 'Map' },
+  { id: 'badges', title: 'Huy hiệu', route: 'Badges' },
   { id: 'rewards', title: 'Đổi quà', route: 'Rewards' },
   { id: 'quiz', title: 'Quiz', route: 'QuizIntro' },
   { id: 'wallet', title: 'Ví điểm', route: 'Wallet' },
-  { id: 'forum', title: 'Cộng đồng', route: 'Community' },
+  { id: 'leaderboard', title: 'Xếp hạng', route: 'Leaderboard' },
 ];
 
 export const FeatureCards: React.FC = () => {

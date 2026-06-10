@@ -1,10 +1,6 @@
-import {
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, InternalServerErrorException, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -24,19 +20,11 @@ import { AuditService } from '../audit/audit.service';
 import { AdminAuditAction } from '../audit/enums/admin-audit-action.enum';
 import { ReviewClassificationDto, ReviewAction } from './dto/review-classification.dto';
 import { ListClassificationsQueryDto } from './dto/list-classifications-query.dto';
+import { BadgesService } from '../badges/badges.service';
 @Injectable()
 export class AiService {
   private readonly aiServiceUrl: string;
   private readonly classificationAwardThreshold = 0.7;
-  private readonly classificationPointsByWasteType: Record<WasteType, number> =
-    {
-      [WasteType.PLASTIC]: 20,
-      [WasteType.PAPER]: 15,
-      [WasteType.BATTERY]: 30,
-      [WasteType.GLASS]: 18,
-      [WasteType.METAL]: 25,
-      [WasteType.OTHER]: 12,
-    };
 
   constructor(
     @InjectRepository(TrashClassification)
@@ -47,6 +35,8 @@ export class AiService {
     private readonly pointsService: PointsService,
     private readonly fraudService: FraudService,
     private readonly auditService: AuditService,
+    private readonly dataSource: DataSource,
+    @Optional() private readonly badgesService: BadgesService,
   ) {
     this.aiServiceUrl =
       this.configService.get<string>('AI_SERVICE_URL') ||
@@ -64,9 +54,11 @@ export class AiService {
     try {
       const uploadResult = await new Promise<{ secure_url: string }>(
         (resolve, reject) => {
+          const timeout = setTimeout(() => reject(new Error('Timeout')), 10000);
           const stream = cloudinary.uploader.upload_stream(
             { folder: 'ecohabit/trash' },
             (error, result) => {
+              clearTimeout(timeout);
               if (error || !result) return reject(error);
               resolve(result);
             },
@@ -76,9 +68,11 @@ export class AiService {
       );
       imageUrl = uploadResult.secure_url;
     } catch {
-      throw new InternalServerErrorException(
-        'Khong the upload anh len Cloudinary',
-      );
+      return {
+        classificationId: null,
+        isOverloaded: true,
+        message: 'Hệ thống AI đang quá tải, nhưng tinh thần bảo vệ môi trường của bạn rất tuyệt! Hãy thử lại sau nhé.',
+      };
     }
 
     let aiResult: {
@@ -92,13 +86,15 @@ export class AiService {
       modelVersion?: string;
     };
 
+    let aiResponse: any;
+
     try {
       const response = await axios.post(
         `${this.aiServiceUrl}/predict-url`,
         { imageUrl },
-        { timeout: 15000 },
+        { timeout: 10000 },
       );
-      aiResult = response.data;
+      aiResponse = response.data;
     } catch {
       try {
         const form = new FormData();
@@ -111,16 +107,29 @@ export class AiService {
           form,
           {
             headers: form.getHeaders(),
-            timeout: 15000,
+            timeout: 10000,
           },
         );
-        aiResult = response.data;
+        aiResponse = response.data;
       } catch {
-        throw new InternalServerErrorException(
-          'Khong the ket noi den AI Service',
-        );
+        return {
+          classificationId: null,
+          isOverloaded: true,
+          message: 'Hệ thống AI đang quá tải, nhưng tinh thần bảo vệ môi trường của bạn rất tuyệt! Hãy thử lại sau nhé.',
+        };
       }
     }
+
+    if (!aiResponse || !aiResponse.success || !aiResponse.detections || aiResponse.detections.length === 0) {
+      return {
+        classificationId: null,
+        isOverloaded: false,
+        message: 'Không nhận diện được rác thải rõ ràng nào trong ảnh. Vui lòng thử lại.',
+      };
+    }
+
+    // Tạm thời lấy vật thể đầu tiên (có độ tự tin cao nhất) để lưu DB
+    aiResult = aiResponse.detections[0];
 
     const confidence = Number(aiResult.confidence);
     const isHighConfidence = confidence >= this.classificationAwardThreshold;
@@ -145,39 +154,69 @@ export class AiService {
     
     let pointsEarned = 0;
     let awarded = false;
+    let dailyLimitReached = false;
     let balanceAfter = await this.pointsService.getBalanceByUserId(userId);
 
     if (isHighConfidence) {
-      pointsEarned = this.calculateClassificationPoints(
-        saved.predictedWasteType ?? null,
-        confidence,
-      );
-      if (pointsEarned > 0) {
-        const alreadyAwarded = await this.pointsService.hasTransactionForSource(
-          userId,
-          PointSourceType.TRASH_CLASSIFICATION,
-          saved.id,
-          PointTransactionType.EARN,
+      await this.dataSource.transaction(async (manager) => {
+        // Lock user first
+        await manager.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
+
+        // Kiểm tra Daily Quota (Tối đa 3 lần cộng điểm / ngày từ AI)
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const result = await manager.query(
+          `SELECT COUNT(*) AS count
+           FROM point_transactions
+           WHERE user_id = $1
+             AND type = 'EARN'
+             AND source_type = $2
+             AND created_at >= $3`,
+          [userId, PointSourceType.TRASH_CLASSIFICATION, startOfDay],
         );
 
-        if (!alreadyAwarded) {
-          const transaction = await this.pointsService.addPoint(
-            userId,
-            pointsEarned,
-            PointTransactionType.EARN,
-            PointSourceType.TRASH_CLASSIFICATION,
-            saved.id,
-            'CLASSIFICATION_CORRECT',
-            `Awarded for trash classification ${saved.id}`,
+        const countToday = parseInt(result[0]?.count ?? '0', 10);
+
+        if (countToday >= 3) {
+          dailyLimitReached = true;
+        } else {
+          pointsEarned = await this.calculateClassificationPoints(
+            saved.predictedWasteType ?? null,
+            confidence,
           );
-          balanceAfter = transaction.balanceAfter;
-          awarded = true;
+          if (pointsEarned > 0) {
+            const alreadyAwardedResult = await manager.query(
+              `SELECT 1 FROM point_transactions WHERE user_id = $1 AND source_type = $2 AND source_id = $3 AND type = $4 LIMIT 1`,
+              [userId, PointSourceType.TRASH_CLASSIFICATION, saved.id, PointTransactionType.EARN]
+            );
+
+            if (alreadyAwardedResult.length === 0) {
+              const transaction = await this.pointsService.addPoint(
+                userId,
+                pointsEarned,
+                PointTransactionType.EARN,
+                PointSourceType.TRASH_CLASSIFICATION,
+                saved.id,
+                'CLASSIFICATION_CORRECT',
+                `Awarded for trash classification ${saved.id}`,
+                manager
+              );
+              balanceAfter = transaction.balanceAfter;
+              awarded = true;
+            }
+          }
         }
-      }
+      });
     }
 
     // Kiểm tra AI classification abuse — fire-and-forget
     void this.fraudService.checkAiClassificationAbuse(userId);
+
+    // Evaluate badge conditions asynchronously (fire-and-forget)
+    if (this.badgesService) {
+      void this.badgesService.evaluateUserBadges(userId);
+    }
 
     return {
       classificationId: saved.id,
@@ -194,6 +233,7 @@ export class AiService {
       awarded,
       balanceAfter,
       requiresReview: !isHighConfidence,
+      dailyLimitReached,
     };
   }
 
@@ -295,7 +335,7 @@ export class AiService {
 
     if (dto.action === ReviewAction.APPROVE) {
       newStatus = ClassificationStatus.SUCCESS;
-      pointsToAward = this.calculateClassificationPoints(
+      pointsToAward = await this.calculateClassificationPoints(
         classification.predictedWasteType,
         1, // Bypass confidence check
       );
@@ -308,7 +348,7 @@ export class AiService {
       if (dto.correctedBin) classification.correctedBin = dto.correctedBin;
       if (dto.correctedBoundingBox) classification.correctedBoundingBox = dto.correctedBoundingBox;
       
-      pointsToAward = this.calculateClassificationPoints(
+      pointsToAward = await this.calculateClassificationPoints(
         dto.correctedWasteType ?? classification.predictedWasteType,
         1,
       );
@@ -377,10 +417,10 @@ export class AiService {
     return classification;
   }
 
-  private calculateClassificationPoints(
+  private async calculateClassificationPoints(
     wasteType?: WasteType | null,
     confidence?: number,
-  ): number {
+  ): Promise<number> {
     if (!wasteType) {
       return 0;
     }
@@ -389,6 +429,19 @@ export class AiService {
       return 0;
     }
 
-    return this.classificationPointsByWasteType[wasteType] ?? 0;
+    const defaultValues: Record<WasteType, number> = {
+      [WasteType.PLASTIC]: 20,
+      [WasteType.PAPER]: 15,
+      [WasteType.BATTERY]: 30,
+      [WasteType.GLASS]: 18,
+      [WasteType.METAL]: 25,
+      [WasteType.E_WASTE]: 35,
+      [WasteType.TEXTILE]: 15,
+      [WasteType.OTHER]: 12,
+    };
+    const defaultPoints = defaultValues[wasteType] ?? 0;
+    const code = `AI_${wasteType.toUpperCase()}`;
+
+    return await this.pointsService.getRulePoints(code, defaultPoints);
   }
 }

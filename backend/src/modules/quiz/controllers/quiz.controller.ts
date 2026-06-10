@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags, ApiParam } from '@nestjs/swagger';
-import { GenerateQuizDto } from '../dto/generate-quiz.dto';
 import { SubmitDailyQuizDto } from '../dto/submit-daily-quiz.dto';
 import { ListQuizHistoryQueryDto } from '../dto/list-quiz-history-query.dto';
 import { QuizService } from '../quiz.service';
@@ -23,12 +22,6 @@ import type { AuthenticatedRequest } from '../../../common/types/authenticated-r
 export class QuizController {
   constructor(private readonly quizService: QuizService) {}
 
-  @Post('generate')
-  @ApiOperation({ summary: 'Tạo bộ câu hỏi quiz ngẫu nhiên' })
-  @ApiBody({ type: GenerateQuizDto })
-  generateQuiz(@Body() dto: GenerateQuizDto) {
-    return this.quizService.generateQuiz(dto);
-  }
 
   @Get('daily')
   @ApiOperation({ summary: 'Lấy bộ câu hỏi quiz hôm nay (cố định theo ngày)' })

@@ -1,6 +1,6 @@
 import { WasteCategory } from '../mockData';
 
-export type WasteType = 'PLASTIC' | 'PAPER' | 'BATTERY' | 'GLASS' | 'METAL' | 'OTHER';
+export type WasteType = 'PLASTIC' | 'PAPER' | 'BATTERY' | 'GLASS' | 'METAL' | 'E_WASTE' | 'TEXTILE' | 'OTHER';
 
 export type SuggestedBin = 'BIN' | 'CENTER' | 'COLLECTION_POINT';
 
@@ -25,6 +25,8 @@ export type AIClassificationResult = {
 
 export type BackendClassificationResponse = {
   classificationId?: string;
+  isOverloaded?: boolean;
+  message?: string;
   imageUrl?: string;
   label: string;
   displayLabel?: string;

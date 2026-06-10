@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MulterModule } from '@nestjs/platform-express';
 import { AiController } from './ai.controller';
@@ -8,6 +8,7 @@ import { AiFeedback } from './entities/ai-feedback.entity';
 import { PointsModule } from '../points/points.module';
 import { FraudModule } from '../fraud/fraud.module';
 import { AuditModule } from '../audit/audit.module';
+import { BadgesModule } from '../badges/badges.module';
 
 @Module({
   imports: [
@@ -16,9 +17,11 @@ import { AuditModule } from '../audit/audit.module';
     FraudModule,
     AuditModule,
     MulterModule.register({ storage: undefined }),
+    forwardRef(() => BadgesModule),
   ],
   controllers: [AiController],
   providers: [AiService],
   exports: [TypeOrmModule, AiService],
 })
 export class AiModule {}
+

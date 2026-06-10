@@ -22,9 +22,9 @@ const SCAN_SHEET_COLLAPSED_HEIGHT = 232;
 const SCAN_SHEET_EXPANDED_HEIGHT = 348;
 
 const scanTips = [
-  'Giu camera thang va on dinh',
-  'Dam bao anh sang du de nhan dien',
-  'Dat vat the chiem khoang 70% khung hinh',
+  'Giữ camera thẳng và ổn định',
+  'Đảm bảo ánh sáng đủ để nhận diện',
+  'Đặt vật thể chiếm khoảng 70% khung hình',
 ];
 
 const ScanScreen: React.FC = () => {
@@ -72,7 +72,7 @@ const ScanScreen: React.FC = () => {
 
     const mediaPermission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!mediaPermission.granted) {
-      showToast('Can quyen thu vien anh de chon anh', 'error');
+      showToast('Cần quyền thư viện ảnh để chọn ảnh', 'error');
       return;
     }
 
@@ -100,13 +100,13 @@ const ScanScreen: React.FC = () => {
     if (!permission?.granted) {
       const response = await requestPermission();
       if (!response.granted) {
-        showToast('Can quyen camera de chup anh phan loai rac', 'error');
+        showToast('Cần quyền camera để chụp ảnh phân loại rác', 'error');
         return;
       }
     }
 
     if (!cameraRef.current || !isCameraReady) {
-      showToast('Camera dang khoi tao, vui long thu lai sau mot chut', 'error');
+      showToast('Camera đang khởi tạo, vui lòng thử lại sau một chút', 'error');
       return;
     }
 
@@ -119,14 +119,14 @@ const ScanScreen: React.FC = () => {
       });
 
       if (!photo?.uri) {
-        showToast('Khong the chup anh. Vui long thu lai.', 'error');
+        showToast('Không thể chụp ảnh. Vui lòng thử lại.', 'error');
         return;
       }
 
       navigateToAnalysis(photo.uri);
     } catch (error) {
       console.log('[ScanScreen] Failed to capture image', error);
-      showToast('Khong the chup anh. Vui long thu lai.', 'error');
+      showToast('Không thể chụp ảnh. Vui lòng thử lại.', 'error');
     } finally {
       setIsCapturing(false);
     }
@@ -188,10 +188,10 @@ const ScanScreen: React.FC = () => {
 
             <View>
               <Text className="text-[19px] font-extrabold tracking-[0.2px] text-white">
-                Quet & Phan loai
+                Quét & Phân loại
               </Text>
               <Text className="mt-1 text-[12px] font-medium text-white/70">
-                Chup nhanh mon do de AI nhan dien
+                Chụp nhanh món đồ để AI nhận diện
               </Text>
             </View>
           </View>
@@ -226,7 +226,7 @@ const ScanScreen: React.FC = () => {
             <View className="w-full max-w-[320px] rounded-[28px] bg-[#07151E]/80 px-6 py-7">
               <ActivityIndicator size="small" color={Colors.white} />
               <Text className="mt-4 text-center text-[16px] font-bold text-white">
-                Dang kiem tra quyen camera...
+                Đang kiểm tra quyền camera...
               </Text>
             </View>
           </View>
@@ -239,17 +239,17 @@ const ScanScreen: React.FC = () => {
                 <Ionicons name="camera-outline" size={32} color={Colors.white} />
               </View>
               <Text className="mt-4 text-center text-[18px] font-extrabold text-white">
-                Can quyen camera de quet truc tiep
+                Cần quyền camera để quét trực tiếp
               </Text>
               <Text className="mt-3 text-center text-[13px] leading-5 text-white/75">
-                Sau khi cap quyen, camera se mo ngay tren man hinh scan de ban chup va phan loai.
+                Sau khi cấp quyền, camera sẽ mở ngay trên màn hình scan để bạn chụp và phân loại.
               </Text>
               <TouchableOpacity
                 className="mt-6 self-center rounded-full bg-[#4CAF50] px-6 py-3"
                 onPress={requestPermission}
                 activeOpacity={0.85}
               >
-                <Text className="text-[14px] font-bold text-white">Cap quyen camera</Text>
+                <Text className="text-[14px] font-bold text-white">Cấp quyền camera</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -259,7 +259,7 @@ const ScanScreen: React.FC = () => {
           <View className="absolute inset-0 items-center justify-center bg-black/45 px-6">
             <ActivityIndicator size="large" color={Colors.white} />
             <Text className="mt-3 text-[14px] font-semibold text-white">
-              Dang mo anh tu thu vien...
+              Đang mở ảnh từ thư viện...
             </Text>
           </View>
         )}
@@ -295,9 +295,9 @@ const ScanScreen: React.FC = () => {
                 <Ionicons name="images-outline" size={22} color={Colors.primary} />
               </View>
               <View className="flex-1">
-                <Text className="text-[15px] font-bold text-[#1B3A1E]">Mo thu vien anh</Text>
+                <Text className="text-[15px] font-bold text-[#1B3A1E]">Mở thư viện ảnh</Text>
                 <Text className="mt-1 text-[12px] text-[#5D7C61]">
-                  Chon anh rac da chup san de AI phan tich
+                  Chọn ảnh rác đã chụp sẵn để AI phân tích
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={Colors.textMuted} />

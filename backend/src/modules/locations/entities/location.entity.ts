@@ -7,7 +7,6 @@ import { AcceptedWasteType } from './accepted-waste-type.entity';
 import { PartnerProfile } from '../../partner/entity/partner-profile.entity';
 import { LocationCapability } from './location-capability.entity';
 import { CollectionLocationProfile } from './collection-location-profile.entity';
-import { CollectionQrSession } from './collection-qr-session.entity';
 
 @Entity('locations')
 export class Location extends BaseEntity {
@@ -82,22 +81,4 @@ export class Location extends BaseEntity {
 
   @OneToOne(() => CollectionLocationProfile, (profile) => profile.location)
   collectionProfile?: CollectionLocationProfile;
-
-  @OneToMany(() => CollectionQrSession, (session) => session.location)
-  qrSessions: CollectionQrSession[];
-
-  @Column({
-    name: 'qr_secret',
-    type: 'varchar',
-    length: 255,
-    nullable: true,
-  })
-  qrSecret?: string | null;
-
-  @BeforeInsert()
-  generateQrSecret() {
-    if (!this.qrSecret) {
-      this.qrSecret = crypto.randomUUID().replace(/-/g, '');
-    }
-  }
 }

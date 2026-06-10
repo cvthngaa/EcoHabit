@@ -18,6 +18,8 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { FraudModule } from './modules/fraud/fraud.module';
+import { BadgesModule } from './modules/badges/badges.module';
+import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
 
 @Module({
   imports: [
@@ -52,8 +54,11 @@ import { FraudModule } from './modules/fraud/fraud.module';
     AuditModule,
     DashboardModule,
     FraudModule,
+    BadgesModule,
+    LeaderboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule { }
+

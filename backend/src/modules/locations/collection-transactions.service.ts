@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository, MoreThan, DataSource } from 'typeorm';
+import { Redis } from 'ioredis';
 import * as crypto from 'crypto';
 import { DropoffTransaction } from './entities/dropoff-transaction.entity';
 import { Location } from './entities/location.entity';
@@ -11,12 +12,12 @@ import { PointsService } from '../points/points.service';
 import { PointTransactionType } from '../points/enums/point-transaction-type.enum';
 import { PointSourceType } from '../points/enums/point-source-type.enum';
 import { PartnerRoleType } from '../partner/enum/partner-role-type.enum';
-import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { FraudService } from '../fraud/fraud.service';
 import { LocationStatus } from './enums/location-status.enum';
-
-/** Maximum allowed distance (km) between user GPS and location for a valid check-in */
-const MAX_CHECKIN_DISTANCE_KM = 0.5; // 500 metres
+import { BadgesService } from '../badges/badges.service';
+import { JwtService } from '@nestjs/jwt';
+import { ScanUserQrDto } from './dto/scan-user-qr.dto';
+import { AcceptedWasteType } from './entities/accepted-waste-type.entity';
 
 @Injectable()
 export class CollectionTransactionsService {
@@ -28,151 +29,105 @@ export class CollectionTransactionsService {
     private readonly partnersService: PartnersService,
     private readonly pointsService: PointsService,
     private readonly fraudService: FraudService,
-  ) {}
-
-  /**
-   * Haversine formula — returns distance in kilometres between two GPS points.
-   */
-  private calculateDistanceKm(
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number,
-  ): number {
-    const R = 6371; // Earth radius in km
-    const toRad = (deg: number) => (deg * Math.PI) / 180;
-
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    private readonly jwtService: JwtService,
+    private readonly dataSource: DataSource,
+    @Optional() private readonly badgesService: BadgesService,
+  ) {
+    const redisUrl = process.env.REDIS_URL?.trim();
+    if (redisUrl && redisUrl.startsWith('redis')) {
+      this.redisClient = new Redis(redisUrl);
+    } else {
+      this.redisClient = new Redis(); // localhost:6379
+    }
   }
 
-  async checkIn(userId: string, data: CreateCheckinDto) {
+  private redisClient: Redis;
+
+  // ✅ OPTION 3: PARTNER QUÉT MÃ QR CỦA USER
+  async scanUserQr(partnerUserId: string, data: ScanUserQrDto) {
+    // 1. Kiểm tra Partner có quyền COLLECTOR và có sở hữu Location này không
+    const partnerProfile = await this.partnersService.getPartnerSummaryByUserId(partnerUserId);
+    if (!partnerProfile || !partnerProfile.roleTypes.includes(PartnerRoleType.COLLECTOR)) {
+      throw new ForbiddenException('Bạn không có quyền thu gom.');
+    }
+
     const location = await this.locationRepo.findOne({
       where: { id: data.locationId },
-      relations: ['capabilities', 'partnerProfile'],
+      relations: ['partnerProfile'],
     });
 
     if (!location) {
-      throw new NotFoundException('Location not found');
+      throw new NotFoundException('Trạm thu gom không tồn tại.');
     }
 
-    const hasCollectionCap = location.capabilities.some(
-      (cap) => cap.capability === LocationCapabilityType.COLLECTION,
-    );
-
-    if (!hasCollectionCap) {
-      throw new BadRequestException('Location does not support waste collection');
+    if (location.partnerProfile?.id !== partnerProfile.id) {
+      throw new ForbiddenException('Bạn không có quyền quản lý trạm thu gom này.');
     }
 
-    if (location.status !== LocationStatus.APPROVED) {
-      throw new BadRequestException('Location is not active or approved for check-in');
+    // 2. Giải mã qrToken từ máy User
+    let userId = '';
+    try {
+      const decoded = this.jwtService.verify(data.qrToken);
+      if (decoded.type !== 'PERSONAL_QR') {
+        throw new Error('Invalid token type');
+      }
+      userId = decoded.sub;
+    } catch (e) {
+      throw new BadRequestException('Mã QR không hợp lệ hoặc đã hết hạn.');
     }
 
-    // --- GPS distance validation ---
-    let distanceKm: number | null = null;
+    // 2.5 Chống Replay Attack (Mỗi QR token chỉ được dùng 1 lần)
+    const tokenHash = crypto.createHash('sha256').update(data.qrToken).digest('hex');
+    const redisKey = `used_qr:${tokenHash}`;
+    const isUsed = await this.redisClient.get(redisKey);
+    if (isUsed) {
+      throw new BadRequestException('Mã QR này đã được sử dụng. Vui lòng tạo mã mới.');
+    }
+    
+    // Lưu vào Redis, hết hạn sau 5 phút (300s)
+    await this.redisClient.set(redisKey, '1', 'EX', 300);
 
-    if (
-      location.latitude != null &&
-      location.longitude != null
-    ) {
-      distanceKm = this.calculateDistanceKm(
-        data.userLatitude,
-        data.userLongitude,
-        location.latitude,
-        location.longitude,
-      );
+    // 3. Tạo giao dịch và duyệt ngay lập tức (Vì Partner quét trực tiếp) trong Transaction
+    const saved = await this.dataSource.transaction(async (manager) => {
+      const dropoff = manager.create(DropoffTransaction, {
+        location: { id: location.id } as any,
+        user: { id: userId } as any,
+        status: DropoffStatus.VERIFIED,
+        confirmedAt: new Date(),
+        verifiedBy: { id: partnerUserId } as any,
+        pointsAwarded: data.pointsAwarded,
+        quantityValue: data.quantityValue ?? null,
+        quantityUnit: data.quantityUnit ?? null,
+      });
 
-      // Round to 3 decimal places for cleaner storage
-      distanceKm = Math.round(distanceKm * 1000) / 1000;
+      if (data.acceptedWasteTypeId) {
+        dropoff.acceptedWasteType = { id: data.acceptedWasteTypeId } as AcceptedWasteType;
+      }
 
-      if (distanceKm > MAX_CHECKIN_DISTANCE_KM) {
-        // Ghi fraud flag trước khi throw — fire-and-forget
-        void this.fraudService.flagCheckinTooFar({
+      const savedTx = await manager.save(DropoffTransaction, dropoff);
+
+      // 4. Cộng điểm cho User
+      if (data.pointsAwarded > 0) {
+        await this.pointsService.addPoint(
           userId,
-          locationId: location.id,
-          distanceKm,
-          userLatitude: data.userLatitude,
-          userLongitude: data.userLongitude,
-        });
-
-        throw new BadRequestException(
-          `You are too far from this location (${distanceKm.toFixed(2)} km). ` +
-          `Please be within ${MAX_CHECKIN_DISTANCE_KM * 1000}m to check in.`,
+          data.pointsAwarded,
+          PointTransactionType.EARN,
+          PointSourceType.DROPOFF_TRANSACTION,
+          savedTx.id,
+          undefined,
+          undefined,
+          manager,
         );
       }
-    }
-
-    // --- QR token validation ---
-    if (!data.qrToken) {
-      throw new BadRequestException('Mã QR không hợp lệ (thiếu token).');
-    }
-    if (!location.qrSecret || location.qrSecret !== data.qrToken) {
-      throw new BadRequestException('Mã QR không hợp lệ. Vui lòng quét lại mã QR tại điểm thu gom.');
-    }
-
-    // --- Rate Limit Validation (10 mins cooldown) ---
-    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-    const recentCheckin = await this.dropoffRepo.findOne({
-      where: {
-        user: { id: userId },
-        location: { id: location.id },
-        createdAt: MoreThan(tenMinutesAgo),
-      },
+      return savedTx;
     });
 
-    if (recentCheckin) {
-      throw new BadRequestException('Bạn đã check-in tại địa điểm này gần đây. Vui lòng thử lại sau 10 phút.');
+    // Evaluate badge conditions asynchronously
+    if (this.badgesService) {
+      void this.badgesService.evaluateUserBadges(userId);
     }
 
-    const dropoff = this.dropoffRepo.create({
-      user: { id: userId },
-      location: { id: location.id },
-      acceptedWasteType: data.acceptedWasteTypeId ? { id: data.acceptedWasteTypeId } : null,
-      quantityValue: data.quantityValue,
-      quantityUnit: data.quantityUnit,
-      userLatitude: data.userLatitude,
-      userLongitude: data.userLongitude,
-      distanceKm,
-      status: DropoffStatus.PENDING,
-    });
-
-    if (location.partnerProfile?.autoConfirmCheckin) {
-      dropoff.status = DropoffStatus.VERIFIED;
-      dropoff.confirmedAt = new Date();
-      // Default 10 points per unit
-      const pointsAwarded = Math.max(1, Math.round((data.quantityValue || 1) * 10));
-      dropoff.pointsAwarded = pointsAwarded;
-      
-      const result = await this.dropoffRepo.save(dropoff);
-      
-      await this.pointsService.addPoint(
-        userId,
-        pointsAwarded,
-        PointTransactionType.EARN,
-        PointSourceType.DROPOFF_TRANSACTION,
-        result.id,
-      );
-
-      void this.fraudService.checkDailyCollectionCheckins(userId, data.locationId);
-      return result;
-    }
-
-    const result = await this.dropoffRepo.save(dropoff);
-
-    // Kiểm tra check-in quá thường xuyên — fire-and-forget, không chặn flow
-    void this.fraudService.checkDailyCollectionCheckins(userId, data.locationId);
-
-    return result;
+    return saved;
   }
 
   async getMyCheckins(userId: string) {
@@ -204,114 +159,4 @@ export class CollectionTransactionsService {
     });
   }
 
-  async verifyTransaction(userId: string, transactionId: string, pointsAwarded: number) {
-    const partnerProfile = await this.partnersService.getPartnerSummaryByUserId(userId);
-    if (!partnerProfile || !partnerProfile.roleTypes.includes(PartnerRoleType.COLLECTOR)) {
-      throw new ForbiddenException('Only approved collectors can verify transactions');
-    }
-
-    const dropoff = await this.dropoffRepo.findOne({
-      where: { id: transactionId },
-      relations: ['location', 'location.partnerProfile', 'user'],
-    });
-
-    if (!dropoff) {
-      throw new NotFoundException('Transaction not found');
-    }
-
-    if (dropoff.location?.partnerProfile?.id !== partnerProfile.id) {
-      throw new ForbiddenException('This transaction belongs to a location managed by another partner');
-    }
-
-    if (dropoff.status !== DropoffStatus.PENDING) {
-      throw new BadRequestException('Transaction is not pending');
-    }
-
-    if (!dropoff.user) {
-      throw new BadRequestException('Transaction does not have an associated user');
-    }
-
-    // Award points (idempotent — skip if already awarded)
-    const hasAwarded = await this.pointsService.hasTransactionForSource(
-      dropoff.user.id,
-      PointSourceType.DROPOFF_TRANSACTION,
-      dropoff.id,
-    );
-
-    if (!hasAwarded) {
-      await this.pointsService.addPoint(
-        dropoff.user.id,
-        pointsAwarded,
-        PointTransactionType.EARN,
-        PointSourceType.DROPOFF_TRANSACTION,
-        dropoff.id,
-      );
-    }
-
-    dropoff.status = DropoffStatus.VERIFIED;
-    dropoff.verifiedBy = { id: userId } as any;
-    dropoff.pointsAwarded = pointsAwarded;
-    dropoff.confirmedAt = new Date();
-
-    return this.dropoffRepo.save(dropoff);
-  }
-
-  async rejectTransaction(userId: string, transactionId: string, rejectionReason: string) {
-    const partnerProfile = await this.partnersService.getPartnerSummaryByUserId(userId);
-    if (!partnerProfile || !partnerProfile.roleTypes.includes(PartnerRoleType.COLLECTOR)) {
-      throw new ForbiddenException('Only approved collectors can reject transactions');
-    }
-
-    const dropoff = await this.dropoffRepo.findOne({
-      where: { id: transactionId },
-      relations: ['location', 'location.partnerProfile'],
-    });
-
-    if (!dropoff) {
-      throw new NotFoundException('Transaction not found');
-    }
-
-    if (dropoff.location?.partnerProfile?.id !== partnerProfile.id) {
-      throw new ForbiddenException('This transaction belongs to a location managed by another partner');
-    }
-
-    if (dropoff.status !== DropoffStatus.PENDING) {
-      throw new BadRequestException('Transaction is not pending');
-    }
-
-    dropoff.status = DropoffStatus.REJECTED;
-    dropoff.rejectionReason = rejectionReason || null;
-    dropoff.confirmedAt = new Date();
-
-    return this.dropoffRepo.save(dropoff);
-  }
-
-  async generateLocationQr(userId: string, locationId: string, regenerate = false): Promise<string> {
-    const partnerProfile = await this.partnersService.getPartnerSummaryByUserId(userId);
-    if (!partnerProfile || !partnerProfile.roleTypes.includes(PartnerRoleType.COLLECTOR)) {
-      throw new ForbiddenException('Only approved collectors can generate QR codes');
-    }
-
-    const location = await this.locationRepo.findOne({
-      where: { id: locationId },
-      relations: ['partnerProfile'],
-    });
-
-    if (!location) {
-      throw new NotFoundException('Location not found');
-    }
-
-    if (location.partnerProfile?.id !== partnerProfile.id) {
-      throw new ForbiddenException('You can only generate QR codes for your own locations');
-    }
-
-    if (!regenerate && location.qrSecret) {
-      return location.qrSecret;
-    }
-
-    location.qrSecret = crypto.randomUUID().replace(/-/g, '');
-    await this.locationRepo.save(location);
-
-    return location.qrSecret;
-  }
 }

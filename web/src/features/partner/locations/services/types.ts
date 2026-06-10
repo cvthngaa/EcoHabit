@@ -2,7 +2,7 @@ export type LocationType = 'BIN' | 'CENTER' | 'COLLECTION_POINT';
 export type LocationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'INACTIVE';
 export type LocationCapabilityType = 'COLLECTION' | 'REWARD_PICKUP';
 export type CollectionSiteType = 'MACHINE' | 'COUNTER' | 'BIN';
-export type WasteType = 'PLASTIC' | 'PAPER' | 'BATTERY' | 'GLASS' | 'METAL' | 'OTHER';
+export type WasteType = 'PLASTIC' | 'PAPER' | 'BATTERY' | 'GLASS' | 'METAL' | 'E_WASTE' | 'TEXTILE' | 'OTHER';
 export type TransactionStatus = 'PENDING' | 'VERIFIED' | 'REJECTED' | 'CANCELED';
 export type QuantityUnit = 'KG' | 'GRAM' | 'PIECE' | 'LITER';
 

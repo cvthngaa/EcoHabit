@@ -48,7 +48,7 @@ const ScanAnalysisScreen: React.FC = () => {
 
   useEffect(() => {
     if (!imageUri) {
-      showToast('Khong tim thay anh de phan tich.', 'error');
+      showToast('Không tìm thấy ảnh để phân tích.', 'error');
       navigation.goBack();
     }
   }, [imageUri, navigation, showToast]);
@@ -92,9 +92,10 @@ const ScanAnalysisScreen: React.FC = () => {
             friction: 9,
           }).start();
         }, 350);
-      } catch (error) {
+      } catch (error: any) {
         if (cancelled) return;
-        showToast('Khong the goi AI. Vui long kiem tra backend va thu lai.', 'error');
+        const msg = error?.response?.data?.message || error?.message || 'Không thể gọi AI. Vui lòng kiểm tra backend và thử lại.';
+        showToast(msg, 'error');
         navigation.goBack();
       }
     };
@@ -110,12 +111,12 @@ const ScanAnalysisScreen: React.FC = () => {
     if (result) {
       if (result.pointsEarned > 0) {
         if (result.awarded) {
-          showToast(`+${result.pointsEarned} diem xanh da duoc cong vao tai khoan!`, 'success');
+          showToast(`+${result.pointsEarned} điểm xanh đã được cộng vào tài khoản!`, 'success');
         } else {
-          showToast('Xac nhan phan loai thanh cong!', 'success');
+          showToast('Xác nhận phân loại thành công!', 'success');
         }
       } else {
-        showToast('Da luu ket qua phan loai!', 'success');
+        showToast('Đã lưu kết quả phân loại!', 'success');
       }
     }
 
@@ -124,7 +125,7 @@ const ScanAnalysisScreen: React.FC = () => {
 
   const handleManualPick = useCallback((category: WasteCategory) => {
     setShowManualPicker(false);
-    showToast(`Da ghi nhan ${category.label}. Cam on ban da dong gop!`, 'success');
+    showToast(`Đã ghi nhận ${category.label}. Cảm ơn bạn đã đóng góp!`, 'success');
     navigation.goBack();
   }, [navigation, showToast]);
 
@@ -142,7 +143,7 @@ const ScanAnalysisScreen: React.FC = () => {
             <Ionicons name="arrow-back" size={22} color={Colors.textPrimary} />
           </TouchableOpacity>
           <Text className="text-[18px] font-bold text-[#1B3A1E]">
-            Dang phan tich
+            Đang phân tích
           </Text>
           <View className="w-[38px]" />
         </View>
@@ -174,7 +175,7 @@ const ScanAnalysisScreen: React.FC = () => {
           >
             <Ionicons name="arrow-back" size={22} color={Colors.white} />
           </TouchableOpacity>
-          <Text className="text-[18px] font-bold text-white">Ket qua AI</Text>
+          <Text className="text-[18px] font-bold text-white">Kết quả AI</Text>
           <View className="w-[22px]" />
         </LinearGradient>
 
@@ -199,7 +200,7 @@ const ScanAnalysisScreen: React.FC = () => {
               className="mb-1 text-[14px] font-semibold"
               style={{ color: result.success ? Colors.primary : Colors.warning }}
             >
-              {result.success ? 'Da nhan dien!' : 'Khong xac dinh'}
+              {result.success ? 'Đã nhận diện!' : 'Không xác định'}
             </Text>
 
             <Text
@@ -219,7 +220,7 @@ const ScanAnalysisScreen: React.FC = () => {
               <View className="mt-3 w-full flex-row rounded-2xl bg-[#FFEBEE] p-4">
                 <Ionicons name="alert-circle" size={20} color={Colors.warning} />
                 <Text className="ml-2 flex-1 text-[13px] font-medium leading-5 text-[#D32F2F]">
-                  Do tin cay thap. Ket qua co the khong chinh xac. Hay chup lai hoac chon thu cong.
+                  Độ tin cậy thấp. Kết quả có thể không chính xác. Hãy chụp lại hoặc chọn thủ công.
                 </Text>
               </View>
             )}
@@ -228,7 +229,7 @@ const ScanAnalysisScreen: React.FC = () => {
               <View className="mt-3 w-full flex-row rounded-2xl bg-[#FFF8E1] p-4">
                 <Ionicons name="information-circle" size={20} color={Colors.warning} />
                 <Text className="ml-2 flex-1 text-[13px] font-medium leading-5 text-[#F57F17]">
-                  Do tin cay trung binh. Vui long kiem tra lai ket qua.
+                  Độ tin cậy trung bình. Vui lòng kiểm tra lại kết quả.
                 </Text>
               </View>
             )}
@@ -237,7 +238,7 @@ const ScanAnalysisScreen: React.FC = () => {
               <View className="mb-2 flex-row items-center">
                 <Ionicons name="bulb" size={16} color={Colors.primary} />
                 <Text className="ml-1.5 text-[14px] font-bold text-[#2E7D32]">
-                  Huong dan xu ly
+                  Hướng dẫn xử lý
                 </Text>
               </View>
               <Text className="text-[13px] leading-5 text-[#5D7C61]">{result.disposalTip}</Text>
@@ -249,7 +250,7 @@ const ScanAnalysisScreen: React.FC = () => {
                   <View className="flex-row items-center">
                     <Ionicons name="star" size={18} color={Colors.white} />
                     <Text className="ml-1.5 text-[15px] font-bold text-white">
-                      +{result.pointsEarned} diem xanh
+                      +{result.pointsEarned} điểm xanh
                     </Text>
                   </View>
                 </LinearGradient>
@@ -262,10 +263,10 @@ const ScanAnalysisScreen: React.FC = () => {
               </View>
               <View className="flex-1">
                 <Text className="text-[13px] font-bold text-[#1B3A1E]">
-                  Diem thu gom gan nhat
+                  Điểm thu gom gần nhất
                 </Text>
                 <Text className="mt-0.5 text-[12px] text-[#8FA892]">
-                  Diem thu gom B1 · 0.3 km
+                  Điểm thu gom B1 · 0.3 km
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
@@ -278,7 +279,7 @@ const ScanAnalysisScreen: React.FC = () => {
               onPress={handleBackToScan}
             >
               <Ionicons name="refresh" size={20} color={Colors.textSecondary} />
-              <Text className="ml-1.5 text-[15px] font-semibold text-[#5D7C61]">Quet lai</Text>
+              <Text className="ml-1.5 text-[15px] font-semibold text-[#5D7C61]">Quét lại</Text>
             </TouchableOpacity>
 
             {isLowConfidence ? (
@@ -290,7 +291,7 @@ const ScanAnalysisScreen: React.FC = () => {
                 <LinearGradient colors={[Colors.warning, '#FF8F00']} style={{ height: 52, borderRadius: 999 }}>
                   <View className="h-full flex-row items-center justify-center">
                     <Ionicons name="hand-left" size={18} color={Colors.white} />
-                    <Text className="ml-2 text-[15px] font-bold text-white">Chon thu cong</Text>
+                    <Text className="ml-2 text-[15px] font-bold text-white">Chọn thủ công</Text>
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
@@ -303,7 +304,7 @@ const ScanAnalysisScreen: React.FC = () => {
                 <LinearGradient colors={[Colors.primaryGradientStart, Colors.primaryLight]} style={{ height: 52, borderRadius: 999 }}>
                   <View className="h-full items-center justify-center">
                     <Text className="text-[15px] font-bold text-white">
-                      Luu ket qua {result.pointsEarned > 0 ? `(+${result.pointsEarned}d)` : ''}
+                      Lưu kết quả {result.pointsEarned > 0 ? `(+${result.pointsEarned}d)` : ''}
                     </Text>
                   </View>
                 </LinearGradient>
@@ -326,10 +327,10 @@ const ScanAnalysisScreen: React.FC = () => {
             <View className="rounded-t-[28px] bg-white p-6" style={{ paddingBottom: insets.bottom + 16 }}>
               <View className="mb-4 h-1 w-10 self-center rounded-full bg-[#C8E6C9]" />
               <Text className="text-center text-[20px] font-extrabold text-[#1B3A1E]">
-                Chon loai rac thu cong
+                Chọn loại rác thủ công
               </Text>
               <Text className="mb-5 mt-1 text-center text-[13px] text-[#8FA892]">
-                Chon loai rac phu hop nhat
+                Chọn loại rác phù hợp nhất
               </Text>
 
               <View className="flex-row flex-wrap justify-center">

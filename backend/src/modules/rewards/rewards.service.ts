@@ -3,9 +3,11 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository, ILike, Between, IsNull, Not } from 'typeorm';
+import { DataSource, Repository, ILike, Between, IsNull, Not, LessThan } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { Reward } from './entities/reward.entity';
 import { RewardPickupOption } from './entities/reward-pickup-option.entity';
 import { CreateRewardDto } from './dto/create-reward.dto';
@@ -27,6 +29,8 @@ import { FraudService } from '../fraud/fraud.service';
 
 @Injectable()
 export class RewardsService {
+  private readonly logger = new Logger(RewardsService.name);
+
   constructor(
     @InjectRepository(Reward)
     private readonly rewardRepo: Repository<Reward>,
@@ -38,7 +42,7 @@ export class RewardsService {
     private readonly pointsService: PointsService,
     private readonly auditService: AuditService,
     private readonly fraudService: FraudService,
-  ) {}
+  ) { }
 
   async getAllRewards() {
     return this.rewardRepo.find({
@@ -83,9 +87,9 @@ export class RewardsService {
   }
 
   async getRewards(id: string) {
-    return this.rewardRepo.findOne({ 
+    return this.rewardRepo.findOne({
       where: { id },
-      relations: ['pickupOptions', 'pickupOptions.location', 'partnerProfile'] 
+      relations: ['pickupOptions', 'pickupOptions.location', 'partnerProfile']
     });
   }
 
@@ -113,11 +117,11 @@ export class RewardsService {
     const where: any = {};
     if (status) where.status = status;
     if (partnerId) where.partnerProfile = { id: partnerId };
-    
+
     const whereConditions = search
       ? [
-          { ...where, name: ILike(`%${search}%`) },
-        ]
+        { ...where, name: ILike(`%${search}%`) },
+      ]
       : [where];
 
     const [data, total] = await this.rewardRepo.findAndCount({
@@ -157,7 +161,7 @@ export class RewardsService {
       this.rewardRepo.count({ where: { status: RewardStatus.INACTIVE } }),
       this.rewardRepo.count({ where: { stock: 0 } }),
       this.rewardRepo.count({ where: { stock: Between(1, 10) } }),
-      
+
       this.redemptionRepo.count(),
       this.redemptionRepo.count({ where: { status: RedemptionStatus.PENDING } }),
       this.redemptionRepo.count({ where: { status: RedemptionStatus.FULFILLED } }),
@@ -180,13 +184,13 @@ export class RewardsService {
   // ─── CRUD REWARDS ───────────────────────────────────────────────────────────
 
   async createRewards(
-    data: CreateRewardDto, 
+    data: CreateRewardDto,
     partnerProfileId?: string,
     adminId?: string,
     adminEmail?: string,
   ) {
     const { pickupLocationIds, ...rewardData } = data;
-    
+
     const reward = this.rewardRepo.create({
       ...rewardData,
       partnerProfile: partnerProfileId ? { id: partnerProfileId } : null,
@@ -212,8 +216,8 @@ export class RewardsService {
   }
 
   async updateRewards(
-    id: string, 
-    data: UpdateRewardDto, 
+    id: string,
+    data: UpdateRewardDto,
     partnerProfileId?: string,
     adminId?: string,
     adminEmail?: string,
@@ -227,14 +231,14 @@ export class RewardsService {
 
     const { pickupLocationIds, ...rewardData } = data;
     const previousState = { name: reward.name, pointsCost: reward.pointsCost, stock: reward.stock };
-    
+
     Object.assign(reward, rewardData);
     const updatedReward = await this.rewardRepo.save(reward);
 
     if (pickupLocationIds !== undefined) {
       // Clear old
       await this.pickupOptionRepo.delete({ reward: { id: updatedReward.id } });
-      
+
       // Add new
       if (pickupLocationIds.length > 0) {
         const options = pickupLocationIds.map(locId => this.pickupOptionRepo.create({
@@ -284,14 +288,14 @@ export class RewardsService {
   }
 
   async deleteRewards(
-    id: string, 
+    id: string,
     partnerProfileId?: string,
     adminId?: string,
     adminEmail?: string,
   ) {
     const reward = await this.rewardRepo.findOne({ where: { id }, relations: ['partnerProfile'] });
     if (!reward) throw new NotFoundException(`Reward ${id} not found`);
-    
+
     if (partnerProfileId && reward.partnerProfile?.id !== partnerProfileId) {
       throw new ForbiddenException('You can only delete your own rewards');
     }
@@ -315,10 +319,21 @@ export class RewardsService {
       const rewardRepo = manager.getRepository(Reward);
       const redemptionRepo = manager.getRepository(Redemption);
 
-      const reward = await rewardRepo.findOne({ where: { id: dto.rewardId } });
+      // Khóa Row-level PESSIMISTIC_WRITE để ngăn chặn Race Condition (Overselling)
+      // Tách riêng truy vấn relations để tránh lỗi "FOR UPDATE cannot be applied to nullable side of outer join"
+      const reward = await manager.createQueryBuilder(Reward, 'reward')
+        .where('reward.id = :id', { id: dto.rewardId })
+        .setLock('pessimistic_write')
+        .getOne();
+
       if (!reward) {
         throw new NotFoundException(`Reward ${dto.rewardId} not found`);
       }
+
+      const pickupOptions = await manager.getRepository(RewardPickupOption).find({
+        where: { reward: { id: reward.id } }
+      });
+      reward.pickupOptions = pickupOptions;
 
       this.assertRewardRedeemable(reward);
 
@@ -332,11 +347,15 @@ export class RewardsService {
         throw new BadRequestException('Reward is out of stock');
       }
 
+      // Nếu không có pickupOptions (E-Voucher) -> FULFILLED, nếu không -> PENDING
+      const isDigital = !reward.pickupOptions || reward.pickupOptions.length === 0;
+      const initialStatus = isDigital ? RedemptionStatus.FULFILLED : RedemptionStatus.PENDING;
+
       const redemption = redemptionRepo.create({
         user: { id: userId },
         reward: { id: reward.id },
         pointsSpent: pointsCost,
-        status: RedemptionStatus.PENDING,
+        status: initialStatus,
       });
 
       const savedRedemption = await redemptionRepo.save(redemption);
@@ -408,7 +427,7 @@ export class RewardsService {
     if (userId) where.user = { id: userId };
     if (rewardId) where.reward = { id: rewardId };
     if (partnerId) where.reward = { ...where.reward, partnerProfile: { id: partnerId } };
-    
+
     if (from || to) {
       where.createdAt = Between(
         from ? new Date(from) : new Date(0),
@@ -566,5 +585,84 @@ export class RewardsService {
         `Cannot change redemption status from ${currentStatus} to ${nextStatus}`,
       );
     }
+  }
+
+  // ─── CRONJOBS ───────────────────────────────────────────────────────────────
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async processStuckRedemptions() {
+    this.logger.log('Bắt đầu quét các giao dịch đổi quà bị kẹt (PENDING > 48h)...');
+    const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
+
+    const stuckRedemptions = await this.redemptionRepo.find({
+      where: {
+        status: RedemptionStatus.PENDING,
+        createdAt: LessThan(fortyEightHoursAgo),
+      },
+      relations: ['user', 'reward'],
+    });
+
+    if (stuckRedemptions.length === 0) {
+      this.logger.log('Không tìm thấy giao dịch đổi quà nào bị kẹt.');
+      return;
+    }
+
+    this.logger.log(`Phát hiện ${stuckRedemptions.length} giao dịch bị kẹt. Đang tiến hành hoàn điểm...`);
+
+    for (const redemption of stuckRedemptions) {
+      try {
+        await this.dataSource.transaction(async (manager) => {
+          const redemptionRepo = manager.getRepository(Redemption);
+          const rewardRepo = manager.getRepository(Reward);
+
+          const reward = redemption.reward;
+          const user = redemption.user;
+
+          if (!reward || !user) {
+            this.logger.error(`Bỏ qua giao dịch ${redemption.id} do thiếu thông tin user hoặc reward.`);
+            return; // Skip this iteration
+          }
+
+          // 1. Hoàn điểm cho user
+          const pointsSpent = redemption.pointsSpent ?? 0;
+          if (pointsSpent > 0) {
+            await this.pointsService.addPoint(
+              user.id,
+              pointsSpent,
+              PointTransactionType.EARN,
+              PointSourceType.REDEMPTION,
+              redemption.id,
+              'REDEMPTION_REFUND',
+              `Tự động hoàn điểm do giao dịch đổi quà quá 48h không được duyệt`,
+              manager,
+            );
+          }
+
+          // 2. Cộng lại stock (nếu có)
+          if (reward.stock !== null && reward.stock !== undefined) {
+            // Dùng pessimistic lock để cập nhật stock an toàn
+            const lockedReward = await rewardRepo.findOne({
+              where: { id: reward.id },
+              lock: { mode: 'pessimistic_write' },
+            });
+            
+            if (lockedReward && lockedReward.stock !== null && lockedReward.stock !== undefined) {
+              lockedReward.stock += 1;
+              await rewardRepo.save(lockedReward);
+            }
+          }
+
+          // 3. Đánh dấu REJECTED
+          redemption.status = RedemptionStatus.REJECTED;
+          await redemptionRepo.save(redemption);
+          
+          this.logger.log(`Đã hoàn thành xử lý giao dịch kẹt: ${redemption.id}`);
+        });
+      } catch (error: any) {
+        this.logger.error(`Lỗi khi xử lý giao dịch kẹt ${redemption.id}: ${error.message}`);
+      }
+    }
+    
+    this.logger.log('Hoàn tất quét các giao dịch bị kẹt.');
   }
 }

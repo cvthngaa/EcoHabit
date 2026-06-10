@@ -14,7 +14,6 @@ import { CollectionLocationProfile } from './entities/collection-location-profil
 import { AcceptedWasteType } from './entities/accepted-waste-type.entity';
 import { CreateCollectionPointDto } from './dto/create-collection-point.dto';
 import { UpdateCollectionPointDto } from './dto/update-collection-point.dto';
-import { CreateCheckinDto } from './dto/create-checkin.dto';
 import { UserRole } from '../users/enums/user-role.enum';
 import { LocationStatus } from './enums/location-status.enum';
 import { DropoffStatus } from './enums/dropoff-status.enum';

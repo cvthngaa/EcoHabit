@@ -19,7 +19,7 @@ export const CAPABILITY_LABEL: Record<LocationCapabilityType, string> = {
   COLLECTION: 'Thu gom', REWARD_PICKUP: 'Nhận quà',
 };
 export const WASTE_LABEL: Record<WasteType, string> = {
-  PLASTIC: 'Nhựa', PAPER: 'Giấy', BATTERY: 'Pin', GLASS: 'Thuỷ tinh', METAL: 'Kim loại', OTHER: 'Khác',
+  PLASTIC: 'Nhựa', PAPER: 'Giấy', BATTERY: 'Pin', GLASS: 'Thuỷ tinh', METAL: 'Kim loại', E_WASTE: 'Rác điện tử', TEXTILE: 'Vải/Quần áo', OTHER: 'Khác',
 };
 /** Safe lookup — returns the label or falls back to the raw key */
 export const getWasteLabel = (key: string | null | undefined): string =>

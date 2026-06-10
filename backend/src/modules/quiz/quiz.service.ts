@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -10,6 +11,7 @@ import { PointTransactionType } from '../points/enums/point-transaction-type.enu
 import { PointsService } from '../points/points.service';
 import { GeminiService } from '../gemini/gemini.service';
 import { FraudService } from '../fraud/fraud.service';
+import { BadgesService } from '../badges/badges.service';
 import { QuizQuestion } from './entities/quiz-question.entity';
 import { QuizAttempt } from './entities/quiz-attempt.entity';
 import { QuizAttemptAnswer } from './entities/quiz-attempt-answer.entity';
@@ -17,7 +19,6 @@ import { DailyQuizSet } from './entities/daily-quiz-set.entity';
 import { DailyQuizSetQuestion } from './entities/daily-quiz-set-question.entity';
 import { QuizQuestionStatus } from './enums/quiz-question-status.enum';
 import { QuizDifficulty } from './enums/quiz-difficulty.enum';
-import { GenerateQuizDto } from './dto/generate-quiz.dto';
 import { ListQuizHistoryQueryDto } from './dto/list-quiz-history-query.dto';
 import { getTodayInVietnam } from './utils/quiz-date.util';
 import { shuffle } from './utils/quiz-random.util';
@@ -43,31 +44,8 @@ export class QuizService {
     private readonly geminiService: GeminiService,
     private readonly pointsService: PointsService,
     private readonly fraudService: FraudService,
+    @Optional() private readonly badgesService: BadgesService,
   ) { }
-
-  async generateQuiz(dto: GenerateQuizDto) {
-    const count = dto.count ?? DAILY_QUIZ_QUESTION_COUNT;
-    const difficulty = dto.difficulty;
-    const topic = dto.topic ?? 'general';
-
-    const aiQuestions = await this.geminiService.generateQuizQuestions({
-      topic,
-      difficulty: difficulty === QuizDifficulty.MIXED ? undefined : (difficulty as any),
-      count,
-    });
-
-    if (aiQuestions.length > 0) {
-      return {
-        topic,
-        difficulty: difficulty ?? 'mixed',
-        count: aiQuestions.length,
-        questions: aiQuestions,
-        source: 'gemini',
-      };
-    }
-
-    throw new BadRequestException('Không thể sinh câu hỏi vào lúc này.');
-  }
 
   async getDailyQuiz(userId: string) {
     const today = getTodayInVietnam();
@@ -138,7 +116,7 @@ export class QuizService {
     for (let i = 0; i < questions.length; i++) {
       const question = questions[i];
       const userAnswerIndex = answers[i];
-      
+
       const sortedOptions = question.options.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
       const correctIndex = sortedOptions.findIndex((o: any) => o.isCorrect);
       const isCorrect = userAnswerIndex === correctIndex;
@@ -168,7 +146,11 @@ export class QuizService {
     let isRewarded = false;
 
     if (!alreadyRewarded) {
-      pointsEarned = score * POINTS_PER_CORRECT_ANSWER;
+      const pointsPerAnswer = await this.pointsService.getRulePoints(
+        'QUIZ_CORRECT_ANSWER',
+        POINTS_PER_CORRECT_ANSWER,
+      );
+      pointsEarned = score * pointsPerAnswer;
       if (pointsEarned > 0) {
         await this.pointsService.addPoint(
           userId,
@@ -210,6 +192,11 @@ export class QuizService {
     });
 
     await this.attemptRepo.save(attempt);
+
+    // Evaluate badge conditions asynchronously (fire-and-forget)
+    if (this.badgesService) {
+      void this.badgesService.evaluateUserBadges(userId);
+    }
 
     return {
       score,
@@ -283,7 +270,7 @@ export class QuizService {
         for (const tId of topicIds) {
           await this.findOrCreateDailyQuizSet(today, tId);
         }
-        
+
         sets = await this.dailyQuizSetRepo.find({
           where: { quizDate: today }
         });
@@ -329,7 +316,7 @@ export class QuizService {
     });
 
     const selected = shuffle(validQuestions).slice(0, DAILY_QUIZ_QUESTION_COUNT);
-    
+
     if (selected.length === 0) return [];
 
     let totalScore = 0;

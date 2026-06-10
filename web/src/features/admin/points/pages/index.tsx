@@ -3,8 +3,9 @@ import { Plus } from 'lucide-react';
 import { DataTable, type ColumnDef } from '../../../../shared/components/DataTable';
 import { AdminPageHeader, AdminStatCard, AdminSection, StatusPill } from '../../shared/admin-ui';
 import { SearchFilterBar } from '../../../../shared/components/SearchFilterBar';
-import { usePointRules, usePointTransactions, useUpdatePointRule } from '../services/queries';
-import type { PointRule, AdminPointTransaction } from '../services/types';
+import { usePointRules, usePointTransactions } from '../services/queries';
+import type { PointRule, AdminPointTransaction, PointEventType } from '../services/types';
+import { AdminPointRuleDrawer } from '../components/AdminPointRuleDrawer';
 
 const EVENT_TYPE_LABEL: Record<string, string> = {
   CLASSIFICATION_CORRECT: 'Phân loại AI đúng',
@@ -29,7 +30,8 @@ export const AdminPointsPage: React.FC = () => {
 
   const { data: rules = [], isLoading: rulesLoading } = usePointRules();
   const { data: txData, isLoading: txLoading } = usePointTransactions({ page: txPage, limit: 20 });
-  const { mutate: toggleRule, isPending: isToggling } = useUpdatePointRule();
+
+  const [editingRule, setEditingRule] = useState<PointRule | null>(null);
 
   const filteredRules = rules.filter((r) =>
     !rulesSearch || r.name.toLowerCase().includes(rulesSearch.toLowerCase()) ||
@@ -41,16 +43,21 @@ export const AdminPointsPage: React.FC = () => {
     {
       header: 'Mã / Tên',
       render: (r) => (
-        <div>
-          <p className="font-bold text-sm text-slate-800">{r.name}</p>
+        <div 
+          className="cursor-pointer hover:bg-slate-50 p-2 -m-2 rounded-lg transition-colors"
+          onClick={() => setEditingRule(r)}
+        >
+          <p className="font-bold text-sm text-slate-800 hover:text-emerald-600 transition-colors">{r.name}</p>
           <p className="font-mono text-[11px] text-slate-400">{r.code}</p>
         </div>
       ),
     },
     {
-      header: 'Sự kiện',
+      header: 'Mô tả',
       render: (r) => (
-        <span className="text-sm text-slate-600">{EVENT_TYPE_LABEL[r.eventType] ?? r.eventType}</span>
+        <span className="text-sm text-slate-600 truncate max-w-xs inline-block" title={r.description ?? ''}>
+          {r.description || '—'}
+        </span>
       ),
     },
     {
@@ -63,22 +70,6 @@ export const AdminPointsPage: React.FC = () => {
     {
       header: 'Trạng thái',
       render: (r) => <StatusPill status={r.isActive ? 'ACTIVE' : 'INACTIVE'} />,
-    },
-    {
-      header: '',
-      render: (r) => (
-        <button
-          onClick={() => toggleRule({ id: r.id, dto: { isActive: !r.isActive } })}
-          disabled={isToggling}
-          className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-colors disabled:opacity-50 ${
-            r.isActive
-              ? 'text-rose-700 bg-rose-50 hover:bg-rose-100'
-              : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
-          }`}
-        >
-          {r.isActive ? 'Tắt' : 'Bật'}
-        </button>
-      ),
     },
   ];
 
@@ -138,11 +129,6 @@ export const AdminPointsPage: React.FC = () => {
       <AdminPageHeader
         title="Quy tắc điểm"
         description="Cấu hình điểm thưởng theo từng sự kiện và xem lịch sử giao dịch điểm của toàn hệ thống."
-        action={
-          <button className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-slate-800 transition-colors">
-            <Plus className="h-4 w-4" />Tạo quy tắc
-          </button>
-        }
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -212,6 +198,13 @@ export const AdminPointsPage: React.FC = () => {
             />
           </div>
         </AdminSection>
+      )}
+
+      {editingRule && (
+        <AdminPointRuleDrawer 
+          rule={editingRule} 
+          onClose={() => setEditingRule(null)} 
+        />
       )}
     </div>
   );

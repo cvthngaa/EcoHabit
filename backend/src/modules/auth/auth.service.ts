@@ -7,6 +7,7 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { Redis } from 'ioredis';
 import * as nodemailer from 'nodemailer';
 import { UserStatus } from '../users/enums/user-status.enum';
@@ -50,8 +51,32 @@ export class AuthService implements OnModuleDestroy {
     this.transporter.close();
   }
 
+  private async checkOtpRateLimit(email: string) {
+    const cooldownKey = `otp_cooldown:${email}`;
+    const dailyKey = `otp_daily:${email}`;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const dailyKeyToday = `${dailyKey}:${todayStr}`;
+
+    const isInCooldown = await this.redisClient.get(cooldownKey);
+    if (isInCooldown) {
+      throw new BadRequestException('Vui lòng đợi 60 giây trước khi yêu cầu mã OTP mới.');
+    }
+
+    const dailyCount = await this.redisClient.incr(dailyKeyToday);
+    if (dailyCount === 1) {
+      await this.redisClient.expire(dailyKeyToday, 86400); // 24h
+    }
+    if (dailyCount > 5) {
+      throw new BadRequestException('Bạn đã vượt quá giới hạn 5 lần yêu cầu OTP trong hôm nay.');
+    }
+
+    await this.redisClient.set(cooldownKey, '1', 'EX', 60);
+  }
+
   // ✅ SEND OTP
   async sendOtp(email: string) {
+    await this.checkOtpRateLimit(email);
+
     // 1. Kiểm tra xem email đã tồn tại trong DB chưa
     const existingUser = await this.usersService.findByEmail(email);
     if (existingUser) {
@@ -235,8 +260,17 @@ export class AuthService implements OnModuleDestroy {
       }
     }
 
+    const refreshToken = crypto.randomUUID();
+    await this.redisClient.set(
+      `refresh_token:${refreshToken}`,
+      user.id,
+      'EX',
+      7 * 24 * 60 * 60, // 7 days
+    );
+
     return {
       access_token: this.jwtService.sign(payload),
+      refresh_token: refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -252,6 +286,8 @@ export class AuthService implements OnModuleDestroy {
 
   // ✅ SEND OTP FOR PASSWORD RESET
   async sendPasswordResetOtp(email: string) {
+    await this.checkOtpRateLimit(email);
+
     // 1. Kiểm tra xem email có tồn tại không
     const existingUser = await this.usersService.findByEmail(email);
     if (!existingUser) {
@@ -362,5 +398,59 @@ export class AuthService implements OnModuleDestroy {
     await this.usersService.updatePassword(user.id, hashed);
 
     return { message: 'Đổi mật khẩu thành công.' };
+  }
+
+  // ✅ GENERATE PERSONAL QR
+  async generatePersonalQr(userId: string) {
+    const payload = {
+      sub: userId,
+      type: 'PERSONAL_QR',
+    };
+    return {
+      qrToken: this.jwtService.sign(payload, { expiresIn: '5m' }),
+    };
+  }
+
+  // ✅ REFRESH TOKEN
+  async refreshToken(refreshToken: string) {
+    const userId = await this.redisClient.get(`refresh_token:${refreshToken}`);
+    if (!userId) {
+      throw new UnauthorizedException('Refresh token không hợp lệ hoặc đã hết hạn.');
+    }
+
+    const user = await this.usersService.findById(userId);
+    if (!user || user.status === UserStatus.LOCKED) {
+      throw new UnauthorizedException('Tài khoản không hợp lệ hoặc đã bị khoá.');
+    }
+
+    const payload = {
+      sub: user.id,
+      role: user.role,
+      fullName: user.fullName,
+      email: user.email,
+    };
+
+    // Rotate refresh token
+    await this.redisClient.del(`refresh_token:${refreshToken}`);
+    const newRefreshToken = crypto.randomUUID();
+    await this.redisClient.set(
+      `refresh_token:${newRefreshToken}`,
+      user.id,
+      'EX',
+      7 * 24 * 60 * 60, // 7 days
+    );
+
+    return {
+      access_token: this.jwtService.sign(payload),
+      refresh_token: newRefreshToken,
+    };
+  }
+
+  // ✅ LOGOUT
+  async logout(refreshToken: string) {
+    if (refreshToken) {
+      await this.redisClient.del(`refresh_token:${refreshToken}`);
+    }
+    return { message: 'Đăng xuất thành công.' };
   }
 }

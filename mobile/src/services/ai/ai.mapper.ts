@@ -10,6 +10,8 @@ const WASTE_TYPE_TO_CATEGORY: Record<WasteType, WasteCategory> = {
   METAL: wasteCategories[2],
   GLASS: wasteCategories[4],
   BATTERY: wasteCategories[5],
+  E_WASTE: wasteCategories[5],
+  TEXTILE: wasteCategories[0],
   OTHER: DEFAULT_CATEGORY,
 };
 

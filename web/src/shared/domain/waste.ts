@@ -1,4 +1,4 @@
-export type WasteType = 'PLASTIC' | 'PAPER' | 'BATTERY' | 'GLASS' | 'METAL' | 'OTHER';
+export type WasteType = 'PLASTIC' | 'PAPER' | 'BATTERY' | 'GLASS' | 'METAL' | 'E_WASTE' | 'TEXTILE' | 'OTHER';
 
 export interface AcceptedWasteType {
   wasteType: WasteType;
@@ -11,6 +11,8 @@ export const WASTE_LABEL: Record<WasteType, string> = {
   BATTERY: 'Pin',
   GLASS: 'Thuỷ tinh',
   METAL: 'Kim loại',
+  E_WASTE: 'Rác điện tử',
+  TEXTILE: 'Vải/Quần áo',
   OTHER: 'Khác',
 };
 

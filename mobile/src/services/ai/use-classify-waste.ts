@@ -35,6 +35,10 @@ export function useClassifyWaste() {
 
       logClassificationResult(response.data);
 
+      if (!response.data.classificationId && response.data.message) {
+        throw new Error(response.data.message);
+      }
+
       return mapClassificationResponse(response.data);
     },
   });

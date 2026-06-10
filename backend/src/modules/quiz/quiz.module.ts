@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { QuizController } from './controllers/quiz.controller';
 import { AdminQuizController } from './controllers/admin-quiz.controller';
@@ -8,6 +8,7 @@ import { GeminiModule } from '../gemini/gemini.module';
 import { PointsModule } from '../points/points.module';
 import { FraudModule } from '../fraud/fraud.module';
 import { AuditModule } from '../audit/audit.module';
+import { BadgesModule } from '../badges/badges.module';
 import { QuizQuestion } from './entities/quiz-question.entity';
 import { QuizOption } from './entities/quiz-option.entity';
 import { QuizAttempt } from './entities/quiz-attempt.entity';
@@ -29,9 +30,10 @@ import { DailyQuizSetQuestion } from './entities/daily-quiz-set-question.entity'
     PointsModule,
     FraudModule,
     AuditModule,
+    forwardRef(() => BadgesModule),
   ],
   controllers: [QuizController, AdminQuizController],
   providers: [QuizService, AdminQuizService],
-  exports: [QuizService, AdminQuizService],
+  exports: [QuizService, AdminQuizService, TypeOrmModule],
 })
 export class QuizModule { }

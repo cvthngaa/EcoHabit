@@ -3,8 +3,8 @@ import { ConfidenceLevel, ImageUploadFile } from './types';
 const UNKNOWN_LABEL = 'unknown';
 
 const CONFIDENCE_THRESHOLDS = {
-  high: 0.8,
-  medium: 0.5,
+  high: 0.7,
+  medium: 0.45,
 } as const;
 
 const CONFIDENCE_LABELS: Record<ConfidenceLevel, string> = {

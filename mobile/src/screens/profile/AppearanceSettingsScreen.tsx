@@ -10,21 +10,21 @@ import FallingLeaves from '../../components/FallingLeaves';
 const options = [
   {
     key: 'light' as const,
-    label: 'Sang',
+    label: 'Sáng',
     icon: 'sunny-outline',
-    subtitle: 'Nen sang, sach va khong hien nature background.',
+    subtitle: 'Nền sáng, sạch và không hiện nền thiên nhiên.',
   },
   {
     key: 'dark' as const,
-    label: 'Toi',
+    label: 'Tối',
     icon: 'moon-outline',
-    subtitle: 'Nen toi tap trung, khong dung doi cay phia sau.',
+    subtitle: 'Nền tối tập trung, không dùng đượng cây phía sau.',
   },
   {
     key: 'nature' as const,
-    label: 'Nen',
+    label: 'Nền',
     icon: 'images-outline',
-    subtitle: 'Hien nen doi cay mau mem de giao dien huu co hon.',
+    subtitle: 'Hiện nền đượng cây màu mởm để giao diện hữu cơ hơn.',
   },
 ];
 
@@ -69,13 +69,13 @@ const AppearanceSettingsScreen: React.FC<any> = ({ navigation }) => {
   const handleSave = () => {
     const modeLabel =
       appearance === 'light'
-        ? 'giao dien sang'
+        ? 'giao diện sáng'
         : appearance === 'dark'
-          ? 'giao dien toi'
-          : 'giao dien nen doi cay';
+          ? 'giao diện tối'
+          : 'giao diện nền đượng cây';
 
     showToast(
-      showLeaves ? `Da luu ${modeLabel} kem hieu ung la roi.` : `Da luu ${modeLabel}.`,
+      showLeaves ? `Đã lưu ${modeLabel} kèm hiệu ứng lá rơi.` : `Đã lưu ${modeLabel}.`,
       'success'
     );
   };
@@ -97,8 +97,8 @@ const AppearanceSettingsScreen: React.FC<any> = ({ navigation }) => {
       subtitle="Tuy chinh cach EcoHabit hien thi tren thiet bi cua ban."
       icon="color-palette-outline"
       color={Colors.warning}
-      heroTitle="Khong gian de nhin hon"
-      heroSubtitle="Chon sang, toi hoac nen doi cay, va bat la roi neu ban muon mot cam giac nhe nha."
+      heroTitle="Không gian dễ nhìn hơn"
+      heroSubtitle="Chọn sáng, tối hoặc nền đượng cây, và bật lá rơi nếu bạn muốn một cảm giác nhẹ nhàng."
       actionLabel="Luu giao dien"
       onAction={handleSave}
       backgroundColor={screenBackgroundColor}
@@ -115,7 +115,7 @@ const AppearanceSettingsScreen: React.FC<any> = ({ navigation }) => {
             <View>
               <Text style={[styles.previewGreeting, { color: previewTheme.title }]}>EcoHabit</Text>
               <Text style={[styles.previewCaption, { color: previewTheme.subtitle }]}>
-                Ban dang xem kieu giao dien da chon
+                Bạn đang xem kiểu giao diện đã chọn
               </Text>
             </View>
             <View style={[styles.previewBadge, { backgroundColor: previewTheme.accent }]}>
@@ -125,9 +125,9 @@ const AppearanceSettingsScreen: React.FC<any> = ({ navigation }) => {
 
           <View style={styles.previewBody}>
             <View style={[styles.previewCard, { backgroundColor: previewTheme.card }]}>
-              <Text style={[styles.previewCardTitle, { color: previewTheme.title }]}>Nhiem vu hom nay</Text>
+              <Text style={[styles.previewCardTitle, { color: previewTheme.title }]}>Nhiệm vụ hôm nay</Text>
               <Text style={[styles.previewCardText, { color: previewTheme.subtitle }]}>
-                Quet QR, lam quiz va tich them diem xanh.
+                Quét QR, làm quiz và tích thêm điểm xanh.
               </Text>
             </View>
             <View
@@ -137,9 +137,9 @@ const AppearanceSettingsScreen: React.FC<any> = ({ navigation }) => {
                 { backgroundColor: previewTheme.card },
               ]}
             >
-              <Text style={[styles.previewCardTitle, { color: previewTheme.title }]}>Qua noi bat</Text>
+              <Text style={[styles.previewCardTitle, { color: previewTheme.title }]}>Quà nổi bật</Text>
               <Text style={[styles.previewCardText, { color: previewTheme.subtitle }]}>
-                Binh nuoc tai che va voucher cay xanh.
+                Bình nước tái chế và voucher cây xanh.
               </Text>
             </View>
           </View>
@@ -147,7 +147,7 @@ const AppearanceSettingsScreen: React.FC<any> = ({ navigation }) => {
       </View>
 
       <View style={profileDetailStyles.card}>
-        <Text style={profileDetailStyles.cardTitle}>Phong cach hien thi</Text>
+        <Text style={profileDetailStyles.cardTitle}>Phong cách hiển thị</Text>
         <View style={styles.optionsColumn}>
           {options.map((option) => {
             const active = appearance === option.key;
@@ -190,9 +190,9 @@ const AppearanceSettingsScreen: React.FC<any> = ({ navigation }) => {
       <View style={profileDetailStyles.card}>
         <View style={profileDetailStyles.toggleRow}>
           <View style={styles.toggleTextWrap}>
-            <Text style={profileDetailStyles.toggleText}>Them hieu ung la roi</Text>
+            <Text style={profileDetailStyles.toggleText}>Thêm hiệu ứng lá rơi</Text>
             <Text style={profileDetailStyles.optionSubtitle}>
-              La roi it, troi cham va nhe de giu cam giac thu gian.
+              Lá rơi ít, trôi chậm và nhẹ để giữ cảm giác thư giãn.
             </Text>
           </View>
           <Switch
@@ -205,11 +205,11 @@ const AppearanceSettingsScreen: React.FC<any> = ({ navigation }) => {
       </View>
 
       <View style={profileDetailStyles.card}>
-        <Text style={profileDetailStyles.cardTitle}>Luu y</Text>
+        <Text style={profileDetailStyles.cardTitle}>Lưu ý</Text>
         {[
-          'Che do Sang va Toi giu bo cuc gon, khong hien nature background.',
-          'Che do Nen phu hop khi ban muon giao dien mem mat hon va gan tinh than song xanh.',
-          'La roi duoc giu thua va cham de tranh roi mat khi su dung hang ngay.',
+          'Chế độ Sáng và Tối giữ bố cục gọn, không hiện nền thiên nhiên.',
+          'Chế độ Nền phù hợp khi bạn muốn giao diện mềm mại hơn và gần tinh thần sống xanh.',
+          'Lá rơi được giữ thưa và chậm để tránh rối mắt khi sử dụng hàng ngày.',
         ].map((tip, index) => (
           <View key={index} style={[profileDetailStyles.tipRow, index > 0 && profileDetailStyles.tipSpacing]}>
             <Ionicons name="leaf-outline" size={16} color={Colors.warning} />

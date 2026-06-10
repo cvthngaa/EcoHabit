@@ -22,7 +22,7 @@ const QuickActions = ({
   onCorrect: () => void;
   isPending: boolean;
 }) => {
-  if (item.status === 'REVIEWED') {
+  if (item.status === 'REVIEWED' || item.reviewedAt) {
     return <span className="text-[11px] text-slate-400 italic">Đã xử lý</span>;
   }
   return (

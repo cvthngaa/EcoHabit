@@ -16,6 +16,8 @@ const WASTE_TYPES: { value: WasteType; label: string }[] = [
   { value: 'BATTERY', label: 'Pin' },
   { value: 'GLASS', label: 'Thuỷ tinh' },
   { value: 'METAL', label: 'Kim loại' },
+  { value: 'E_WASTE', label: 'Rác điện tử' },
+  { value: 'TEXTILE', label: 'Vải/Quần áo' },
   { value: 'OTHER', label: 'Khác' },
 ];
 

@@ -43,7 +43,7 @@ import { QRCodeSVG } from 'qrcode.react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const ALL_WASTE_TYPES: WasteType[] = ['PLASTIC', 'PAPER', 'BATTERY', 'GLASS', 'METAL', 'OTHER'];
+const ALL_WASTE_TYPES: WasteType[] = ['PLASTIC', 'PAPER', 'BATTERY', 'GLASS', 'METAL', 'E_WASTE', 'TEXTILE', 'OTHER'];
 const ALL_CAPABILITY_TYPES: LocationCapabilityType[] = ['COLLECTION', 'REWARD_PICKUP'];
 const ALL_LOCATION_TYPES: LocationType[] = ['BIN', 'CENTER', 'COLLECTION_POINT'];
 const ALL_LOCATION_STATUSES: LocationStatus[] = ['PENDING', 'APPROVED', 'REJECTED', 'INACTIVE'];
