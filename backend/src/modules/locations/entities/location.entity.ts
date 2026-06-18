@@ -69,6 +69,13 @@ export class Location extends BaseEntity {
   })
   status?: LocationStatus | null;
 
+  @Column({
+    name: 'avatar_url',
+    type: 'text',
+    nullable: true,
+  })
+  avatarUrl?: string | null;
+
   @OneToMany(() => AcceptedWasteType, (accepted) => accepted.location)
   acceptedWasteTypes: AcceptedWasteType[];
 

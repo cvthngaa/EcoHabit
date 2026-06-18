@@ -6,7 +6,7 @@ export function useUpdateLocation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, dto }: { id: string; dto: UpdateCollectionPointDto }): Promise<Location> => {
-      const res = await apiClient.patch<Location>(`/collection-points/${id}`, dto);
+      const res = await apiClient.patch<Location>(`/partner/collection-points/${id}`, dto);
       return res.data;
     },
     onSuccess: (_, variables) => {

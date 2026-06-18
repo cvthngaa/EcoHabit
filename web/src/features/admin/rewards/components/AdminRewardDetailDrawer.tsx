@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Power, PowerOff, Gift, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { X, Power, PowerOff, Gift, Clock, CheckCircle, XCircle, Store } from 'lucide-react';
 import {
   useAdminRewardDetail,
   useUpdateRewardStatus,
@@ -54,6 +54,8 @@ export const AdminRewardDetailDrawer = ({
     }
   };
 
+  const providerName = reward.partnerProfile?.organizationName || 'Hệ thống';
+
   return (
     <>
       <div className="fixed inset-0 z-40 bg-slate-900/20 backdrop-blur-sm" onClick={onClose} />
@@ -107,7 +109,9 @@ export const AdminRewardDetailDrawer = ({
               )}
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-slate-900 line-clamp-2">{reward.name}</h3>
-                <p className="text-sm text-slate-500 mt-1">{reward.partnerProfile?.organizationName || 'Hệ thống'}</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Nhà cung cấp: <span className="font-semibold text-slate-700">{providerName}</span>
+                </p>
                 <div className="mt-2 flex items-center gap-2">
                   <StatusPill status={reward.status} />
                 </div>
@@ -174,6 +178,17 @@ export const AdminRewardDetailDrawer = ({
           <div className="p-6">
             {activeTab === 'info' && (
               <div className="space-y-4 text-sm">
+                <div className="rounded-xl border border-slate-100 p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                      <Store className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold uppercase text-slate-500">Nhà cung cấp</p>
+                      <p className="mt-1 font-semibold text-slate-900">{providerName}</p>
+                    </div>
+                  </div>
+                </div>
                 <div className="rounded-xl border border-slate-100 p-4">
                   <p className="font-semibold text-slate-900 mb-2">Mô tả chi tiết</p>
                   <p className="text-slate-600 whitespace-pre-wrap">{reward.description || 'Không có mô tả'}</p>

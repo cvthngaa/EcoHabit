@@ -5,17 +5,17 @@ import { PointHistoryResponse } from './types';
 export const pointHistoryQueryKey = ['points', 'history'] as const;
 
 type UseGetPointHistoryOptions = {
-  enabled?: boolean;
+ enabled?: boolean;
 };
 
 export function useGetPointHistory({ enabled = true }: UseGetPointHistoryOptions = {}) {
-  return useQuery({
-    queryKey: pointHistoryQueryKey,
-    queryFn: async (): Promise<PointHistoryResponse> => {
-      const response = await api.get<PointHistoryResponse>('/points/history');
+ return useQuery({
+ queryKey: pointHistoryQueryKey,
+ queryFn: async (): Promise<PointHistoryResponse> => {
+ const response = await api.get<PointHistoryResponse>('/points/history');
 
-      return response.data;
-    },
-    enabled,
-  });
+ return response.data;
+ },
+ enabled,
+ });
 }

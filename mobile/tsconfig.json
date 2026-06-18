@@ -3,5 +3,10 @@
   "compilerOptions": {
     "strict": true,
     "jsxImportSource": "nativewind"
-  }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "nativewind-env.d.ts"
+  ]
 }

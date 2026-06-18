@@ -63,18 +63,32 @@ export class AiController {
           format: 'binary',
           description: 'Anh rac can phan loai',
         },
+        latitude: {
+          type: 'number',
+          description: 'Vi do hien tai cua nguoi dung',
+        },
+        longitude: {
+          type: 'number',
+          description: 'Kinh do hien tai cua nguoi dung',
+        },
       },
     },
   })
   @ApiOperation({ summary: 'Phan loai rac tu anh' })
   async classify(
     @UploadedFile() file: Express.Multer.File,
+    @Body('latitude') latitudeStr: string,
+    @Body('longitude') longitudeStr: string,
     @Request() req: AuthenticatedRequest,
   ) {
     if (!file) {
       throw new BadRequestException('Vui long upload mot file anh');
     }
-    return this.aiService.classifyImage(file, req.user.userId);
+    
+    const latitude = latitudeStr ? parseFloat(latitudeStr) : undefined;
+    const longitude = longitudeStr ? parseFloat(longitudeStr) : undefined;
+
+    return this.aiService.classifyImage(file, req.user.userId, latitude, longitude);
   }
 
   @Post('feedback/:classificationId')
@@ -102,32 +116,40 @@ export class AiController {
   ) {
     return this.aiService.getHistory(req.user.userId, limit, page);
   }
+}
 
-  @Get('admin/feedback')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+@ApiTags('Admin AI Classification')
+@ApiBearerAuth()
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles(UserRole.ADMIN)
+@Controller('admin/ai')
+export class AdminAiController {
+  constructor(private readonly aiService: AiService) {}
+
+  @Get('feedback')
   @ApiOperation({ summary: 'Admin xem lich su phan hoi' })
   async getAdminFeedbacks() {
     return this.aiService.getAdminFeedbacks();
   }
 
-  @Get('admin/classifications')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Get('classifications')
   @ApiOperation({ summary: 'Admin xem danh sach phan loai AI' })
   async getAdminClassifications(@Query() query: ListClassificationsQueryDto) {
     return this.aiService.getAdminClassifications(query);
   }
 
-  @Patch('admin/classifications/:id/review')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN)
+  @Patch('classifications/:id/review')
   @ApiOperation({ summary: 'Admin duyet phan loai AI' })
   async reviewClassification(
     @Param('id') id: string,
     @Body() dto: ReviewClassificationDto,
     @Request() req: AuthenticatedRequest,
   ) {
-    return this.aiService.reviewClassification(id, req.user.userId, req.user.email, dto);
+    return this.aiService.reviewClassification(
+      id,
+      req.user.userId,
+      req.user.email,
+      dto,
+    );
   }
 }

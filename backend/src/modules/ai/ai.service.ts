@@ -21,6 +21,7 @@ import { AdminAuditAction } from '../audit/enums/admin-audit-action.enum';
 import { ReviewClassificationDto, ReviewAction } from './dto/review-classification.dto';
 import { ListClassificationsQueryDto } from './dto/list-classifications-query.dto';
 import { BadgesService } from '../badges/badges.service';
+import { LocationsService } from '../locations/locations.service';
 @Injectable()
 export class AiService {
   private readonly aiServiceUrl: string;
@@ -36,6 +37,7 @@ export class AiService {
     private readonly fraudService: FraudService,
     private readonly auditService: AuditService,
     private readonly dataSource: DataSource,
+    private readonly locationsService: LocationsService,
     @Optional() private readonly badgesService: BadgesService,
   ) {
     this.aiServiceUrl =
@@ -49,7 +51,7 @@ export class AiService {
     });
   }
 
-  async classifyImage(file: Express.Multer.File, userId: string) {
+  async classifyImage(file: Express.Multer.File, userId: string, latitude?: number, longitude?: number) {
     let imageUrl: string;
     try {
       const uploadResult = await new Promise<{ secure_url: string }>(
@@ -218,6 +220,15 @@ export class AiService {
       void this.badgesService.evaluateUserBadges(userId);
     }
 
+    let nearestLocation: any = null;
+    if (latitude !== undefined && longitude !== undefined && aiResult.wasteType) {
+      nearestLocation = await this.locationsService.getNearestCollectionPointByWasteType(
+        aiResult.wasteType as WasteType,
+        latitude,
+        longitude
+      );
+    }
+
     return {
       classificationId: saved.id,
       imageUrl,
@@ -234,6 +245,7 @@ export class AiService {
       balanceAfter,
       requiresReview: !isHighConfidence,
       dailyLimitReached,
+      nearestLocation,
     };
   }
 

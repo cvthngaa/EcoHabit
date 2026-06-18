@@ -13,6 +13,9 @@ import { PartnerApprovalStatus } from './enum/partner-approval-status.enum';
 import { PartnerRoleType } from './enum/partner-role-type.enum';
 import { AuditService } from '../audit/audit.service';
 import { AdminAuditAction } from '../audit/enums/admin-audit-action.enum';
+import { Location } from '../locations/entities/location.entity';
+import { LocationStatus } from '../locations/enums/location-status.enum';
+import { UserStatus } from '../users/enums/user-status.enum';
 
 @Injectable()
 export class PartnersService {
@@ -23,6 +26,8 @@ export class PartnersService {
     private readonly partnerRoleTypeRepository: Repository<PartnerRoleTypeEntity>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Location)
+    private readonly locationRepository: Repository<Location>,
     private readonly auditService: AuditService,
   ) {}
 
@@ -256,13 +261,36 @@ export class PartnersService {
     if (dto.reason) user.lockedReason = dto.reason;
     await this.userRepository.save(user);
 
+    let disabledLocations = 0;
+    if (dto.status === UserStatus.LOCKED || dto.status === UserStatus.BANNED) {
+      const result = await this.locationRepository
+        .createQueryBuilder()
+        .update(Location)
+        .set({ status: LocationStatus.INACTIVE })
+        .where('partner_profile_id = :partnerProfileId', {
+          partnerProfileId: profile.id,
+        })
+        .andWhere('status IN (:...statuses)', {
+          statuses: [LocationStatus.APPROVED, LocationStatus.PENDING],
+        })
+        .execute();
+
+      disabledLocations = result.affected ?? 0;
+    }
+
     await this.auditService.log(adminUserId, adminName, AdminAuditAction.USER_STATUS_CHANGE, user.id, {
       partnerProfileId: id,
       newStatus: dto.status,
       reason: dto.reason ?? null,
+      disabledLocations,
     });
 
-    return { message: `Partner account status updated to ${dto.status}`, userId: user.id, status: dto.status };
+    return {
+      message: `Partner account status updated to ${dto.status}`,
+      userId: user.id,
+      status: dto.status,
+      disabledLocations,
+    };
   }
 
   // ─── HELPERS ────────────────────────────────────────────────────────────────

@@ -232,7 +232,15 @@ export const Settings: React.FC = () => {
   const setOpsKey = (key: keyof typeof ops) => (v: boolean) =>
     setOps((prev) => ({ ...prev, [key]: v }));
 
+  const [defaultPoints, setDefaultPoints] = useState('10');
+
+  useEffect(() => {
+    const storedPoints = localStorage.getItem('partner_default_points');
+    if (storedPoints) setDefaultPoints(storedPoints);
+  }, []);
+
   const handleUpdateOperations = () => {
+    localStorage.setItem('partner_default_points', defaultPoints);
     updateProfileMutation.mutate(
       { autoConfirmCheckin: ops.autoConfirmCheckin },
       {
@@ -478,6 +486,15 @@ export const Settings: React.FC = () => {
                 min="0"
                 value={weightLimit}
                 onChange={(e) => setWeightLimit(e.target.value)}
+                className={`${inputCls} max-w-[120px]`}
+              />
+            </FieldRow>
+            <FieldRow label="Điểm cộng mặc định khi quét QR" hint="Số điểm được tự động cộng cho mỗi lượt quét">
+              <input
+                type="number"
+                min="1"
+                value={defaultPoints}
+                onChange={(e) => setDefaultPoints(e.target.value)}
                 className={`${inputCls} max-w-[120px]`}
               />
             </FieldRow>

@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { UsersController } from './controllers/users.controller';
 import { UsersService } from './users.service';
 import { User } from './entities/user.entity';
 import { AdminUsersController } from './controllers/admin-users.controller';
@@ -22,7 +21,7 @@ import { AuditModule } from '../audit/audit.module';
     ]),
     AuditModule,
   ],
-  controllers: [UsersController, AdminUsersController],
+  controllers: [AdminUsersController],
   providers: [UsersService, AdminUsersService],
   exports: [UsersService],
 })

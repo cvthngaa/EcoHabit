@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getAdminCollectionPoints } from './api';
+import { getAdminCollectionPointDetail, getAdminCollectionPoints } from './api';
 
 export const locationKeys = {
   all: ['admin-collection-points'] as const,
@@ -13,5 +13,13 @@ export const useAdminCollectionPoints = () => {
   return useQuery({
     queryKey: locationKeys.list({}),
     queryFn: () => getAdminCollectionPoints(),
+  });
+};
+
+export const useAdminCollectionPointDetail = (id: string | null) => {
+  return useQuery({
+    queryKey: id ? locationKeys.detail(id) : locationKeys.details(),
+    queryFn: () => getAdminCollectionPointDetail(id!),
+    enabled: !!id,
   });
 };

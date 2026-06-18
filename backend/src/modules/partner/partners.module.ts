@@ -6,10 +6,11 @@ import { PartnersController } from './controllers/partners.controller';
 import { PartnersService } from './partners.service';
 import { AuditModule } from '../audit/audit.module';
 import { User } from '../users/entities/user.entity';
+import { Location } from '../locations/entities/location.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([PartnerProfile, PartnerRoleTypeEntity, User]),
+    TypeOrmModule.forFeature([PartnerProfile, PartnerRoleTypeEntity, User, Location]),
     AuditModule,
   ],
   controllers: [PartnersController],

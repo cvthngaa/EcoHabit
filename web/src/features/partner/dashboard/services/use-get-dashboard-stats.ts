@@ -6,7 +6,7 @@ export const useGetDashboardStats = (filter: 'today' | 'week' | 'month' | 'year'
   return useQuery({
     queryKey: ['dashboard-stats', filter],
     queryFn: async (): Promise<DashboardStatsResponse> => {
-      const { data } = await apiClient.get('/admin/dashboard/stats', {
+      const { data } = await apiClient.get('/partner/dashboard/stats', {
         params: { filter }
       });
       return data;

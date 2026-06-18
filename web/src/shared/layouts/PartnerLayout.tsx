@@ -1,6 +1,6 @@
 import React from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, Store, MapPin, ListOrdered, Gift, Settings, LogOut, Bell } from 'lucide-react';
+import { LayoutDashboard, Store, MapPin, ListOrdered, Gift, Settings, LogOut, Bell, ScanLine } from 'lucide-react';
 import clsx from 'clsx';
 import { useGetProfile } from '../../features/auth/services/use-get-profile';
 import { useAuth } from '../../features/auth/store/auth.store';
@@ -11,6 +11,7 @@ const navigation = [
   { name: 'Hồ sơ doanh nghiệp', to: '/partner/profile', icon: Store },
   { name: 'Điểm thu gom', to: '/partner/locations', icon: MapPin },
   { name: 'Lịch sử thu gom', to: '/partner/transactions', icon: ListOrdered },
+  { name: 'Quét mã QR', to: '/partner/scan-qr', icon: ScanLine },
   { name: 'Quà tặng & Voucher', to: '/partner/rewards', icon: Gift },
 ];
 
@@ -45,7 +46,7 @@ export const PartnerLayout: React.FC = () => {
             
             // Hide specific routes if partner doesn't have the role
             if (item.to === '/partner/rewards' && !isRewardProvider) return null;
-            if ((item.to === '/partner/locations' || item.to === '/partner/transactions') && !isCollector) return null;
+            if ((item.to === '/partner/locations' || item.to === '/partner/transactions' || item.to === '/partner/scan-qr') && !isCollector) return null;
 
             return (
               <NavLink

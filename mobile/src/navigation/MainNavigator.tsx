@@ -11,6 +11,7 @@ import MapScreen from '../screens/map/MapScreen';
 import RewardsScreen from '../screens/rewards/RewardsScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 import Colors from '../theme/colors';
+import AppScreenBackground from '../components/AppScreenBackground';
 
 export type MainTabParamList = {
   Home: undefined;
@@ -98,7 +99,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 const MainNavigator: React.FC = () => (
   <Tab.Navigator
     tabBar={props => <CustomTabBar {...props} />}
-    screenOptions={{ headerShown: false }}
+    screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: 'transparent' } }}
   >
     <Tab.Screen name="Home" component={HomeScreen} />
     <Tab.Screen name="Map" component={MapScreen} />
@@ -115,11 +116,6 @@ const styles = StyleSheet.create({
     paddingTop: 10,
     paddingHorizontal: 8,
     borderTopWidth: 0,
-    elevation: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
     position: 'relative',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
@@ -161,11 +157,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 10,
-    shadowColor: Colors.primaryGradientStart,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
     borderWidth: 4,
     borderColor: Colors.white,
   },

@@ -9,7 +9,7 @@ import { useCreateReward } from '../services/use-create-reward';
 import { useUpdateReward } from '../services/use-update-reward';
 import { useDeleteReward } from '../services/use-delete-reward';
 import { useUpdateRedemptionStatus } from '../services/use-update-redemption-status';
-import { useGetLocations } from '../../locations/services/queries';
+import { useGetLocations } from '../../locations/services/use-get-locations';
 import type { Reward, Redemption, RewardStatus, RedemptionStatus, CreateRewardDto } from '../services/types';
 import { Badge, Modal, StatCard, DataTable, IconButton } from '../../../../shared/components';
 import { apiClient } from '../../../../shared/services/api-client';
@@ -60,7 +60,6 @@ const RewardFormModal: React.FC<RewardFormModalProps> = ({ reward, onClose }) =>
     pointsCost: reward?.pointsCost ?? 100,
     stock: reward?.stock ?? 10,
     status: reward?.status ?? 'DRAFT',
-    pickupLocationIds: reward?.pickupOptions?.map(p => p.location?.id).filter(Boolean) as string[] ?? [],
     pickupLocationIds: reward?.pickupOptions?.map(p => p.location?.id).filter(Boolean) as string[] ?? [],
   });
   const [isUploading, setIsUploading] = useState(false);

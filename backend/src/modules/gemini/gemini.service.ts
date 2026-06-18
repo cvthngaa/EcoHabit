@@ -17,27 +17,13 @@ import {
 
 @Injectable()
 export class GeminiService {
-  private dailyTipCache: { dateKey: string; tip: GeminiDailyTip } | null = null;
   private dailyTipQuotaCooldownUntil: number | null = null;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: ConfigService) { }
 
   async getDailyTip(): Promise<GeminiDailyTip> {
-    const todayKey = this.getTodayKey();
-
-    if (this.dailyTipCache?.dateKey === todayKey) {
-      return this.dailyTipCache.tip;
-    }
-
     const tip = await this.generateDailyTipWithGemini();
-    const resolvedTip = tip ?? this.getFallbackDailyTip();
-
-    this.dailyTipCache = {
-      dateKey: todayKey,
-      tip: resolvedTip,
-    };
-
-    return resolvedTip;
+    return tip ?? this.getFallbackDailyTip();
   }
 
   async generateQuizQuestions(params: {
@@ -120,7 +106,7 @@ export class GeminiService {
   }
 
   private getFallbackDailyTip(): GeminiDailyTip {
-    const dayIndex = new Date().getDate() % DAILY_TIP_FALLBACKS.length;
+    const dayIndex = Math.floor(Math.random() * DAILY_TIP_FALLBACKS.length);
 
     return {
       ...DAILY_TIP_FALLBACKS[dayIndex],
@@ -210,18 +196,22 @@ Yeu cau:
   }
 
   private buildDailyTipPrompt(): string {
-    const today = new Date().toISOString().slice(0, 10);
+    const requestSeed = new Date().toISOString();
 
-    return `Ban la tro ly EcoHabit.
-Hay tao 1 meo vat ngan gon bang tieng Viet cho muc "Meo vat hom nay" trong app song xanh vao ngay ${today}.
-Yeu cau:
-- Noi dung huu ich, thuc te, de lam trong doi song
-- Chu de lien quan den giam rac, tai che, phan loai rac hoac song xanh
-- Tieu de toi da 8 tu
-- Noi dung toi da 2 cau, ngan gon, than thien
-- Chon 1 emoji phu hop
-- Khong dung markdown
-- Chi tra ve JSON hop le theo schema da yeu cau`;
+    return `Bạn là trợ lý EcoHabit.
+Hãy tạo 1 mẹo vặt mới, ngắn gọn bằng tiếng Việt có dấu cho mục "Mẹo vặt hôm nay" trong app sống xanh.
+Mã làm mới: ${requestSeed}.
+
+Yêu cầu:
+- Mỗi lần được hỏi hãy ưu tiên một mẹo khác với các lần trước
+- Nội dung hữu ích, thực tế, dễ làm trong đời sống
+- Chủ đề liên quan đến giảm rác, tái chế, phân loại rác hoặc sống xanh
+- Tiêu đề tối đa 8 từ
+- Nội dung tối đa 2 câu, ngắn gọn, thân thiện
+- Bắt buộc dùng tiếng Việt có dấu đầy đủ
+- Chọn 1 emoji phù hợp
+- Không dùng markdown
+- Chỉ trả về JSON hợp lệ theo schema đã yêu cầu`;
   }
 
   private quizResponseSchema(count: number): Record<string, unknown> {
@@ -309,10 +299,18 @@ Yeu cau:
     return (
       typeof tip.title === 'string' &&
       tip.title.trim().length > 0 &&
+      this.hasVietnameseDiacritics(tip.title) &&
       typeof tip.content === 'string' &&
       tip.content.trim().length > 0 &&
+      this.hasVietnameseDiacritics(tip.content) &&
       typeof tip.emoji === 'string' &&
       tip.emoji.trim().length > 0
+    );
+  }
+
+  private hasVietnameseDiacritics(value: string): boolean {
+    return /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(
+      value,
     );
   }
 
@@ -403,10 +401,6 @@ Yeu cau:
         };
       };
     };
-  }
-
-  private getTodayKey(): string {
-    return new Date().toISOString().slice(0, 10);
   }
 
   private sleep(ms: number): Promise<void> {

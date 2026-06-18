@@ -11,6 +11,7 @@ import { Profile as PartnerProfile } from '../features/partner/profile/pages';
 import { TransactionsHistory as PartnerTransactions } from '../features/partner/transactions/pages';
 import { Settings as PartnerSettings } from '../features/partner/settings/pages';
 import { Rewards as PartnerRewards } from '../features/partner/rewards/pages';
+import { ScanQrPage as PartnerScanQr } from '../features/partner/scan-qr/pages';
 import { AdminDashboard } from '../features/admin/dashboard/pages';
 import { AdminUsersPage } from '../features/admin/users/pages';
 import { AdminPartnersPage } from '../features/admin/partners/pages';
@@ -21,7 +22,6 @@ import { AdminPointsPage } from '../features/admin/points/pages';
 import { AdminFraudPage } from '../features/admin/fraud/pages';
 import { AdminAiReviewPage } from '../features/admin/ai-review/pages';
 import { AdminAuditLogsPage } from '../features/admin/audit-logs/pages';
-import { AdminForumPage } from '../features/admin/forum/pages';
 import { AdminQuizPage } from '../features/admin/quiz/pages';
 import { AdminSettingsPage } from '../features/admin/settings/pages';
 
@@ -122,6 +122,7 @@ export const router = createBrowserRouter([
       { path: 'transactions', element: <PartnerTransactions /> },
       { path: 'rewards', element: <PartnerRewards /> },
       { path: 'settings', element: <PartnerSettings /> },
+      { path: 'scan-qr', element: <PartnerScanQr /> },
     ],
   },
   {
@@ -138,7 +139,6 @@ export const router = createBrowserRouter([
       { path: 'fraud', element: <AdminFraudPage /> },
       { path: 'ai-review', element: <AdminAiReviewPage /> },
       { path: 'audit-logs', element: <AdminAuditLogsPage /> },
-      { path: 'forum', element: <AdminForumPage /> },
       { path: 'quiz', element: <AdminQuizPage /> },
       { path: 'settings', element: <AdminSettingsPage /> },
     ],

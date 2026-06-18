@@ -1,139 +1,213 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StatusBar, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StatusBar, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { QuizTopic, useGetDailyQuiz } from '../../services/quiz';
 import { useToast } from '../../context/ToastContext';
-import PrimaryButton from '../../components/PrimaryButton';
+import Colors from '../../theme/colors';
+import SharedHeaderBackground from '../../components/SharedHeaderBackground';
+import { useSettings } from '../../context/SettingsContext';
+
+const MOCK_ICONS = [
+ { icon: 'flask', color: '#FF7A7A' }, // Science
+ { icon: 'earth', color: '#5B7CFA' }, // Geography
+ { icon: 'basketball', color: '#D946EF' }, // Sports
+ { icon: 'leaf', color: '#10B981' }, // Biology
+ { icon: 'hardware-chip', color: '#F43F5E' }, // Tech
+ { icon: 'wifi', color: '#8B5CF6' }, // Network
+ { icon: 'sunny', color: '#F59E0B' }, // Solar
+ { icon: 'airplane', color: '#3B82F6' }, // Travel
+];
 
 const QuizIntroScreen: React.FC = () => {
-  const insets = useSafeAreaInsets();
-  const navigation = useNavigation<any>();
-  const { showToast } = useToast();
-  
-  const [loading, setLoading] = useState(true);
-  const [topics, setTopics] = useState<QuizTopic[]>([]);
-  const { refetch: refetchDailyQuiz } = useGetDailyQuiz({ enabled: false });
+ const insets = useSafeAreaInsets();
+ const navigation = useNavigation<any>();
+ const { showToast } = useToast();
+ const { appearance } = useSettings();
 
-  useEffect(() => {
-    const fetchQuiz = async () => {
-      try {
-        const result = await refetchDailyQuiz({ throwOnError: true });
-        setTopics(result.data || []);
-        setLoading(false);
-      } catch (error) {
-        console.log('Load quiz error:', error);
-        showToast('Không tải được danh sách câu đố, vui lòng thử lại.', 'error');
-        navigation.goBack();
-      }
-    };
-    fetchQuiz();
-  }, [navigation, refetchDailyQuiz, showToast]);
+ const [loading, setLoading] = useState(true);
+ const [topics, setTopics] = useState<QuizTopic[]>([]);
+ const { refetch: refetchDailyQuiz } = useGetDailyQuiz({ enabled: false });
 
-  const handleStartTopic = (topic: QuizTopic) => {
-    if (topic.completed) {
-      navigation.navigate('QuizResult', {
-        score: topic.score,
-        total: topic.total,
-        pointsEarned: topic.pointsEarned,
-      });
-    } else if (topic.questions && topic.questions.length > 0) {
-      navigation.navigate('QuizPlay', { questions: topic.questions, topicId: topic.id, topicName: topic.name });
-    }
-  };
+ useEffect(() => {
+ const fetchQuiz = async () => {
+ try {
+ const result = await refetchDailyQuiz({ throwOnError: true });
+ setTopics(result.data || []);
+ setLoading(false);
+ } catch (error) {
+ console.log('Load quiz error:', error);
+ showToast('Không tải được danh sách câu đố, vui lòng thử lại.', 'error');
+ navigation.goBack();
+ }
+ };
+ fetchQuiz();
+ }, [navigation, refetchDailyQuiz, showToast]);
 
-  if (loading) {
-    return (
-      <View className="flex-1 bg-[#F5F1FA] items-center justify-center">
-        <ActivityIndicator size="large" color="#B695E6" />
-        <Text className="mt-4 font-semibold text-gray-500 text-base">Đang tải danh sách câu đố...</Text>
-      </View>
-    );
-  }
+ const handleStartTopic = (topic: QuizTopic) => {
+ if (topic.completed) {
+ navigation.navigate('QuizResult', {
+ score: topic.score,
+ total: topic.total,
+ pointsEarned: topic.pointsEarned,
+ });
+ } else if (topic.questions && topic.questions.length > 0) {
+ navigation.navigate('QuizPlay', { questions: topic.questions, topicId: topic.id, topicName: topic.name });
+ }
+ };
 
-  return (
-    <View className="flex-1 bg-[#F5F1FA]">
-      <StatusBar barStyle="dark-content" />
+ if (loading) {
+ return (
+ <View style={[styles.root, styles.centerAll]}>
+ <ActivityIndicator size="large" color={Colors.primary} />
+ <Text style={styles.loadingTxt}>Đang tải danh sách câu đố...</Text>
+ </View>
+ );
+ }
 
-      {/* Header */}
-      <View 
-        className="flex-row items-center justify-between px-6 pb-4 bg-white rounded-b-[32px] shadow-sm z-10" 
-        style={{ paddingTop: insets.top + 16 }}
-      >
-        <TouchableOpacity 
-          onPress={() => navigation.goBack()}
-          className="w-10 h-10 bg-gray-100 rounded-xl items-center justify-center"
-        >
-          <Ionicons name="arrow-back" size={20} color="#4B5563" />
-        </TouchableOpacity>
-        <Text className="font-bold text-lg text-gray-800">Chọn Chủ Đề</Text>
-        <View className="w-10 h-10" />
-      </View>
+ return (
+ <View style={styles.root}>
+ <StatusBar barStyle="light-content" />
 
-      {/* Main Content */}
-      <ScrollView contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 24 }}>
-        <Text className="text-3xl font-extrabold text-gray-800 mb-2">Daily Eco Quiz</Text>
-        <Text className="text-gray-500 mb-8 leading-6">
-          Mỗi ngày sẽ có những bộ câu hỏi mới theo từng chủ đề. Hãy hoàn thành tất cả để nhận tối đa điểm thưởng nhé!
-        </Text>
+ {/* Blue / Brand Header */}
+ <SharedHeaderBackground style={[styles.header, { paddingTop: insets.top + 10, paddingBottom: 50 }]} forceGradient={true}>
+ <TouchableOpacity
+ onPress={() => navigation.goBack()}
+ style={styles.backBtn}
+ activeOpacity={0.8}
+ >
+ <Ionicons name="chevron-back" size={24} color="#3A3A3A" />
+ </TouchableOpacity>
+ <Text style={styles.headerTitle}>Chọn Chủ Đề</Text>
+ <View style={{ width: 44 }} /> {/* Spacer */}
+ </SharedHeaderBackground>
 
-        <View className="gap-4">
-          {topics.map((topic) => {
-            const isCompleted = topic.completed;
-            
-            // Thay đổi màu sắc thẻ theo độ khó
-            let cardColor = "bg-white";
-            let accentColor = "#1F8505"; // Primary green
-            if (topic.difficulty === 'easy') accentColor = "#4ADE80"; // Green 400
-            if (topic.difficulty === 'medium') accentColor = "#FBBF24"; // Amber
-            if (topic.difficulty === 'hard') accentColor = "#F87171"; // Red
-            if (topic.difficulty === 'mixed') accentColor = "#3B82F6"; // Blue
+ {/* Main Content Sheet */}
+ <View style={[styles.sheetContainer, appearance === 'nature' && { backgroundColor: 'transparent', marginTop: 0 }]}>
+ <ScrollView
+ contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 40 }]}
+ showsVerticalScrollIndicator={false}
+ >
+ <View style={styles.grid}>
+ {topics.map((topic, index) => {
+ const isCompleted = topic.completed;
+ // Lấy icon mock dựa theo index
+ const mockStyle = MOCK_ICONS[index % MOCK_ICONS.length];
 
-            return (
-              <View 
-                key={topic.id} 
-                className={`p-5 rounded-[24px] shadow-sm flex-row items-center justify-between ${cardColor} ${isCompleted ? 'opacity-70' : ''}`}
-                style={{ shadowColor: accentColor, shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 2 }}
-              >
-                <View className="flex-1 flex-row items-center gap-4">
-                  <View 
-                    className="w-14 h-14 rounded-2xl items-center justify-center"
-                    style={{ backgroundColor: `${accentColor}20` }}
-                  >
-                    <Text className="text-2xl">{topic.icon}</Text>
-                  </View>
-                  <View className="flex-1 pr-4">
-                    <Text className="font-bold text-gray-800 text-lg mb-1">{topic.name}</Text>
-                    <Text className="text-xs text-gray-500 mb-2" numberOfLines={2}>{topic.description}</Text>
-                    <View className="flex-row items-center gap-1">
-                      <Ionicons name="flash" size={12} color={accentColor} />
-                      <Text className="text-[10px] font-bold uppercase" style={{ color: accentColor }}>
-                        {{ easy: 'Dễ', medium: 'Trung bình', hard: 'Khó', mixed: 'Hỗn hợp' }[topic.difficulty] ?? topic.difficulty}
-                      </Text>
-                    </View>
-                  </View>
-                </View>
+ return (
+ <TouchableOpacity
+ key={topic.id}
+ style={[styles.card, isCompleted && { opacity: 0.7 }]}
+ activeOpacity={0.8}
+ onPress={() => handleStartTopic(topic)}
+ >
+ <View style={[styles.iconBox, { backgroundColor: `${mockStyle.color}15` }]}>
+ <Ionicons name={mockStyle.icon as any} size={42} color={mockStyle.color} />
+ </View>
+ <Text style={[styles.cardTitle, { color: mockStyle.color }]} numberOfLines={2}>
+ {topic.name}
+ </Text>
 
-                <TouchableOpacity 
-                  onPress={() => handleStartTopic(topic)}
-                  activeOpacity={0.8}
-                  className={`px-4 py-3 rounded-xl justify-center items-center`}
-                  style={{ backgroundColor: isCompleted ? '#E5E7EB' : accentColor }}
-                >
-                  {isCompleted ? (
-                    <Ionicons name="checkmark-done" size={20} color="#9CA3AF" />
-                  ) : (
-                    <Text className="text-white font-bold text-sm">Bắt đầu</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            );
-          })}
-        </View>
-      </ScrollView>
-    </View>
-  );
+ {/* Status Indicator */}
+ {isCompleted && (
+ <View style={styles.completedBadge}>
+ <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+ </View>
+ )}
+ </TouchableOpacity>
+ );
+ })}
+ </View>
+ </ScrollView>
+ </View>
+ </View>
+ );
 };
+
+const styles = StyleSheet.create({
+ root: {
+ flex: 1,
+ backgroundColor: 'transparent', // Matching the app's brand color
+ },
+ centerAll: {
+ alignItems: 'center',
+ justifyContent: 'center',
+ backgroundColor: '#F8F9FA',
+ },
+ loadingTxt: {
+ marginTop: 16,
+ fontWeight: '600',
+ color: '#6B7280',
+ fontSize: 16,
+ },
+ header: {
+ flexDirection: 'row',
+ alignItems: 'center',
+ justifyContent: 'space-between',
+ paddingHorizontal: 20,
+ },
+ backBtn: {
+ width: 44,
+ height: 44,
+ borderRadius: 14,
+ backgroundColor: 'rgba(255,255,255,0.2)',
+ alignItems: 'center',
+ justifyContent: 'center',
+ },
+ headerTitle: {
+ fontSize: 20,
+ fontWeight: '700',
+ color: '#3A3A3A',
+ },
+ sheetContainer: {
+ flex: 1,
+ backgroundColor: '#F8F9FA',
+ borderTopLeftRadius: 36,
+ borderTopRightRadius: 36,
+ marginTop: -20, // Overlap the header slightly
+ overflow: 'hidden',
+ },
+ scrollContent: {
+ padding: 24,
+ paddingTop: 36,
+ },
+ grid: {
+ flexDirection: 'row',
+ flexWrap: 'wrap',
+ justifyContent: 'space-between',
+ },
+ card: {
+ width: '47%',
+ backgroundColor: '#FFF',
+ borderRadius: 24,
+ paddingVertical: 32,
+ paddingHorizontal: 16,
+ alignItems: 'center',
+ justifyContent: 'center',
+ marginBottom: 20,
+ },
+ iconBox: {
+ width: 80,
+ height: 80,
+ borderRadius: 24,
+ alignItems: 'center',
+ justifyContent: 'center',
+ marginBottom: 16,
+ },
+ cardTitle: {
+ fontSize: 15,
+ fontWeight: '800',
+ textAlign: 'center',
+ },
+ completedBadge: {
+ position: 'absolute',
+ top: 16,
+ right: 16,
+ backgroundColor: '#ECFDF5',
+ padding: 4,
+ borderRadius: 12,
+ }
+});
 
 export default QuizIntroScreen;

@@ -44,7 +44,7 @@ export interface VoucherStat {
   name: string;
   redeemed: number;
   remaining: number;
-  expireDays: number;
+  expireDays: number | null;
   useRate: number;
 }
 

@@ -18,6 +18,7 @@ export const TX_STATUS_COLOR: Record<TransactionStatus, string> = {
 export interface DropoffTransactionUser {
   id: string;
   displayName?: string;
+  fullName?: string;
   email?: string;
 }
 

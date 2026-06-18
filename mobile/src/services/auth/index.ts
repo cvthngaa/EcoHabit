@@ -5,4 +5,7 @@ export * from './use-register';
 export * from './use-reset-password';
 export * from './use-send-otp';
 export * from './use-send-password-reset-otp';
+export * from './use-update-profile';
 export * from './use-verify-otp';
+export * from './use-change-password';
+export * from './use-send-change-password-otp';

@@ -11,7 +11,6 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { PointsModule } from './modules/points/points.module';
 import { RewardsModule } from './modules/rewards/rewards.module';
 import { LocationsModule } from './modules/locations/locations.module';
-import { ForumModule } from './modules/forum/forum.module';
 import { QuizModule } from './modules/quiz/quiz.module';
 import { PartnersModule } from './modules/partner/partners.module';
 import { AdminModule } from './modules/admin/admin.module';
@@ -47,7 +46,6 @@ import { LeaderboardModule } from './modules/leaderboard/leaderboard.module';
     PointsModule,
     RewardsModule,
     LocationsModule,
-    ForumModule,
     QuizModule,
     PartnersModule,
     AdminModule,

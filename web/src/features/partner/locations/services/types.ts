@@ -26,6 +26,7 @@ export interface Location {
   latitude?: number;
   longitude?: number;
   status: LocationStatus;
+  avatarUrl?: string;
   acceptedWasteTypes?: AcceptedWasteType[];
   capabilities?: LocationCapabilityType[];
   collectionProfile?: CollectionProfile;
@@ -36,6 +37,7 @@ export interface Location {
 export interface DropoffTransactionUser {
   id: string;
   displayName?: string;
+  fullName?: string;
   email?: string;
 }
 
@@ -81,6 +83,7 @@ export interface CreateCollectionPointDto {
   longitude?: number;
   type: LocationType;
   contactPhone?: string;
+  avatarUrl?: string;
   capabilities?: LocationCapabilityType[];
   acceptedWasteTypes?: AcceptedWasteType[];
   collectionProfile?: CollectionProfile;

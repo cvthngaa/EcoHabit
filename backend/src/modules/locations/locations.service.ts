@@ -24,6 +24,7 @@ import {
   NominatimItem,
   NominatimSuggestion,
 } from './types/nominatim.types';
+import { WasteType } from '../ai/enums/waste-type.enum';
 
 @Injectable()
 export class LocationsService {
@@ -114,6 +115,56 @@ export class LocationsService {
     return query.getMany();
   }
 
+  async getNearestCollectionPointByWasteType(
+    wasteType: WasteType,
+    latitude: number,
+    longitude: number,
+    radiusKm: number = 20,
+  ) {
+    if (
+      latitude === undefined ||
+      longitude === undefined ||
+      isNaN(latitude) ||
+      isNaN(longitude)
+    ) {
+      return null;
+    }
+
+    const query = this.locationRepo
+      .createQueryBuilder('location')
+      .where('location.status = :status', { status: LocationStatus.APPROVED })
+      .innerJoin('location.acceptedWasteTypes', 'awt', 'awt.wasteType = :wasteType', { wasteType })
+      .select([
+        'location.id',
+        'location.name',
+        'location.address',
+        'location.latitude',
+        'location.longitude',
+      ])
+      .andWhere('location.latitude IS NOT NULL AND location.longitude IS NOT NULL')
+      .addSelect(
+        `(6371 * acos(least(greatest(cos(radians(:latitude)) * cos(radians(location.latitude)) * cos(radians(location.longitude) - radians(:longitude)) + sin(radians(:latitude)) * sin(radians(location.latitude)), -1.0), 1.0)))`,
+        'distance',
+      )
+      .setParameters({ latitude, longitude, radiusKm, status: LocationStatus.APPROVED, wasteType })
+      .andWhere(
+        `(6371 * acos(least(greatest(cos(radians(:latitude)) * cos(radians(location.latitude)) * cos(radians(location.longitude) - radians(:longitude)) + sin(radians(:latitude)) * sin(radians(location.latitude)), -1.0), 1.0))) <= :radiusKm`,
+      )
+      .orderBy('distance', 'ASC')
+      .limit(1);
+
+    const raw = await query.getRawAndEntities();
+    if (raw.entities.length === 0) return null;
+
+    const location = raw.entities[0];
+    const distance = raw.raw[0].distance;
+
+    return {
+      ...location,
+      distance: Number(distance),
+    };
+  }
+
   async getMyCollectionPoints(userId: string, role: UserRole) {
     const query = this.locationRepo.createQueryBuilder('location');
 
@@ -198,6 +249,37 @@ export class LocationsService {
     });
     if (!location)
       throw new NotFoundException(`Collection point ${id} not found`);
+    return location;
+  }
+
+  async getPartnerCollectionPoint(id: string, userId: string) {
+    const partnerProfile =
+      await this.partnersService.getPartnerSummaryByUserId(userId);
+
+    if (!partnerProfile) {
+      throw new ForbiddenException('Partner profile not found');
+    }
+
+    const location = await this.locationRepo.findOne({
+      where: { id },
+      relations: [
+        'capabilities',
+        'acceptedWasteTypes',
+        'collectionProfile',
+        'partnerProfile',
+      ],
+    });
+
+    if (!location) {
+      throw new NotFoundException(`Collection point ${id} not found`);
+    }
+
+    if (location.partnerProfile?.id !== partnerProfile.id) {
+      throw new ForbiddenException(
+        'You can only view your own collection points',
+      );
+    }
+
     return location;
   }
 

@@ -5,33 +5,34 @@ import { isKnownClassificationLabel, normalizeConfidence } from './ai.utils';
 const DEFAULT_CATEGORY = wasteCategories[6];
 
 const WASTE_TYPE_TO_CATEGORY: Record<WasteType, WasteCategory> = {
-  PLASTIC: wasteCategories[0],
-  PAPER: wasteCategories[1],
-  METAL: wasteCategories[2],
-  GLASS: wasteCategories[4],
-  BATTERY: wasteCategories[5],
-  E_WASTE: wasteCategories[5],
-  TEXTILE: wasteCategories[0],
-  OTHER: DEFAULT_CATEGORY,
+ PLASTIC: wasteCategories[0],
+ PAPER: wasteCategories[1],
+ METAL: wasteCategories[2],
+ GLASS: wasteCategories[4],
+ BATTERY: wasteCategories[5],
+ E_WASTE: wasteCategories[5],
+ TEXTILE: wasteCategories[0],
+ OTHER: DEFAULT_CATEGORY,
 };
 
 function getCategoryForWasteType(wasteType: WasteType): WasteCategory {
-  return WASTE_TYPE_TO_CATEGORY[wasteType] ?? DEFAULT_CATEGORY;
+ return WASTE_TYPE_TO_CATEGORY[wasteType] ?? DEFAULT_CATEGORY;
 }
 
 export function mapClassificationResponse(
-  data: BackendClassificationResponse,
+ data: BackendClassificationResponse,
 ): AIClassificationResult {
-  const category = getCategoryForWasteType(data.wasteType);
+ const category = getCategoryForWasteType(data.wasteType);
 
-  return {
-    success: isKnownClassificationLabel(data.label),
-    label: data.displayLabel || data.label,
-    category,
-    confidence: normalizeConfidence(data.confidence),
-    disposalTip: data.instruction || category.disposalTip,
-    pointsEarned: data.pointsEarned ?? 0,
-    classificationId: data.classificationId,
-    awarded: data.awarded ?? false,
-  };
+ return {
+ success: isKnownClassificationLabel(data.label),
+ label: data.displayLabel || data.label,
+ category,
+ confidence: normalizeConfidence(data.confidence),
+ disposalTip: data.instruction || category.disposalTip,
+ pointsEarned: data.pointsEarned ?? 0,
+ classificationId: data.classificationId,
+ awarded: data.awarded ?? false,
+ nearestLocation: data.nearestLocation,
+ };
 }

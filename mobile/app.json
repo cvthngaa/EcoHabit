@@ -48,7 +48,8 @@
           "cameraPermission": "Allow EcoHabit to use your camera to scan QR codes."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-community/datetimepicker"
     ]
   }
 }

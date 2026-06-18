@@ -51,7 +51,7 @@ export const getClassifications = async (params: GetClassificationsParams): Prom
   if (cleanParams.status === '') {
     delete cleanParams.status;
   }
-  const { data } = await apiClient.get<PaginatedClassifications>('/ai/admin/classifications', { params: cleanParams });
+  const { data } = await apiClient.get<PaginatedClassifications>('/admin/ai/classifications', { params: cleanParams });
   return data;
 };
 
@@ -67,6 +67,6 @@ export interface ReviewClassificationPayload {
 }
 
 export const reviewClassification = async (id: string, payload: ReviewClassificationPayload): Promise<TrashClassification> => {
-  const { data } = await apiClient.patch<TrashClassification>(`/ai/admin/classifications/${id}/review`, payload);
+  const { data } = await apiClient.patch<TrashClassification>(`/admin/ai/classifications/${id}/review`, payload);
   return data;
 };

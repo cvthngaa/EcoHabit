@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useToast } from '../../context/ToastContext';
@@ -6,296 +6,285 @@ import Colors from '../../theme/colors';
 import ProfileDetailLayout, { profileDetailStyles } from '../../components/ProfileDetailLayout';
 import NatureBackground from '../../components/NatureBackground';
 import FallingLeaves from '../../components/FallingLeaves';
+import { useSettings } from '../../context/SettingsContext';
 
 const options = [
-  {
-    key: 'light' as const,
-    label: 'Sáng',
-    icon: 'sunny-outline',
-    subtitle: 'Nền sáng, sạch và không hiện nền thiên nhiên.',
-  },
-  {
-    key: 'dark' as const,
-    label: 'Tối',
-    icon: 'moon-outline',
-    subtitle: 'Nền tối tập trung, không dùng đượng cây phía sau.',
-  },
-  {
-    key: 'nature' as const,
-    label: 'Nền',
-    icon: 'images-outline',
-    subtitle: 'Hiện nền đượng cây màu mởm để giao diện hữu cơ hơn.',
-  },
+ {
+ key: 'light' as const,
+ label: 'Sáng',
+ icon: 'sunny-outline',
+ subtitle: 'Nền sáng, sạch và không hiện nền thiên nhiên.',
+ },
+ {
+ key: 'nature' as const,
+ label: 'Nền thiên nhiên',
+ icon: 'images-outline',
+ subtitle: 'Hiện nền đường cây màu mờ để giao diện hữu cơ hơn.',
+ },
 ];
 
 const AppearanceSettingsScreen: React.FC<any> = ({ navigation }) => {
-  const { showToast } = useToast();
-  const [appearance, setAppearance] = useState<'light' | 'dark' | 'nature'>('nature');
-  const [showLeaves, setShowLeaves] = useState(false);
+ const { showToast } = useToast();
+ const { appearance, showLeaves: globalShowLeaves, updateSettings } = useSettings();
+ 
+ const [localAppearance, setLocalAppearance] = useState(appearance);
+ const [showLeaves, setShowLeaves] = useState(globalShowLeaves);
 
-  const previewTheme = useMemo(() => {
-    if (appearance === 'dark') {
-      return {
-        background: '#12201A',
-        header: '#1B2D25',
-        card: 'rgba(255,255,255,0.08)',
-        accent: '#8BC34A',
-        title: '#F3F7F1',
-        subtitle: 'rgba(243,247,241,0.76)',
-      };
-    }
+ useEffect(() => {
+ setLocalAppearance(appearance);
+ setShowLeaves(globalShowLeaves);
+ }, [appearance, globalShowLeaves]);
 
-    if (appearance === 'nature') {
-      return {
-        background: '#EAF1E6',
-        header: 'rgba(255,255,255,0.74)',
-        card: 'rgba(255,255,255,0.72)',
-        accent: '#5E8B43',
-        title: '#243B24',
-        subtitle: 'rgba(36,59,36,0.72)',
-      };
-    }
+ const previewTheme = useMemo(() => {
+ if (localAppearance === 'nature') {
+ return {
+ background: '#EAF1E6',
+ header: 'rgba(255,255,255,0.92)',
+ card: 'rgba(255,255,255,0.9)',
+ accent: '#5E8B43',
+ title: '#243B24',
+ subtitle: 'rgba(36,59,36,0.72)',
+ };
+ }
 
-    return {
-      background: '#F7FBF4',
-      header: '#FFFFFF',
-      card: '#FFFFFF',
-      accent: '#2E7D32',
-      title: '#1B3A1E',
-      subtitle: 'rgba(27,58,30,0.62)',
-    };
-  }, [appearance]);
+ // 'light' (default)
+ return {
+ background: '#F7FBF4',
+ header: '#FFFFFF',
+ card: '#FFFFFF',
+ accent: '#2E7D32',
+ title: '#1B3A1E',
+ subtitle: 'rgba(27,58,30,0.62)',
+ };
+ }, [localAppearance]);
 
-  const handleSave = () => {
-    const modeLabel =
-      appearance === 'light'
-        ? 'giao diện sáng'
-        : appearance === 'dark'
-          ? 'giao diện tối'
-          : 'giao diện nền đượng cây';
+ const handleSave = async () => {
+ await updateSettings({ appearance: localAppearance, showLeaves: showLeaves });
+ const modeLabel =
+ localAppearance === 'light'
+ ? 'giao diện sáng'
+ : 'giao diện nền thiên nhiên';
 
-    showToast(
-      showLeaves ? `Đã lưu ${modeLabel} kèm hiệu ứng lá rơi.` : `Đã lưu ${modeLabel}.`,
-      'success'
-    );
-  };
+ showToast(
+ showLeaves ? `Đã lưu ${modeLabel} kèm hiệu ứng lá rơi.` : `Đã lưu ${modeLabel}.`,
+ 'success'
+ );
+ };
 
-  const screenBackgroundColor =
-    appearance === 'dark'
-      ? '#12201A'
-      : appearance === 'nature'
-        ? '#EAF1E6'
-        : '#F7FBF4';
+ const screenBackgroundColor =
+ localAppearance === 'nature'
+ ? '#EAF1E6'
+ : '#F7FBF4';
 
-  const backgroundLayer = appearance === 'nature' ? <NatureBackground opacity={0.95} /> : null;
-  const foregroundLayer = showLeaves ? <FallingLeaves count={7} speed="slow" /> : null;
+ const backgroundLayer = localAppearance === 'nature' ? <NatureBackground opacity={0.95} /> : null;
+ const foregroundLayer = showLeaves ? <FallingLeaves count={7} speed="slow" /> : null;
 
-  return (
-    <ProfileDetailLayout
-      navigation={navigation}
-      title="Giao dien"
-      subtitle="Tuy chinh cach EcoHabit hien thi tren thiet bi cua ban."
-      icon="color-palette-outline"
-      color={Colors.warning}
-      heroTitle="Không gian dễ nhìn hơn"
-      heroSubtitle="Chọn sáng, tối hoặc nền đượng cây, và bật lá rơi nếu bạn muốn một cảm giác nhẹ nhàng."
-      actionLabel="Luu giao dien"
-      onAction={handleSave}
-      backgroundColor={screenBackgroundColor}
-      backgroundLayer={backgroundLayer}
-      foregroundLayer={foregroundLayer}
-    >
-      <View style={profileDetailStyles.card}>
-        <Text style={profileDetailStyles.cardTitle}>Xem truoc</Text>
-        <View style={[styles.previewShell, { backgroundColor: previewTheme.background }]}>
-          {appearance === 'nature' ? <NatureBackground opacity={0.95} /> : null}
-          {showLeaves ? <FallingLeaves count={7} speed="slow" /> : null}
+ return (
+ <ProfileDetailLayout
+ navigation={navigation}
+ title="Giao diện"
+ subtitle="Tùy chỉnh cách EcoHabit hiển thị trên thiết bị của bạn."
+ icon="color-palette-outline"
+ color={Colors.warning}
+ heroTitle="Không gian dễ nhìn hơn"
+ heroSubtitle="Chọn Sáng hoặc Nền thiên nhiên, và bật lá rơi nếu bạn muốn một cảm giác nhẹ nhàng."
+ actionLabel="Lưu giao diện"
+ onAction={handleSave}
+ backgroundColor={screenBackgroundColor}
+ backgroundLayer={backgroundLayer}
+ foregroundLayer={foregroundLayer}
+ >
+ <View style={profileDetailStyles.card}>
+ <Text style={profileDetailStyles.cardTitle}>Xem trước</Text>
+ <View style={[styles.previewShell, { backgroundColor: previewTheme.background }]}>
+ {localAppearance === 'nature' ? <NatureBackground opacity={0.95} /> : null}
+ {showLeaves ? <FallingLeaves count={7} speed="slow" /> : null}
 
-          <View style={[styles.previewHeader, { backgroundColor: previewTheme.header }]}>
-            <View>
-              <Text style={[styles.previewGreeting, { color: previewTheme.title }]}>EcoHabit</Text>
-              <Text style={[styles.previewCaption, { color: previewTheme.subtitle }]}>
-                Bạn đang xem kiểu giao diện đã chọn
-              </Text>
-            </View>
-            <View style={[styles.previewBadge, { backgroundColor: previewTheme.accent }]}>
-              <Ionicons name="leaf-outline" size={14} color={Colors.white} />
-            </View>
-          </View>
+ <View style={[styles.previewHeader, { backgroundColor: previewTheme.header }]}>
+ <View>
+ <Text style={[styles.previewGreeting, { color: previewTheme.title }]}>EcoHabit</Text>
+ <Text style={[styles.previewCaption, { color: previewTheme.subtitle }]}>
+ Bạn đang xem kiểu giao diện đã chọn
+ </Text>
+ </View>
+ <View style={[styles.previewBadge, { backgroundColor: previewTheme.accent }]}>
+ <Ionicons name="leaf-outline" size={14} color={Colors.white} />
+ </View>
+ </View>
 
-          <View style={styles.previewBody}>
-            <View style={[styles.previewCard, { backgroundColor: previewTheme.card }]}>
-              <Text style={[styles.previewCardTitle, { color: previewTheme.title }]}>Nhiệm vụ hôm nay</Text>
-              <Text style={[styles.previewCardText, { color: previewTheme.subtitle }]}>
-                Quét QR, làm quiz và tích thêm điểm xanh.
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.previewCard,
-                styles.previewCardSecondary,
-                { backgroundColor: previewTheme.card },
-              ]}
-            >
-              <Text style={[styles.previewCardTitle, { color: previewTheme.title }]}>Quà nổi bật</Text>
-              <Text style={[styles.previewCardText, { color: previewTheme.subtitle }]}>
-                Bình nước tái chế và voucher cây xanh.
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
+ <View style={styles.previewBody}>
+ <View style={[styles.previewCard, { backgroundColor: previewTheme.card }]}>
+ <Text style={[styles.previewCardTitle, { color: previewTheme.title }]}>Nhiệm vụ hôm nay</Text>
+ <Text style={[styles.previewCardText, { color: previewTheme.subtitle }]}>
+ Quét QR, làm quiz và tích thêm điểm xanh.
+ </Text>
+ </View>
+ <View
+ style={[
+ styles.previewCard,
+ styles.previewCardSecondary,
+ { backgroundColor: previewTheme.card },
+ ]}
+ >
+ <Text style={[styles.previewCardTitle, { color: previewTheme.title }]}>Quà nổi bật</Text>
+ <Text style={[styles.previewCardText, { color: previewTheme.subtitle }]}>
+ Bình nước tái chế và voucher cây xanh.
+ </Text>
+ </View>
+ </View>
+ </View>
+ </View>
 
-      <View style={profileDetailStyles.card}>
-        <Text style={profileDetailStyles.cardTitle}>Phong cách hiển thị</Text>
-        <View style={styles.optionsColumn}>
-          {options.map((option) => {
-            const active = appearance === option.key;
+ <View style={profileDetailStyles.card}>
+ <Text style={profileDetailStyles.cardTitle}>Phong cách hiển thị</Text>
+ <View style={styles.optionsColumn}>
+ {options.map((option) => {
+ const active = localAppearance === option.key;
 
-            return (
-              <TouchableOpacity
-                key={option.key}
-                style={[profileDetailStyles.optionCard, active && profileDetailStyles.optionCardActive]}
-                onPress={() => setAppearance(option.key)}
-              >
-                <View style={styles.optionMain}>
-                  <View
-                    style={[
-                      styles.optionIcon,
-                      { backgroundColor: active ? Colors.warning : Colors.warningLight },
-                    ]}
-                  >
-                    <Ionicons
-                      name={option.icon as any}
-                      size={18}
-                      color={active ? Colors.white : Colors.warning}
-                    />
-                  </View>
-                  <View style={styles.optionTextWrap}>
-                    <Text style={profileDetailStyles.optionTitle}>{option.label}</Text>
-                    <Text style={profileDetailStyles.optionSubtitle}>{option.subtitle}</Text>
-                  </View>
-                </View>
-                <Ionicons
-                  name={active ? 'checkmark-circle' : 'ellipse-outline'}
-                  size={20}
-                  color={active ? Colors.warning : Colors.textMuted}
-                />
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
+ return (
+ <TouchableOpacity
+ key={option.key}
+ style={[profileDetailStyles.optionCard, active && profileDetailStyles.optionCardActive]}
+ onPress={() => setLocalAppearance(option.key)}
+ >
+ <View style={styles.optionMain}>
+ <View
+ style={[
+ styles.optionIcon,
+ { backgroundColor: active ? Colors.warning : Colors.warningLight },
+ ]}
+ >
+ <Ionicons
+ name={option.icon as any}
+ size={18}
+ color={active ? Colors.white : Colors.warning}
+ />
+ </View>
+ <View style={styles.optionTextWrap}>
+ <Text style={profileDetailStyles.optionTitle}>{option.label}</Text>
+ <Text style={profileDetailStyles.optionSubtitle}>{option.subtitle}</Text>
+ </View>
+ </View>
+ <Ionicons
+ name={active ? 'checkmark-circle' : 'ellipse-outline'}
+ size={20}
+ color={active ? Colors.warning : Colors.textMuted}
+ />
+ </TouchableOpacity>
+ );
+ })}
+ </View>
+ </View>
 
-      <View style={profileDetailStyles.card}>
-        <View style={profileDetailStyles.toggleRow}>
-          <View style={styles.toggleTextWrap}>
-            <Text style={profileDetailStyles.toggleText}>Thêm hiệu ứng lá rơi</Text>
-            <Text style={profileDetailStyles.optionSubtitle}>
-              Lá rơi ít, trôi chậm và nhẹ để giữ cảm giác thư giãn.
-            </Text>
-          </View>
-          <Switch
-            value={showLeaves}
-            onValueChange={setShowLeaves}
-            trackColor={{ false: '#D7E5D2', true: Colors.warningBorder }}
-            thumbColor={showLeaves ? Colors.warning : Colors.white}
-          />
-        </View>
-      </View>
+ <View style={profileDetailStyles.card}>
+ <View style={profileDetailStyles.toggleRow}>
+ <View style={styles.toggleTextWrap}>
+ <Text style={profileDetailStyles.toggleText}>Thêm hiệu ứng lá rơi</Text>
+ <Text style={profileDetailStyles.optionSubtitle}>
+ Lá rơi ít, trôi chậm và nhẹ để giữ cảm giác thư giãn.
+ </Text>
+ </View>
+ <Switch
+ value={showLeaves}
+ onValueChange={setShowLeaves}
+ trackColor={{ false: '#D7E5D2', true: Colors.warningBorder }}
+ thumbColor={showLeaves ? Colors.warning : Colors.white}
+ />
+ </View>
+ </View>
 
-      <View style={profileDetailStyles.card}>
-        <Text style={profileDetailStyles.cardTitle}>Lưu ý</Text>
-        {[
-          'Chế độ Sáng và Tối giữ bố cục gọn, không hiện nền thiên nhiên.',
-          'Chế độ Nền phù hợp khi bạn muốn giao diện mềm mại hơn và gần tinh thần sống xanh.',
-          'Lá rơi được giữ thưa và chậm để tránh rối mắt khi sử dụng hàng ngày.',
-        ].map((tip, index) => (
-          <View key={index} style={[profileDetailStyles.tipRow, index > 0 && profileDetailStyles.tipSpacing]}>
-            <Ionicons name="leaf-outline" size={16} color={Colors.warning} />
-            <Text style={profileDetailStyles.tipText}>{tip}</Text>
-          </View>
-        ))}
-      </View>
-    </ProfileDetailLayout>
-  );
+ <View style={profileDetailStyles.card}>
+ <Text style={profileDetailStyles.cardTitle}>Lưu ý</Text>
+ {[
+ 'Chế độ Sáng giữ bố cục gọn, không hiện nền thiên nhiên.',
+ 'Chế độ Nền thiên nhiên phù hợp khi bạn muốn giao diện mềm mại hơn và gần tinh thần sống xanh.',
+ 'Lá rơi được giữ thưa và chậm để tránh rối mắt khi sử dụng hàng ngày.',
+ ].map((tip, index) => (
+ <View key={index} style={[profileDetailStyles.tipRow, index > 0 && profileDetailStyles.tipSpacing]}>
+ <Ionicons name="leaf-outline" size={16} color={Colors.warning} />
+ <Text style={profileDetailStyles.tipText}>{tip}</Text>
+ </View>
+ ))}
+ </View>
+ </ProfileDetailLayout>
+ );
 };
 
 const styles = StyleSheet.create({
-  previewShell: {
-    height: 260,
-    borderRadius: 24,
-    overflow: 'hidden',
-    padding: 16,
-    justifyContent: 'space-between',
-  },
-  previewHeader: {
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  previewGreeting: {
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  previewCaption: {
-    marginTop: 4,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  previewBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  previewBody: {
-    gap: 12,
-  },
-  previewCard: {
-    borderRadius: 20,
-    padding: 16,
-  },
-  previewCardSecondary: {
-    width: '78%',
-  },
-  previewCardTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-    marginBottom: 5,
-  },
-  previewCardText: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  optionsColumn: {
-    gap: 10,
-  },
-  optionMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  optionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  optionTextWrap: {
-    flex: 1,
-    paddingRight: 12,
-  },
-  toggleTextWrap: {
-    flex: 1,
-    paddingRight: 16,
-  },
+ previewShell: {
+ height: 260,
+ borderRadius: 24,
+ overflow: 'hidden',
+ padding: 16,
+ justifyContent: 'space-between',
+ },
+ previewHeader: {
+ borderRadius: 18,
+ paddingHorizontal: 14,
+ paddingVertical: 12,
+ flexDirection: 'row',
+ alignItems: 'center',
+ justifyContent: 'space-between',
+ },
+ previewGreeting: {
+ fontSize: 17,
+ fontWeight: '800',
+ },
+ previewCaption: {
+ marginTop: 4,
+ fontSize: 12,
+ lineHeight: 18,
+ },
+ previewBadge: {
+ width: 34,
+ height: 34,
+ borderRadius: 17,
+ alignItems: 'center',
+ justifyContent: 'center',
+ },
+ previewBody: {
+ gap: 12,
+ },
+ previewCard: {
+ borderRadius: 20,
+ padding: 16,
+ },
+ previewCardSecondary: {
+ width: '78%',
+ },
+ previewCardTitle: {
+ fontSize: 14,
+ fontWeight: '800',
+ marginBottom: 5,
+ },
+ previewCardText: {
+ fontSize: 12,
+ lineHeight: 18,
+ },
+ optionsColumn: {
+ gap: 10,
+ },
+ optionMain: {
+ flexDirection: 'row',
+ alignItems: 'center',
+ flex: 1,
+ },
+ optionIcon: {
+ width: 40,
+ height: 40,
+ borderRadius: 14,
+ alignItems: 'center',
+ justifyContent: 'center',
+ marginRight: 12,
+ },
+ optionTextWrap: {
+ flex: 1,
+ paddingRight: 12,
+ },
+ toggleTextWrap: {
+ flex: 1,
+ paddingRight: 16,
+ },
 });
 
 export default AppearanceSettingsScreen;

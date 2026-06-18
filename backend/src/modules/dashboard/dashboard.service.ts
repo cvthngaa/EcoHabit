@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { DropoffTransaction } from '../locations/entities/dropoff-transaction.entity';
 import { Location } from '../locations/entities/location.entity';
 import { Reward } from '../rewards/entities/reward.entity';
@@ -11,12 +11,11 @@ import { PartnerProfile } from '../partner/entity/partner-profile.entity';
 import { AiFeedback } from '../ai/entities/ai-feedback.entity';
 import { TrashClassification } from '../ai/entities/trash-classification.entity';
 import { FraudFlag } from '../fraud/entities/fraud-flag.entity';
-import { ForumReport } from '../forum/entities/forum-report.entity';
 import { PartnerApprovalStatus } from '../partner/enum/partner-approval-status.enum';
 import { FraudStatus } from '../fraud/enums/fraud-status.enum';
-import { ReportStatus } from '../forum/enums/report-status.enum';
 import { PointTransaction } from '../points/entities/point-transaction.entity';
 import { ClassificationStatus } from '../ai/enums/classification-status.enum';
+import { LocationStatus } from '../locations/enums/location-status.enum';
 
 @Injectable()
 export class DashboardService {
@@ -39,16 +38,13 @@ export class DashboardService {
     private readonly trashClassificationRepository: Repository<TrashClassification>,
     @InjectRepository(FraudFlag)
     private readonly fraudFlagRepository: Repository<FraudFlag>,
-    @InjectRepository(ForumReport)
-    private readonly forumReportRepository: Repository<ForumReport>,
     @InjectRepository(PointTransaction)
     private readonly pointTransactionRepository: Repository<PointTransaction>,
   ) { }
 
   async getDashboardStats(filter: 'today' | 'week' | 'month' | 'year' = 'month') {
-    // Determine date range if needed (for simplicity, we will query all or last 7 days where specified)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const range = this.getDateRange(filter);
+    const dateWhere = { createdAt: Between(range.start, range.end) };
 
     // Execute all queries concurrently
     const [
@@ -57,7 +53,6 @@ export class DashboardService {
       locations,
       transactions,
       fraudFlagsCount,
-      forumReportsCount,
       feedbacks,
       trashScansCount,
       usersWithTx,
@@ -69,14 +64,16 @@ export class DashboardService {
       this.userRepository.count(),
       this.partnerRepository.find(),
       this.locationRepository.find(),
-      this.dropoffTransactionRepository.find({ relations: ['location', 'location.partnerProfile', 'acceptedWasteType', 'user'] }),
+      this.dropoffTransactionRepository.find({
+        where: dateWhere,
+        relations: ['location', 'location.partnerProfile', 'acceptedWasteType', 'user'],
+      }),
       this.fraudFlagRepository.count({ where: { status: FraudStatus.OPEN } }),
-      this.forumReportRepository.count({ where: { status: ReportStatus.OPEN } }),
       this.aiFeedbackRepository.find(),
       this.trashClassificationRepository.count(),
       this.userRepository.find({ relations: ['dropoffTransactions'] }),
       this.rewardRepository.find({ relations: ['redemptions'] }),
-      this.redemptionRepository.find({ order: { createdAt: 'DESC' }, relations: ['user', 'reward'], take: 10 }),
+      this.redemptionRepository.find({ where: dateWhere, order: { createdAt: 'DESC' }, relations: ['user', 'reward'], take: 10 }),
       this.trashClassificationRepository.createQueryBuilder('tc').where('tc.confidence < 0.6').orWhere('tc.status = :status', { status: ClassificationStatus.FAILED }).getCount(),
       this.fraudFlagRepository.find()
     ]);
@@ -133,7 +130,7 @@ export class DashboardService {
       checkins: locationKgMap[id].txCount,
       kg: Math.round(locationKgMap[id].kg * 10) / 10,
       topWaste: 'Nhựa', // Fallback for UI if needed, or omit if optional
-      status: 'ACTIVE',
+      status: LocationStatus.APPROVED,
       trend: '+5%'
     })).sort((a, b) => b.kg - a.kg).slice(0, 5);
 
@@ -222,65 +219,42 @@ export class DashboardService {
     let duplicateQr = 0;
     let wrongGps = 0;
     let abnormalVolume = 0;
-    fraudFlags.forEach(f => {
+    const activeFraudFlags = fraudFlags.filter(f => [FraudStatus.OPEN, FraudStatus.REVIEWING].includes(f.status));
+    activeFraudFlags.forEach(f => {
       if (f.flagCode === 'DUPLICATE_QR') duplicateQr++;
-      if (f.flagCode === 'LOCATION_MISMATCH') wrongGps++;
+      if (f.flagCode === 'LOCATION_MISMATCH' || f.flagCode === 'CHECKIN_TOO_FAR') wrongGps++;
       if (f.flagCode === 'ABNORMAL_VOLUME') abnormalVolume++;
     });
 
     // Chart Data & System Trend
-    // Real aggregations for the last 7 days
-    const days = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (6 - i));
-      return {
-        dateStr: d.toISOString().split('T')[0],
-        label: `${d.getDate()}/${d.getMonth() + 1}`,
-        dateObj: d,
-      };
-    });
+    const trendBuckets = this.getChartBuckets(filter);
 
-    // Calculate chart data from transactions
-    const chartData = days.map(day => {
-      const dayData: Record<string, any> = { label: day.label, plastic: 0, paper: 0, metal: 0, glass: 0, battery: 0, other: 0 };
-      verifiedTransactions.forEach(tx => {
-        const txDateStr = tx.createdAt.toISOString().split('T')[0];
-        if (txDateStr === day.dateStr) {
-          const type = tx.acceptedWasteType?.wasteType?.toLowerCase() || 'other';
-          let val = tx.quantityValue || 0;
-          if (tx.quantityUnit === 'GRAM') val /= 1000;
-
-          if (type.includes('nhựa') || type.includes('plastic')) dayData.plastic += val;
-          else if (type.includes('giấy') || type.includes('paper')) dayData.paper += val;
-          else if (type.includes('kim loại') || type.includes('metal')) dayData.metal += val;
-          else if (type.includes('thủy tinh') || type.includes('glass')) dayData.glass += val;
-          else if (type.includes('pin') || type.includes('battery')) dayData.battery += val;
-          else dayData.other += val;
-        }
-      });
-      // Round everything
-      Object.keys(dayData).forEach(k => {
-        if (k !== 'label') { dayData[k] = Math.round(dayData[k] * 10) / 10; }
-      });
-      return dayData;
-    });
+    const chartData = this.buildWasteChartData(verifiedTransactions, filter);
 
     // We fetch points & scans & new users dynamically if possible
     const trendStats = await Promise.all([
-      this.userRepository.createQueryBuilder('u').select('DATE(u.created_at)', 'date').addSelect('COUNT(u.id)', 'count').where('u.created_at >= :date', { date: sevenDaysAgo }).groupBy('DATE(u.created_at)').getRawMany(),
-      this.trashClassificationRepository.createQueryBuilder('tc').select('DATE(tc.created_at)', 'date').addSelect('COUNT(tc.id)', 'count').where('tc.created_at >= :date', { date: sevenDaysAgo }).groupBy('DATE(tc.created_at)').getRawMany(),
-      this.dropoffTransactionRepository.createQueryBuilder('tx').select('DATE(tx.created_at)', 'date').addSelect('COUNT(tx.id)', 'count').addSelect('SUM(tx.points_awarded)', 'points').where('tx.created_at >= :date', { date: sevenDaysAgo }).groupBy('DATE(tx.created_at)').getRawMany()
+      this.userRepository.createQueryBuilder('u').select('DATE(u.created_at)', 'date').addSelect('COUNT(u.id)', 'count').where('u.created_at >= :date', { date: range.start }).groupBy('DATE(u.created_at)').getRawMany(),
+      this.trashClassificationRepository.createQueryBuilder('tc').select('DATE(tc.created_at)', 'date').addSelect('COUNT(tc.id)', 'count').where('tc.created_at >= :date', { date: range.start }).groupBy('DATE(tc.created_at)').getRawMany(),
+      this.dropoffTransactionRepository.createQueryBuilder('tx').select('DATE(tx.created_at)', 'date').addSelect('COUNT(tx.id)', 'count').addSelect('SUM(tx.points_awarded)', 'points').where('tx.created_at >= :date', { date: range.start }).groupBy('DATE(tx.created_at)').getRawMany()
     ]);
     const [userStats, scanStats, txStats] = trendStats;
 
-    const systemTrend = days.map(day => {
-      const dateStr = day.dateStr;
-      const uCount = userStats.find(s => new Date(s.date).toISOString().split('T')[0] === dateStr)?.count || 0;
-      const sCount = scanStats.find(s => new Date(s.date).toISOString().split('T')[0] === dateStr)?.count || 0;
-      const tStat = txStats.find(s => new Date(s.date).toISOString().split('T')[0] === dateStr) || { count: 0, points: 0 };
+    const systemTrend = trendBuckets.map(bucket => {
+      const uCount = userStats
+        .filter(s => bucket.matches(new Date(s.date)))
+        .reduce((sum, s) => sum + Number(s.count || 0), 0);
+      const sCount = scanStats
+        .filter(s => bucket.matches(new Date(s.date)))
+        .reduce((sum, s) => sum + Number(s.count || 0), 0);
+      const tStat = txStats
+        .filter(s => bucket.matches(new Date(s.date)))
+        .reduce((sum, s) => ({
+          count: sum.count + Number(s.count || 0),
+          points: sum.points + Number(s.points || 0),
+        }), { count: 0, points: 0 });
 
       return {
-        label: day.label,
+        label: bucket.label,
         users: Number(uCount),
         scans: Number(sCount),
         transactions: Number(tStat.count),
@@ -326,7 +300,6 @@ export class DashboardService {
         pendingPartners,
         lowConfidenceAiCount,
         fraudWarningCount: fraudFlagsCount,
-        openForumReports: forumReportsCount,
         lowStockVoucherCount,
         expiringVoucherCount: 0, // No expiring voucher field in DB
         pendingTransactionsList
@@ -340,7 +313,6 @@ export class DashboardService {
         { label: 'Điểm thu gom chờ duyệt', count: pendingLocations, iconType: 'MapPin', level: 'PENDING' },
         { label: 'Giao dịch thu gom nghi vấn', count: fraudFlagsCount, iconType: 'ShieldAlert', level: 'HIGH' },
         { label: 'AI confidence thấp', count: lowConfidenceAiCount, iconType: 'Bot', level: 'NEEDS_REVIEW' },
-        { label: 'Báo cáo forum chưa xử lý', count: forumReportsCount, iconType: 'AlertTriangle', level: 'OPEN' },
         { label: 'Voucher sắp hết hàng', count: lowStockVoucherCount, iconType: 'Gift', level: 'LOW_STOCK' },
       ],
       rankings: {
@@ -363,5 +335,253 @@ export class DashboardService {
       cumulativeGrowth: [],
       heatmap: [],
     };
+  }
+
+  async getPartnerDashboardStats(
+    userId: string,
+    filter: 'today' | 'week' | 'month' | 'year' = 'month',
+  ) {
+    const partner = await this.partnerRepository.findOne({
+      where: { user: { id: userId } },
+      relations: ['user', 'roleTypes'],
+    });
+
+    if (!partner) {
+      throw new NotFoundException('Không tìm thấy hồ sơ đối tác');
+    }
+
+    if (partner.approvalStatus !== PartnerApprovalStatus.APPROVED) {
+      throw new ForbiddenException('Tài khoản đối tác chưa được duyệt');
+    }
+
+    const range = this.getDateRange(filter);
+    const dateWhere = range ? { createdAt: Between(range.start, range.end) } : {};
+
+    const [locations, transactions, rewards, redemptions] = await Promise.all([
+      this.locationRepository.find({
+        where: { partnerProfile: { id: partner.id } },
+        relations: ['acceptedWasteTypes'],
+      }),
+      this.dropoffTransactionRepository.find({
+        where: {
+          location: { partnerProfile: { id: partner.id } },
+          ...dateWhere,
+        },
+        relations: ['location', 'acceptedWasteType', 'user'],
+        order: { createdAt: 'DESC' },
+      }),
+      this.rewardRepository.find({
+        where: { partnerProfile: { id: partner.id } },
+        relations: ['redemptions'],
+      }),
+      this.redemptionRepository.find({
+        where: {
+          reward: { partnerProfile: { id: partner.id } },
+          ...dateWhere,
+        },
+        relations: ['user', 'reward'],
+        order: { createdAt: 'DESC' },
+        take: 10,
+      }),
+    ]);
+
+    const verifiedTransactions = transactions.filter((tx) => tx.status === DropoffStatus.VERIFIED);
+    const pendingTransactions = transactions.filter((tx) => tx.status === DropoffStatus.PENDING);
+    const pendingTransactionsList = pendingTransactions.slice(0, 6);
+
+    const totalKg = verifiedTransactions.reduce((sum, tx) => sum + this.toKg(tx.quantityValue, tx.quantityUnit), 0);
+    const totalPoints = verifiedTransactions.reduce((sum, tx) => sum + (tx.pointsAwarded || 0), 0);
+    const approvedLocations = locations.filter((loc) => loc.status === LocationStatus.APPROVED).length;
+
+    const locationStats = locations.map((location) => {
+      const locationTxs = verifiedTransactions.filter((tx) => tx.location?.id === location.id);
+      const kg = locationTxs.reduce((sum, tx) => sum + this.toKg(tx.quantityValue, tx.quantityUnit), 0);
+      const wasteTotals: Record<string, number> = {};
+
+      locationTxs.forEach((tx) => {
+        const wasteType = tx.acceptedWasteType?.wasteType || 'other';
+        wasteTotals[wasteType] = (wasteTotals[wasteType] || 0) + this.toKg(tx.quantityValue, tx.quantityUnit);
+      });
+
+      const topWaste = Object.entries(wasteTotals).sort((a, b) => b[1] - a[1])[0]?.[0] || 'other';
+
+      return {
+        id: location.id,
+        name: location.name || 'Điểm thu gom',
+        checkins: locationTxs.length,
+        kg: Math.round(kg * 10) / 10,
+        topWaste,
+        status: location.status || LocationStatus.PENDING,
+        trend: '—',
+      };
+    }).sort((a, b) => b.kg - a.kg).slice(0, 5);
+
+    const voucherStats = rewards.map((reward) => {
+      const redeemed = reward.redemptions?.length || 0;
+      const remaining = reward.stock || 0;
+      const total = redeemed + remaining;
+
+      return {
+        id: reward.id,
+        name: reward.name || 'Voucher',
+        redeemed,
+        remaining,
+        expireDays: null,
+        useRate: total > 0 ? Math.round((redeemed / total) * 100) : 0,
+      };
+    }).sort((a, b) => b.redeemed - a.redeemed).slice(0, 4);
+
+    const chartData = this.buildWasteChartData(verifiedTransactions, filter);
+
+    const transactionActivities = transactions.slice(0, 5).map((tx) => ({
+      id: `tx-${tx.id}`,
+      type: 'checkin',
+      text: `${tx.user?.fullName || 'Người dùng'} gửi rác tại ${tx.location?.name || 'Điểm thu gom'}`,
+      sub: `Thu gom ${tx.quantityValue || 0} ${tx.quantityUnit || ''} ${tx.acceptedWasteType?.wasteType || ''}`.trim(),
+      time: tx.createdAt.toISOString(),
+      status: tx.status === DropoffStatus.VERIFIED ? 'success' : tx.status === DropoffStatus.PENDING ? 'pending' : 'info',
+      icon: '♻️',
+    }));
+
+    const redemptionActivities = redemptions.slice(0, 5).map((redemption) => ({
+      id: `red-${redemption.id}`,
+      type: 'reward',
+      text: `${redemption.user?.fullName || 'Người dùng'} đổi quà ${redemption.reward?.name || ''}`.trim(),
+      sub: `Đã dùng ${redemption.pointsSpent || 0} điểm`,
+      time: redemption.createdAt.toISOString(),
+      status: 'info',
+      icon: '🎁',
+    }));
+
+    const activityFeed = [...transactionActivities, ...redemptionActivities]
+      .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime())
+      .slice(0, 10);
+
+    return {
+      kpi: {
+        totalKg: Math.round(totalKg),
+        totalTransactions: transactions.length,
+        pendingTransactions: pendingTransactions.length,
+        verifiedTransactions: verifiedTransactions.length,
+        totalPoints: Math.round(totalPoints),
+        totalLocations: locations.length,
+        approvedLocations,
+        pendingTransactionsList,
+      },
+      chartData,
+      activityFeed,
+      locationStats,
+      voucherStats,
+    };
+  }
+
+  private getDateRange(filter: 'today' | 'week' | 'month' | 'year') {
+    const now = new Date();
+    const start = new Date(now);
+
+    if (filter === 'today') {
+      start.setHours(0, 0, 0, 0);
+      return { start, end: now };
+    }
+
+    if (filter === 'week') {
+      start.setDate(now.getDate() - 6);
+      start.setHours(0, 0, 0, 0);
+      return { start, end: now };
+    }
+
+    if (filter === 'month') {
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      return { start, end: now };
+    }
+
+    start.setMonth(0, 1);
+    start.setHours(0, 0, 0, 0);
+    return { start, end: now };
+  }
+
+  private toKg(value?: number | null, unit?: string | null) {
+    const quantity = value || 0;
+    return unit === 'GRAM' ? quantity / 1000 : quantity;
+  }
+
+  private buildWasteChartData(transactions: DropoffTransaction[], filter: 'today' | 'week' | 'month' | 'year') {
+    const buckets = this.getChartBuckets(filter);
+
+    return buckets.map((bucket) => {
+      const dayData: Record<string, number | string> = {
+        label: bucket.label,
+        plastic: 0,
+        paper: 0,
+        metal: 0,
+        glass: 0,
+        battery: 0,
+        other: 0,
+      };
+
+      transactions.forEach((tx) => {
+        if (!bucket.matches(tx.createdAt)) return;
+
+        const wasteType = tx.acceptedWasteType?.wasteType?.toLowerCase() || 'other';
+        const kg = this.toKg(tx.quantityValue, tx.quantityUnit);
+
+        if (wasteType.includes('nhựa') || wasteType.includes('plastic')) dayData.plastic = Number(dayData.plastic) + kg;
+        else if (wasteType.includes('giấy') || wasteType.includes('paper')) dayData.paper = Number(dayData.paper) + kg;
+        else if (wasteType.includes('kim loại') || wasteType.includes('metal')) dayData.metal = Number(dayData.metal) + kg;
+        else if (wasteType.includes('thủy tinh') || wasteType.includes('thuỷ tinh') || wasteType.includes('glass')) dayData.glass = Number(dayData.glass) + kg;
+        else if (wasteType.includes('pin') || wasteType.includes('battery')) dayData.battery = Number(dayData.battery) + kg;
+        else dayData.other = Number(dayData.other) + kg;
+      });
+
+      Object.keys(dayData).forEach((key) => {
+        if (key !== 'label') dayData[key] = Math.round(Number(dayData[key]) * 10) / 10;
+      });
+
+      return dayData;
+    });
+  }
+
+  private getChartBuckets(filter: 'today' | 'week' | 'month' | 'year') {
+    const now = new Date();
+
+    if (filter === 'today') {
+      const dateStr = now.toISOString().split('T')[0];
+      return [{
+        label: 'Hôm nay',
+        matches: (date: Date) => date.toISOString().split('T')[0] === dateStr,
+      }];
+    }
+
+    if (filter === 'year') {
+      return Array.from({ length: now.getMonth() + 1 }, (_, month) => ({
+        label: `T${month + 1}`,
+        matches: (date: Date) => date.getFullYear() === now.getFullYear() && date.getMonth() === month,
+      }));
+    }
+
+    if (filter === 'month') {
+      return Array.from({ length: now.getDate() }, (_, i) => {
+        const day = i + 1;
+        return {
+          label: `${day}/${now.getMonth() + 1}`,
+          matches: (date: Date) =>
+            date.getFullYear() === now.getFullYear()
+            && date.getMonth() === now.getMonth()
+            && date.getDate() === day,
+        };
+      });
+    }
+
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const dateStr = d.toISOString().split('T')[0];
+
+      return {
+        label: `${d.getDate()}/${d.getMonth() + 1}`,
+        matches: (date: Date) => date.toISOString().split('T')[0] === dateStr,
+      };
+    });
   }
 }

@@ -112,6 +112,11 @@ export class QuizService {
 
     let score = 0;
     const details: any[] = [];
+    let pointsEarned = 0;
+
+    const easyPoints = await this.pointsService.getRulePoints('QUIZ_EASY', 10);
+    const mediumPoints = await this.pointsService.getRulePoints('QUIZ_MEDIUM', 20);
+    const hardPoints = await this.pointsService.getRulePoints('QUIZ_HARD', 50);
 
     for (let i = 0; i < questions.length; i++) {
       const question = questions[i];
@@ -124,7 +129,13 @@ export class QuizService {
       const optionsList = sortedOptions.map((o: any) => o.content);
       const contentStr = question.content;
 
-      if (isCorrect) score++;
+      if (isCorrect) {
+        score++;
+        if (question.difficulty === 'easy') pointsEarned += easyPoints;
+        else if (question.difficulty === 'medium') pointsEarned += mediumPoints;
+        else if (question.difficulty === 'hard') pointsEarned += hardPoints;
+        else pointsEarned += mediumPoints;
+      }
 
       details.push({
         questionId: question.id,
@@ -142,15 +153,9 @@ export class QuizService {
       where: { userId, topicId, quizDate: today, isRewarded: true }
     });
 
-    let pointsEarned = 0;
     let isRewarded = false;
 
     if (!alreadyRewarded) {
-      const pointsPerAnswer = await this.pointsService.getRulePoints(
-        'QUIZ_CORRECT_ANSWER',
-        POINTS_PER_CORRECT_ANSWER,
-      );
-      pointsEarned = score * pointsPerAnswer;
       if (pointsEarned > 0) {
         await this.pointsService.addPoint(
           userId,
@@ -164,6 +169,7 @@ export class QuizService {
         isRewarded = true;
       }
     } else {
+      pointsEarned = 0;
       void this.fraudService.checkQuizAbuse(userId, topicId);
     }
 

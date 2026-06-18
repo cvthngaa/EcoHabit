@@ -6,7 +6,7 @@ export function useGetLocation(id: string) {
   return useQuery({
     queryKey: ['location', id],
     queryFn: async (): Promise<Location> => {
-      const res = await apiClient.get<Location>(`/collection-points/${id}`);
+      const res = await apiClient.get<Location>(`/partner/collection-points/${id}`);
       return res.data;
     },
     enabled: !!id,

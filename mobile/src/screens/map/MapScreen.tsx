@@ -10,6 +10,8 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
+  Dimensions,
 } from 'react-native';
 import MapView, { Marker, Polyline, Region } from 'react-native-maps';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -23,12 +25,17 @@ import ConfirmAlert from '../../components/ConfirmAlert';
 import DraggableBottomSheet from '../../components/DraggableBottomSheet';
 import SelectableChipTabs from '../../components/SelectableChipTabs';
 import MapSearchBar from './components/MapSearchBar';
+import MapLocationCard from './components/MapLocationCard';
+import CollectionPointMarker from './components/CollectionPointMarker';
+import MapControls from './components/MapControls';
+import MapHeader from './components/MapHeader';
 import {
   CollectionPointItem,
   getNearbyCollectionPoints,
   NominatimSuggestion,
   searchPlaces,
 } from '../../services/map';
+import { customMapStyle } from './mapStyle';
 
 const DEFAULT_REGION: Region = {
   latitude: 10.7769,
@@ -37,9 +44,11 @@ const DEFAULT_REGION: Region = {
   longitudeDelta: 0.06,
 };
 
+const { width: windowWidth } = Dimensions.get('window');
+const CARD_WIDTH = windowWidth * 0.85;
+const SPACING = 16;
+
 const filters = ['Tất cả', 'Tổng hợp', 'Trung tâm tái chế'];
-const MAP_SHEET_COLLAPSED_HEIGHT = 348;
-const MAP_SHEET_EXPANDED_HEIGHT = 620;
 const filterChipItems = filters.map(item => ({
   key: item,
   label: item,
@@ -122,6 +131,21 @@ const MapScreen: React.FC = () => {
   const [addressSuggestions, setAddressSuggestions] = useState<NominatimSuggestion[]>([]);
   const [addressError, setAddressError] = useState('');
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
+
+  const flatListRef = useRef<FlatList>(null);
+  const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
+    if (viewableItems.length > 0) {
+      const item = viewableItems[0].item;
+      setSelected(item);
+      mapRef.current?.animateToRegion({
+        latitude: item.lat,
+        longitude: item.lng,
+        latitudeDelta: DEFAULT_REGION.latitudeDelta,
+        longitudeDelta: DEFAULT_REGION.longitudeDelta,
+      }, 450);
+    }
+  }).current;
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
   const filtered = useMemo(() => {
     if (filter === 'Tất cả') {
@@ -470,277 +494,118 @@ const MapScreen: React.FC = () => {
   }, []);
 
   return (
-    <View className="flex-1 bg-canvas">
-      <MapView
-        ref={mapRef}
-        style={{ width: '100%', height: '100%' }}
-        initialRegion={DEFAULT_REGION}
-        region={region}
-        onRegionChangeComplete={setRegion}
-        showsCompass={false}
-        showsUserLocation={!!resolvedCoordinate}
-      >
-        {resolvedCoordinate && selected && (
-          <Polyline
-            coordinates={[
-              resolvedCoordinate,
-              { latitude: selected.lat, longitude: selected.lng },
-            ]}
-            strokeColor={Colors.primary}
-            strokeWidth={4}
-            lineDashPattern={[6, 6]}
+    <View className="flex-1 bg-[#EAF7F2]">
+      {/* Header Container */}
+      <MapHeader
+        topInset={insets.top}
+        selected={selected}
+        currentAddress={currentAddress}
+        onSearchPress={() => setShowAddressSuggestions(true)}
+      />
+
+      {/* Map Container */}
+      <View className="flex-1 overflow-hidden bg-white" style={{ borderTopLeftRadius: 36, borderTopRightRadius: 36, elevation: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: -4 } }}>
+        <MapView
+          ref={mapRef}
+          style={{ width: '100%', height: '100%' }}
+          initialRegion={DEFAULT_REGION}
+          region={region}
+          onRegionChangeComplete={setRegion}
+          showsCompass={false}
+          showsUserLocation
+          userLocationAnnotationTitle=""
+          customMapStyle={customMapStyle}
+        >
+          {resolvedCoordinate && selected && (
+            <Polyline
+              coordinates={[
+                resolvedCoordinate,
+                { latitude: selected.lat, longitude: selected.lng },
+              ]}
+              strokeColor="#FF7A45"
+              strokeWidth={3}
+              lineDashPattern={[5, 5]}
+            />
+          )}
+
+
+
+          {filtered.map((point, index) => (
+            <CollectionPointMarker
+              key={point.id}
+              point={point}
+              isSelected={selected?.id === point.id}
+              onPress={() => {
+                setSelected(point);
+                mapRef.current?.animateToRegion({
+                  latitude: point.lat,
+                  longitude: point.lng,
+                  latitudeDelta: DEFAULT_REGION.latitudeDelta,
+                  longitudeDelta: DEFAULT_REGION.longitudeDelta,
+                }, 450);
+                flatListRef.current?.scrollToIndex({ index, animated: true });
+              }}
+            />
+          ))}
+        </MapView>
+
+        {showAddressSuggestions && (
+          <MapSearchBar
+            addressQuery={addressQuery}
+            setAddressQuery={setAddressQuery}
+            addressError={addressError}
+            setAddressError={setAddressError}
+            isAddressSearching={isAddressSearching}
+            isSubmittingAddress={isSubmittingAddress}
+            currentAddress={currentAddress}
+            showAddressSuggestions={showAddressSuggestions}
+            setShowAddressSuggestions={setShowAddressSuggestions}
+            addressSuggestions={addressSuggestions}
+            handleAddressFocus={handleAddressFocus}
+            handleSubmitAddress={handleSubmitAddress}
+            handleSelectSuggestion={handleSelectSuggestion}
           />
         )}
 
-        {filtered.map(point => (
-          <Marker
-            key={point.id}
-            coordinate={{ latitude: point.lat, longitude: point.lng }}
-            onPress={() => setSelected(point)}
-          >
-            <View
-              className="items-center"
-              style={selected?.id === point.id ? markerWrapSelectedStyle : undefined}
-            >
-              <LinearGradient
-                colors={
-                  point.open
-                    ? [Colors.primaryGradientStart, Colors.primaryLight]
-                    : ['#9E9E9E', '#757575']
-                }
-                className="h-[38px] w-[38px] items-center justify-center rounded-[14px] border-[3px] border-white"
-                style={{ elevation: 6 }}
-              >
-                <Ionicons name="location" size={18} color={Colors.white} />
-              </LinearGradient>
-            </View>
-          </Marker>
-        ))}
-      </MapView>
+        <MapControls
+          onZoomIn={() => animateToRegion({ ...region, latitudeDelta: region.latitudeDelta / 2, longitudeDelta: region.longitudeDelta / 2 })}
+          onZoomOut={() => animateToRegion({ ...region, latitudeDelta: region.latitudeDelta * 2, longitudeDelta: region.longitudeDelta * 2 })}
+          onLocateMe={handleLocateMe}
+        />
 
-      <View className="absolute inset-0 bg-[#07120C]/10" pointerEvents="none" />
-
-      <View
-        className="absolute left-0 right-0 flex-row items-center justify-between px-5 pb-2.5"
-        style={{ paddingTop: insets.top + 8 }}
-      >
-        <Text className="text-[20px] font-extrabold text-white" style={titleShadowStyle}>
-          Điểm thu gom gần bạn
-        </Text>
-      </View>
-
-      <MapSearchBar
-        addressQuery={addressQuery}
-        setAddressQuery={setAddressQuery}
-        addressError={addressError}
-        setAddressError={setAddressError}
-        isAddressSearching={isAddressSearching}
-        isSubmittingAddress={isSubmittingAddress}
-        currentAddress={currentAddress}
-        showAddressSuggestions={showAddressSuggestions}
-        setShowAddressSuggestions={setShowAddressSuggestions}
-        addressSuggestions={addressSuggestions}
-        handleAddressFocus={handleAddressFocus}
-        handleSubmitAddress={handleSubmitAddress}
-        handleSelectSuggestion={handleSelectSuggestion}
-      />
-
-      <View className="absolute right-4 top-[150px] items-center gap-[10px]">
-        <TouchableOpacity
-          className="h-[42px] w-[42px] items-center justify-center rounded-[12px] bg-surface"
-          style={controlShadowStyle}
-          onPress={handleLocateMe}
-        >
-          <Ionicons name="locate" size={20} color={Colors.primary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className="h-[42px] w-[42px] items-center justify-center rounded-[12px] bg-surface"
-          style={controlShadowStyle}
-          onPress={() => setShowAddressSuggestions(current => !current)}
-        >
-          <Ionicons name="create-outline" size={20} color={Colors.textPrimary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className="mt-1 h-[52px] w-[52px] items-center justify-center rounded-2xl bg-green-300"
-          style={fabShadowStyle}
-          onPress={() => navigation.navigate('QRScanner')}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="qr-code" size={22} color={Colors.white} />
-        </TouchableOpacity>
-      </View>
-
-      <DraggableBottomSheet
-        collapsedHeight={MAP_SHEET_COLLAPSED_HEIGHT + insets.bottom}
-        expandedHeight={MAP_SHEET_EXPANDED_HEIGHT + insets.bottom}
-        bottomInset={insets.bottom}
-        initialSnap="collapsed"
-      >
-        <View className="flex-1 w-full px-4 pb-2">
-          <SelectableChipTabs
-            items={filterChipItems}
-            activeKey={filter}
-            onChange={setFilter}
-            showIcons={false}
-          />
-
+        <View className="absolute bottom-8 left-0 right-0">
           {isLoading ? (
-            <View className="flex-1 items-center justify-center">
-              <ActivityIndicator size="large" color={Colors.primary} />
-              <Text className="mt-3 text-[14px] font-semibold text-text-muted">
-                Đang tải điểm thu gom quanh bạn...
+            <View className="w-full items-center justify-center h-[130px] bg-white/80 mx-4 rounded-[24px]">
+              <ActivityIndicator size="large" color="#10B981" />
+              <Text className="mt-2 text-[13px] font-semibold text-gray-500">
+                Đang tải điểm thu gom...
               </Text>
             </View>
           ) : (
-            <>
-              {selected && (
-                <View
-                  className="mb-[14px] rounded-[18px] bg-surface p-4"
-                  style={selectedCardShadowStyle}
-                >
-                  <View className="mb-[10px] flex-row items-start">
-                    <View className="h-10 w-10 items-center justify-center rounded-xl bg-green-300">
-                      <Ionicons name="location" size={20} color={Colors.white} />
-                    </View>
-
-                    <View className="ml-[10px] flex-1">
-                      <Text className="mb-0.5 text-[15px] font-bold text-text">
-                        {selected.name}
-                      </Text>
-                      <Text className="text-[12px] text-text-muted">{selected.address}</Text>
-                    </View>
-
-                    <View
-                      className="flex-row items-center rounded-[8px] px-2 py-1"
-                      style={{
-                        backgroundColor: selected.open ? Colors.successLight : Colors.errorLight,
-                      }}
-                    >
-                      <View
-                        className="mr-1 h-1.5 w-1.5 rounded-full"
-                        style={{
-                          backgroundColor: selected.open ? Colors.success : Colors.error,
-                        }}
-                      />
-                      <Text
-                        className="text-[10px] font-bold"
-                        style={{ color: selected.open ? Colors.success : Colors.error }}
-                      >
-                        {selected.open ? 'Mở cửa' : 'Tạm dừng'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View className="mb-2 flex-row">
-                    <View className="mr-4 flex-row items-center">
-                      <Ionicons name="navigate-outline" size={14} color={Colors.textMuted} />
-                      <Text className="ml-1 text-[12px] font-medium text-text-muted">
-                        {selected.distanceLabel}
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center">
-                      <Ionicons name="time-outline" size={14} color={Colors.textMuted} />
-                      <Text className="ml-1 text-[12px] font-medium text-text-muted">
-                        {selected.hours}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View className="mb-3 flex-row flex-wrap">
-                    <View
-                      className="rounded-md px-2 py-[3px]"
-                      style={{
-                        backgroundColor: `${typeColors[selected.types] || Colors.primary}18`,
-                      }}
-                    >
-                      <Text
-                        className="text-[11px] font-bold"
-                        style={{ color: typeColors[selected.types] || Colors.primary }}
-                      >
-                        {selected.types}
-                      </Text>
-                    </View>
-                  </View>
-
-                  <View className="flex-row">
-                    <TouchableOpacity
-                      className="mr-[10px] flex-1 flex-row items-center justify-center overflow-hidden rounded-xl bg-green-300 py-[10px]"
-                      onPress={() => handleNavigate(selected)}
-                    >
-                      <Ionicons name="navigate" size={16} color={Colors.white} />
-                      <Text className="ml-1.5 text-[13px] font-bold text-white">
-                        Chỉ đường
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      className="flex-1 flex-row items-center justify-center rounded-xl border-[1.5px] border-green-200 py-[10px]"
-                      onPress={() => handleCall(selected.phone)}
-                    >
-                      <Ionicons name="call-outline" size={16} color={Colors.primary} />
-                      <Text className="ml-1.5 text-[13px] font-semibold text-primary">
-                        Gọi điện
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
+            <FlatList
+              ref={flatListRef}
+              data={filtered}
+              keyExtractor={item => item.id}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={CARD_WIDTH + SPACING}
+              snapToAlignment="center"
+              decelerationRate="fast"
+              contentContainerStyle={{ paddingHorizontal: (windowWidth - CARD_WIDTH) / 2 }}
+              onViewableItemsChanged={onViewableItemsChanged}
+              viewabilityConfig={viewabilityConfig}
+              renderItem={({ item }) => (
+                <MapLocationCard
+                  item={item}
+                  cardWidth={CARD_WIDTH}
+                  spacing={SPACING}
+                  onNavigate={handleNavigate}
+                />
               )}
-
-              <Text className="mb-[10px] text-[15px] font-bold text-text">
-                Gần bạn ({filtered.length} điểm)
-              </Text>
-
-              <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-                {filtered.map(point => (
-                  <TouchableOpacity
-                    key={point.id}
-                    className={`mb-3 flex-row items-center rounded-[16px] bg-green-300 p-3 shadow-sm ${selected?.id === point.id ? 'border-2 border-white' : ''}`}
-                    onPress={() => {
-                      setSelected(point);
-                      animateToRegion({
-                        latitude: point.lat,
-                        longitude: point.lng,
-                        latitudeDelta: DEFAULT_REGION.latitudeDelta,
-                        longitudeDelta: DEFAULT_REGION.longitudeDelta,
-                      });
-                    }}
-                    activeOpacity={0.82}
-                  >
-                    <View className="mr-3 h-10 w-10 items-center justify-center rounded-lg bg-white/20">
-                      <Ionicons
-                        name="leaf"
-                        size={20}
-                        color="#FFF"
-                      />
-                    </View>
-
-                    <View className="flex-1 justify-center">
-                      <Text className="text-[15px] font-bold text-white">
-                        {point.name}
-                      </Text>
-                      <Text className="mt-1 text-[11px] text-white/80" numberOfLines={1}>
-                        {point.address}
-                      </Text>
-                      <View className="mt-1.5 flex-row items-center">
-                        <Ionicons name="star" size={10} color="#FFF" />
-                        <Ionicons name="star" size={10} color="#FFF" />
-                        <Ionicons name="star" size={10} color="#FFF" />
-                        <Ionicons name="star" size={10} color="#FFF" />
-                        <Ionicons name="star-outline" size={10} color="#FFF" />
-                        <Text className="ml-1.5 text-[10px] text-white/90">
-                          {point.distanceLabel} • {point.types}
-                        </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </>
+            />
           )}
         </View>
-      </DraggableBottomSheet>
+      </View>
 
       <ConfirmAlert
         visible={showAddressAlert}

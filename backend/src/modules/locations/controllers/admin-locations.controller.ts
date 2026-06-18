@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Param, Request, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -42,5 +42,10 @@ export class AdminLocationsController {
         locationsBySiteType,
       },
     };
+  }
+
+  @Get(':id')
+  async getAdminCollectionPointDetail(@Param('id') id: string) {
+    return this.locationsService.getCollectionPoint(id);
   }
 }

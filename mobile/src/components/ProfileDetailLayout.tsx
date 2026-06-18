@@ -1,9 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Colors from '../theme/colors';
+import SharedHeaderBackground from './SharedHeaderBackground';
+import { useSettings } from '../context/SettingsContext';
 
 type ProfileDetailLayoutProps = {
   navigation: any;
@@ -37,46 +38,64 @@ const ProfileDetailLayout: React.FC<ProfileDetailLayoutProps> = ({
   children,
 }) => {
   const insets = useSafeAreaInsets();
+  const { appearance } = useSettings();
+
+  // Determine if we should use translucent background
+  // If a backgroundLayer is explicitly provided (like in Appearance preview), we assume it might be nature.
+  // Or we just check global appearance.
+  const isNature = backgroundLayer ? true : appearance === 'nature';
 
   return (
     <View style={[styles.root, backgroundColor ? { backgroundColor } : null]}>
+      <SharedHeaderBackground
+        className="absolute top-0 left-0 right-0 h-[380px]"
+        colors={[color as any, Colors.primaryLight]}
+        forceGradient={true}
+      />
       {backgroundLayer}
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 24 }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <LinearGradient
-          colors={[color, Colors.primaryLight]}
-          style={[styles.header, { paddingTop: insets.top + 14 }]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={20} color={Colors.white} />
-          </TouchableOpacity>
 
+      <View style={{ paddingTop: insets.top + 10 }} className="px-5 pb-4 flex-row items-center justify-between z-10">
+        <TouchableOpacity
+          className="w-10 h-10 items-center justify-center bg-white/20 rounded-xl"
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="chevron-back" size={24} color="#3A3A3A" />
+        </TouchableOpacity>
+
+        <Text className="text-lg font-bold text-[#3A3A3A]">{title}</Text>
+
+        <View className="w-10" />
+      </View>
+
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 24, flexGrow: 1 }]}
+        showsVerticalScrollIndicator={false}
+        className="flex-1 z-10"
+      >
+        <View style={{ paddingHorizontal: 20, paddingBottom: 24, alignItems: 'center', marginTop: 10 }}>
           <View style={styles.heroIcon}>
             <Ionicons name={icon as any} size={28} color={Colors.white} />
           </View>
-          <Text style={styles.title}>{title}</Text>
           <Text style={styles.subtitle}>{subtitle}</Text>
 
           <View style={styles.heroCard}>
             <Text style={styles.heroTitle}>{heroTitle}</Text>
             <Text style={styles.heroSubtitle}>{heroSubtitle}</Text>
           </View>
-        </LinearGradient>
+        </View>
 
-        {children}
+        <View className={`${isNature ? 'bg-white/90' : 'bg-white'} rounded-t-[36px] px-6 pt-8 pb-8 flex-1 min-h-[500px]`}>
+          {children}
 
-        {actionLabel && onAction ? (
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: color }]}
-            onPress={onAction}
-          >
-            <Text style={styles.actionText}>{actionLabel}</Text>
-          </TouchableOpacity>
-        ) : null}
+          {actionLabel && onAction ? (
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: color }]}
+              onPress={onAction}
+            >
+              <Text style={styles.actionText}>{actionLabel}</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </ScrollView>
       {foregroundLayer}
     </View>
@@ -85,15 +104,15 @@ const ProfileDetailLayout: React.FC<ProfileDetailLayoutProps> = ({
 
 export const profileDetailStyles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#F9FAFB',
     borderRadius: 20,
-    marginHorizontal: 16,
-    marginTop: 16,
-    padding: 16,
-    elevation: 2,
+    marginBottom: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   cardTitle: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '800',
     color: Colors.textPrimary,
     marginBottom: 12,
@@ -127,10 +146,10 @@ export const profileDetailStyles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 14,
     borderRadius: 16,
-    backgroundColor: Colors.offWhite,
+    backgroundColor: Colors.white,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: '#F3F4F6',
   },
   optionCardActive: {
     borderColor: Colors.primaryLight,
@@ -167,23 +186,6 @@ export const profileDetailStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.background },
   scroll: {},
-  header: {
-    paddingHorizontal: 20,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    alignItems: 'center',
-  },
-  backBtn: {
-    alignSelf: 'flex-start',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
   heroIcon: {
     width: 72,
     height: 72,
@@ -193,7 +195,6 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     backgroundColor: 'rgba(255,255,255,0.18)',
   },
-  title: { fontSize: 24, fontWeight: '800', color: Colors.white, marginBottom: 6 },
   subtitle: {
     fontSize: 13,
     lineHeight: 20,
@@ -214,13 +215,11 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.86)',
   },
   actionButton: {
-    marginHorizontal: 16,
     marginTop: 18,
     borderRadius: 18,
     paddingVertical: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 2,
   },
   actionText: { fontSize: 15, fontWeight: '800', color: Colors.white },
 });

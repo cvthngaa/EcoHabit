@@ -10,6 +10,7 @@ import { LocationCapabilityType } from './enums/location-capability-type.enum';
 import { PartnersService } from '../partner/partners.service';
 import { PointsService } from '../points/points.service';
 import { PointTransactionType } from '../points/enums/point-transaction-type.enum';
+
 import { PointSourceType } from '../points/enums/point-source-type.enum';
 import { PartnerRoleType } from '../partner/enum/partner-role-type.enum';
 import { FraudService } from '../fraud/fraud.service';
@@ -65,6 +66,10 @@ export class CollectionTransactionsService {
     }
 
     // 2. Giải mã qrToken từ máy User
+    if (location.status !== LocationStatus.APPROVED) {
+      throw new BadRequestException('Trạm thu gom này hiện không hoạt động.');
+    }
+
     let userId = '';
     try {
       const decoded = this.jwtService.verify(data.qrToken);
@@ -81,11 +86,24 @@ export class CollectionTransactionsService {
     const redisKey = `used_qr:${tokenHash}`;
     const isUsed = await this.redisClient.get(redisKey);
     if (isUsed) {
+      await this.fraudService.flagDuplicateQr({
+        userId,
+        locationId: location.id,
+        tokenHash,
+      });
       throw new BadRequestException('Mã QR này đã được sử dụng. Vui lòng tạo mã mới.');
     }
-    
+
     // Lưu vào Redis, hết hạn sau 5 phút (300s)
     await this.redisClient.set(redisKey, '1', 'EX', 300);
+
+    await this.fraudService.checkAbnormalCollectionVolume({
+      userId,
+      locationId: location.id,
+      quantityValue: data.quantityValue,
+      quantityUnit: data.quantityUnit,
+      pointsAwarded: data.pointsAwarded,
+    });
 
     // 3. Tạo giao dịch và duyệt ngay lập tức (Vì Partner quét trực tiếp) trong Transaction
     const saved = await this.dataSource.transaction(async (manager) => {

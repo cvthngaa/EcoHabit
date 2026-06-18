@@ -67,6 +67,10 @@ export class CreateCollectionPointDto {
   @IsOptional()
   description?: string;
 
+  @IsString()
+  @IsOptional()
+  avatarUrl?: string;
+
   @IsArray()
   @IsEnum(LocationCapabilityType, { each: true })
   @IsOptional()

@@ -25,6 +25,8 @@ export class CollectionTransactionsController {
     return this.transactionsService.getMyCheckins(req.user.userId);
   }
 
+
+
   @UseGuards(PartnerRoleGuard)
   @Roles(UserRole.PARTNER)
   @PartnerRoles(PartnerRoleType.COLLECTOR)
@@ -36,7 +38,7 @@ export class CollectionTransactionsController {
   @UseGuards(PartnerRoleGuard)
   @Roles(UserRole.PARTNER)
   @PartnerRoles(PartnerRoleType.COLLECTOR)
-  @Post('partner/collection-transactions/scan-user')
+  @Post('partner/collection-transactions/scan-user-qr')
   scanUserQr(
     @Request() req: any,
     @Body() data: ScanUserQrDto,

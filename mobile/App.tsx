@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import {
   useFonts,
   BeVietnamPro_400Regular,
@@ -15,7 +15,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './global.css';
 import { ToastProvider } from './src/context/ToastContext';
 import { AuthProvider } from './src/context/AuthContext';
+import { SettingsProvider } from './src/context/SettingsContext';
 import RootNavigator from './src/navigation/RootNavigator';
+import GlobalLeavesOverlay from './src/components/GlobalLeavesOverlay';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,12 +45,18 @@ export default function App() {
     <GestureHandlerRootView style={styles.root}>
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
-          <AuthProvider>
-            <ToastProvider>
-              <StatusBar style="dark" translucent backgroundColor="transparent" />
-              <RootNavigator />
-            </ToastProvider>
-          </AuthProvider>
+          <SettingsProvider>
+            <AuthProvider>
+              <ToastProvider>
+                <StatusBar style="dark" translucent backgroundColor="transparent" />
+                <View style={styles.root}>
+                  <RootNavigator />
+                  {/* Global leaves overlay – rendered above all navigators */}
+                  <GlobalLeavesOverlay />
+                </View>
+              </ToastProvider>
+            </AuthProvider>
+          </SettingsProvider>
         </SafeAreaProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>

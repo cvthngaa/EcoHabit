@@ -13,7 +13,7 @@ export class AddFraudFlags1780432701755 implements MigrationInterface {
         await queryRunner.query(`CREATE INDEX "IDX_fd9ff0a52d76e90ccaa224a01b" ON "fraud_flags" ("flag_code") `);
         await queryRunner.query(`CREATE INDEX "IDX_64991cb2431fb6c479f1aedacd" ON "fraud_flags" ("status") `);
         await queryRunner.query(`ALTER TYPE "public"."admin_audit_action" RENAME TO "admin_audit_action_old"`);
-        await queryRunner.query(`CREATE TYPE "public"."admin_audit_action" AS ENUM('USER_STATUS_CHANGE', 'USER_PROFILE_UPDATE', 'PARTNER_APPROVAL', 'PARTNER_ROLES_UPDATE', 'REWARD_CREATE', 'REWARD_UPDATE', 'REWARD_DELETE', 'REDEMPTION_STATUS_UPDATE', 'COLLECTION_POINT_CREATE', 'COLLECTION_POINT_UPDATE', 'COLLECTION_POINT_DELETE', 'FORUM_POST_DELETE', 'FORUM_COMMENT_DELETE', 'POINTS_ADJUST', 'FRAUD_STATUS_UPDATE')`);
+        await queryRunner.query(`CREATE TYPE "public"."admin_audit_action" AS ENUM('USER_STATUS_CHANGE', 'USER_PROFILE_UPDATE', 'PARTNER_APPROVAL', 'PARTNER_ROLES_UPDATE', 'REWARD_CREATE', 'REWARD_UPDATE', 'REWARD_DELETE', 'REDEMPTION_STATUS_UPDATE', 'COLLECTION_POINT_CREATE', 'COLLECTION_POINT_UPDATE', 'COLLECTION_POINT_DELETE', 'POINTS_ADJUST', 'FRAUD_STATUS_UPDATE')`);
         await queryRunner.query(`ALTER TABLE "admin_audit_logs" ALTER COLUMN "action" TYPE "public"."admin_audit_action" USING "action"::"text"::"public"."admin_audit_action"`);
         await queryRunner.query(`DROP TYPE "public"."admin_audit_action_old"`);
         await queryRunner.query(`ALTER TABLE "fraud_flags" ADD CONSTRAINT "FK_3c0871fc7358244f7fac1ea11dd" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE NO ACTION`);
@@ -23,7 +23,7 @@ export class AddFraudFlags1780432701755 implements MigrationInterface {
     public async down(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE "fraud_flags" DROP CONSTRAINT "FK_851d8021bd7ea5416ce8aa81ab4"`);
         await queryRunner.query(`ALTER TABLE "fraud_flags" DROP CONSTRAINT "FK_3c0871fc7358244f7fac1ea11dd"`);
-        await queryRunner.query(`CREATE TYPE "public"."admin_audit_action_old" AS ENUM('USER_STATUS_CHANGE', 'USER_PROFILE_UPDATE', 'PARTNER_APPROVAL', 'PARTNER_ROLES_UPDATE', 'REWARD_CREATE', 'REWARD_UPDATE', 'REWARD_DELETE', 'REDEMPTION_STATUS_UPDATE', 'COLLECTION_POINT_CREATE', 'COLLECTION_POINT_UPDATE', 'COLLECTION_POINT_DELETE', 'FORUM_POST_DELETE', 'FORUM_COMMENT_DELETE', 'POINTS_ADJUST')`);
+        await queryRunner.query(`CREATE TYPE "public"."admin_audit_action_old" AS ENUM('USER_STATUS_CHANGE', 'USER_PROFILE_UPDATE', 'PARTNER_APPROVAL', 'PARTNER_ROLES_UPDATE', 'REWARD_CREATE', 'REWARD_UPDATE', 'REWARD_DELETE', 'REDEMPTION_STATUS_UPDATE', 'COLLECTION_POINT_CREATE', 'COLLECTION_POINT_UPDATE', 'COLLECTION_POINT_DELETE', 'POINTS_ADJUST')`);
         await queryRunner.query(`ALTER TABLE "admin_audit_logs" ALTER COLUMN "action" TYPE "public"."admin_audit_action_old" USING "action"::"text"::"public"."admin_audit_action_old"`);
         await queryRunner.query(`DROP TYPE "public"."admin_audit_action"`);
         await queryRunner.query(`ALTER TYPE "public"."admin_audit_action_old" RENAME TO "admin_audit_action"`);

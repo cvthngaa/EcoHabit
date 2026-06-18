@@ -7,39 +7,39 @@ import { BackendClassificationResponse } from './types';
 const CLASSIFICATION_TIMEOUT_MS = 20000;
 
 function logClassificationResult(data: BackendClassificationResponse): void {
-  if (!__DEV__) return;
+ if (!__DEV__) return;
 
-  console.log('[AI Service] Classification result', {
-    classificationId: data.classificationId,
-    label: data.label,
-    wasteType: data.wasteType,
-    pointsEarned: data.pointsEarned,
-    awarded: data.awarded,
-    balanceAfter: data.balanceAfter,
-  });
+ console.log('[AI Service] Classification result', {
+ classificationId: data.classificationId,
+ label: data.label,
+ wasteType: data.wasteType,
+ pointsEarned: data.pointsEarned,
+ awarded: data.awarded,
+ balanceAfter: data.balanceAfter,
+ });
 }
 
 export function useClassifyWaste() {
-  return useMutation({
-    mutationFn: async (imageUri: string) => {
-      const response = await api.post<BackendClassificationResponse>(
-        '/ai/classify',
-        createClassificationFormData(imageUri),
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          timeout: CLASSIFICATION_TIMEOUT_MS,
-        },
-      );
+ return useMutation({
+ mutationFn: async ({ imageUri, latitude, longitude }: { imageUri: string; latitude?: number; longitude?: number }) => {
+ const response = await api.post<BackendClassificationResponse>(
+ '/ai/classify',
+ createClassificationFormData(imageUri, latitude, longitude),
+ {
+ headers: {
+ 'Content-Type': 'multipart/form-data',
+ },
+ timeout: CLASSIFICATION_TIMEOUT_MS,
+ },
+ );
 
-      logClassificationResult(response.data);
+ logClassificationResult(response.data);
 
-      if (!response.data.classificationId && response.data.message) {
-        throw new Error(response.data.message);
-      }
+ if (!response.data.classificationId && response.data.message) {
+ throw new Error(response.data.message);
+ }
 
-      return mapClassificationResponse(response.data);
-    },
-  });
+ return mapClassificationResponse(response.data);
+ },
+ });
 }

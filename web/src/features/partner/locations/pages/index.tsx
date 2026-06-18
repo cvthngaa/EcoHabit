@@ -1,19 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import {
-  Plus, Search, Eye, Pencil, QrCode, Loader2, X, Check,
+  Plus, Search, Eye, Pencil, Loader2, X, Check,
   AlertTriangle, CheckCircle2, Phone, MapPin, Info,
   Shield, Download, SlidersHorizontal, RefreshCw,
   ChevronDown, Package, Recycle, XCircle,
-  Map, List,
+  Map, List, Upload,
 } from 'lucide-react';
+import { apiClient } from '../../../../shared/services/api-client';
 import { useGetLocations } from '../services/use-get-locations';
-import { useGetQr } from '../services/use-get-qr';
-import { useGenerateQr } from '../services/use-generate-qr';
 import { useCreateLocation } from '../services/use-create-location';
 import { useUpdateLocation } from '../services/use-update-location';
 import { useGetTransactions } from '../services/use-get-transactions';
-import { useVerifyTransaction } from '../services/use-verify-transaction';
-import { useRejectTransaction } from '../services/use-reject-transaction';
 import {
   STATUS_LABEL,
   STATUS_COLOR,
@@ -33,13 +30,11 @@ import type {
   WasteType,
   AcceptedWasteType,
   CollectionProfile,
-  CollectionTransaction,
   LocationStatus,
 } from '../services/types';
 import { locationFormSchema } from '../services/schemas';
 import LocationMap from '../components/location-map';
 import { Badge, Modal, DataTable, IconButton, SearchFilterBar } from '../../../../shared/components';
-import { QRCodeSVG } from 'qrcode.react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -64,6 +59,7 @@ interface LocationFormState {
   longitude: string;
   type: LocationType;
   contactPhone: string;
+  avatarUrl: string;
   capabilities: LocationCapabilityType[];
   acceptedWasteTypes: AcceptedWasteType[];
   collectionProfile: CollectionProfile;
@@ -76,6 +72,7 @@ const emptyForm = (): LocationFormState => ({
   longitude: '',
   type: 'COLLECTION_POINT',
   contactPhone: '',
+  avatarUrl: '',
   capabilities: ['COLLECTION'],
   acceptedWasteTypes: [],
   collectionProfile: { siteType: 'COUNTER', requiresStaffConfirmation: false, instructions: '' },
@@ -88,6 +85,7 @@ const locationToForm = (loc: Location): LocationFormState => ({
   longitude: loc.longitude !== undefined ? String(loc.longitude) : '',
   type: loc.type,
   contactPhone: loc.contactPhone ?? '',
+  avatarUrl: loc.avatarUrl ?? '',
   capabilities: loc.capabilities?.map((c: any) => typeof c === 'string' ? c : c.capability) ?? [],
   acceptedWasteTypes: loc.acceptedWasteTypes ?? [],
   collectionProfile: loc.collectionProfile ?? { siteType: 'COUNTER', requiresStaffConfirmation: false },
@@ -142,6 +140,31 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({ editTarget, onClo
   const setProfile = <K extends keyof CollectionProfile>(k: K, v: CollectionProfile[K]) =>
     set('collectionProfile', { ...form.collectionProfile, [k]: v });
 
+  const [isUploading, setIsUploading] = useState(false);
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      setSubmitError('');
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const res = await apiClient.post('/uploads/image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      
+      if (res.data.success) {
+        set('avatarUrl', res.data.url);
+      }
+    } catch (err: any) {
+      setSubmitError(err?.response?.data?.message || 'Có lỗi khi tải ảnh lên');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmit = () => {
     setErrors({});
     setSubmitError('');
@@ -170,6 +193,7 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({ editTarget, onClo
       address: form.address,
       type: form.type,
       contactPhone: form.contactPhone || undefined,
+      avatarUrl: form.avatarUrl || undefined,
       latitude: form.latitude ? Number(form.latitude) : undefined,
       longitude: form.longitude ? Number(form.longitude) : undefined,
       capabilities: form.capabilities.length > 0 ? form.capabilities : undefined,
@@ -246,6 +270,42 @@ const LocationFormModal: React.FC<LocationFormModalProps> = ({ editTarget, onClo
         <div>
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Thông tin cơ bản</p>
           <div className="space-y-4">
+            
+            {/* Avatar */}
+            <div className="space-y-1.5 flex flex-col">
+              <label className="text-xs font-semibold text-slate-600">Ảnh đại diện</label>
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center relative">
+                  {form.avatarUrl ? (
+                    <img src={form.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  ) : (
+                    <Upload className="w-6 h-6 text-slate-400" />
+                  )}
+                  {isUploading && (
+                    <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+                      <Loader2 className="w-5 h-5 animate-spin text-emerald-500" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    disabled={isUploading}
+                    id="avatar-upload"
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="avatar-upload"
+                    className="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg cursor-pointer transition-colors"
+                  >
+                    Tải ảnh lên
+                  </label>
+                  <p className="text-[10px] text-slate-400 mt-1.5">Định dạng JPEG, PNG. Tối đa 5MB.</p>
+                </div>
+              </div>
+            </div>
 
             {/* Name */}
             <div className="space-y-1.5">
@@ -470,47 +530,6 @@ interface DetailPanelProps {
 }
 
 const DetailPanel: React.FC<DetailPanelProps> = ({ location, onClose, onEdit }) => {
-  const { data: getQrData, isLoading: isLoadingQr, refetch: refetchQr } = useGetQr(location.id, true);
-  const generateQrMutation = useGenerateQr();
-  const [qrError, setQrError] = useState('');
-
-  const handleGenerateQr = () => {
-    if (!confirm('Bạn có chắc chắn muốn tạo lại mã QR? Mã cũ sẽ mất hiệu lực ngay lập tức.')) return;
-    setQrError('');
-    generateQrMutation.mutate(location.id, {
-      onSuccess: () => refetchQr(),
-      onError: (err: any) =>
-        setQrError(err?.response?.data?.message || 'Không thể tạo mã QR'),
-    });
-  };
-
-  const qrToken = getQrData?.qrToken;
-  const qrPayload = qrToken ? JSON.stringify({ type: 'ECOHABIT_LOCATION_CHECKIN', locationId: location.id, secret: qrToken }) : null;
-
-  const downloadQR = () => {
-    const svg = document.getElementById('qr-code-svg');
-    if (!svg) return;
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.onload = () => {
-      canvas.width = img.width;
-      canvas.height = img.height;
-      if (ctx) {
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-      }
-      const pngFile = canvas.toDataURL('image/png');
-      const downloadLink = document.createElement('a');
-      downloadLink.download = `qr-${location.id}.png`;
-      downloadLink.href = `${pngFile}`;
-      downloadLink.click();
-    };
-    img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex justify-end" onClick={onClose}>
       <div
@@ -546,6 +565,11 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ location, onClose, onEdit }) 
           {/* Basic Info */}
           <div className="space-y-3">
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Thông tin cơ bản</p>
+            {location.avatarUrl && (
+              <div className="w-full h-32 rounded-xl overflow-hidden mb-4 border border-slate-200">
+                <img src={location.avatarUrl} alt={location.name} className="w-full h-full object-cover" />
+              </div>
+            )}
             <div className="space-y-2 text-sm">
               <div className="flex gap-2 items-start">
                 <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
@@ -639,71 +663,6 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ location, onClose, onEdit }) 
               </div>
             </div>
           )}
-
-          {/* QR Section */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Mã QR check-in</p>
-              <button
-                type="button"
-                onClick={handleGenerateQr}
-                disabled={generateQrMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg cursor-pointer disabled:opacity-50 transition-all"
-              >
-                {generateQrMutation.isPending
-                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  : <RefreshCw className="w-3.5 h-3.5" />
-                }
-                Tạo lại QR
-              </button>
-            </div>
-
-            {qrError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
-                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                {qrError}
-              </div>
-            )}
-
-            {isLoadingQr ? (
-              <div className="py-8 flex justify-center">
-                <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
-              </div>
-            ) : qrPayload ? (
-              <div className="bg-slate-50 rounded-2xl p-4 text-center space-y-3">
-                <div className="flex justify-center bg-white p-4 rounded-xl border border-slate-200 w-fit mx-auto">
-                  <QRCodeSVG
-                    id="qr-code-svg"
-                    value={qrPayload}
-                    size={180}
-                    level="Q"
-                    bgColor="#ffffff"
-                    fgColor="#1a5c38"
-                    marginSize={1}
-                  />
-                </div>
-                <p className="text-xs font-mono text-slate-600 break-all bg-white rounded-lg p-2 border border-slate-200">
-                  Secret: {qrToken}
-                </p>
-                <p className="text-xs text-slate-500 flex items-center justify-center gap-1">
-                  <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                  Mã QR tĩnh, có thể in ra để sử dụng
-                </p>
-                <button
-                  type="button"
-                  onClick={downloadQR}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 hover:text-emerald-800 cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  Tải ảnh QR
-                </button>
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400 text-center py-2">
-                Chưa có mã QR. Nhấn "Tạo lại QR" để tạo mới.
-              </p>
-            )}
-          </div>
         </div>
       </div>
     </div>
@@ -712,25 +671,11 @@ const DetailPanel: React.FC<DetailPanelProps> = ({ location, onClose, onEdit }) 
 
 // ─── Transactions Panel ───────────────────────────────────────────────────────
 
-interface VerifyModalState {
-  tx: CollectionTransaction;
-  points: string;
-}
-interface RejectModalState {
-  tx: CollectionTransaction;
-  reason: string;
-}
-
 const TransactionsPanel: React.FC = () => {
   const { data: transactions = [], isLoading, refetch } = useGetTransactions();
-  const verifyMutation = useVerifyTransaction();
-  const rejectMutation = useRejectTransaction();
 
   const [searchTx, setSearchTx] = useState('');
   const [txTab, setTxTab] = useState<'ALL' | 'PENDING' | 'VERIFIED' | 'REJECTED'>('PENDING');
-  const [verifyModal, setVerifyModal] = useState<VerifyModalState | null>(null);
-  const [rejectModal, setRejectModal] = useState<RejectModalState | null>(null);
-  const [actionError, setActionError] = useState('');
 
   const filtered = useMemo(() => {
     return transactions
@@ -738,34 +683,13 @@ const TransactionsPanel: React.FC = () => {
       .filter((t) => {
         const q = searchTx.toLowerCase();
         return (
-          (t.user?.displayName ?? '').toLowerCase().includes(q) ||
+          (t.user?.fullName ?? t.user?.displayName ?? '').toLowerCase().includes(q) ||
           (t.user?.email ?? '').toLowerCase().includes(q) ||
           (t.location?.name ?? '').toLowerCase().includes(q)
         );
       })
       .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
   }, [transactions, txTab, searchTx]);
-
-  const handleVerify = () => {
-    if (!verifyModal) return;
-    const pts = parseInt(verifyModal.points, 10);
-    if (isNaN(pts) || pts < 0) { setActionError('Điểm thưởng phải là số nguyên ≥ 0'); return; }
-    setActionError('');
-    verifyMutation.mutate(
-      { id: verifyModal.tx.id, pointsAwarded: pts },
-      { onSuccess: () => setVerifyModal(null), onError: () => setActionError('Lỗi khi xác nhận giao dịch') }
-    );
-  };
-
-  const handleReject = () => {
-    if (!rejectModal) return;
-    if (!rejectModal.reason.trim()) { setActionError('Vui lòng nhập lý do từ chối'); return; }
-    setActionError('');
-    rejectMutation.mutate(
-      { id: rejectModal.tx.id, rejectionReason: rejectModal.reason },
-      { onSuccess: () => setRejectModal(null), onError: () => setActionError('Lỗi khi từ chối giao dịch') }
-    );
-  };
 
   return (
     <div className="space-y-4">
@@ -821,7 +745,7 @@ const TransactionsPanel: React.FC = () => {
             header: 'Người gửi',
             render: (tx) => (
               <>
-                <p className="font-medium text-slate-900">{tx.user?.displayName ?? 'Ẩn danh'}</p>
+                <p className="font-medium text-slate-900">{tx.user?.fullName ?? tx.user?.displayName ?? 'Ẩn danh'}</p>
                 <p className="text-xs text-slate-400">{tx.user?.email ?? ''}</p>
               </>
             ),
@@ -867,112 +791,8 @@ const TransactionsPanel: React.FC = () => {
               <Badge label={TX_STATUS_LABEL[tx.status]} className={TX_STATUS_COLOR[tx.status]} />
             ),
           },
-          {
-            header: 'Hành động',
-            className: 'text-right',
-            render: (tx) => tx.status === 'PENDING' ? (
-              <div className="flex gap-1.5 justify-end">
-                <button
-                  onClick={() => setVerifyModal({ tx, points: '10' })}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg hover:bg-emerald-100 cursor-pointer"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  Duyệt
-                </button>
-                <button
-                  onClick={() => setRejectModal({ tx, reason: '' })}
-                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 rounded-lg hover:bg-rose-100 cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  Từ chối
-                </button>
-              </div>
-            ) : null,
-          },
         ]}
       />
-
-      {/* Verify Modal */}
-      {verifyModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4">
-            <h4 className="text-base font-bold text-slate-900">Xác nhận giao dịch</h4>
-            <p className="text-sm text-slate-500">
-              Duyệt giao dịch của <strong>{verifyModal.tx.user?.displayName ?? 'người dùng'}</strong> —{' '}
-              {verifyModal.tx.acceptedWasteType?.wasteType ? WASTE_LABEL[verifyModal.tx.acceptedWasteType.wasteType as WasteType] : ''}{' '}
-              {verifyModal.tx.quantityValue} {verifyModal.tx.quantityUnit}
-            </p>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-600">Số điểm thưởng cấp cho người dùng</label>
-              <input
-                type="number"
-                min="0"
-                value={verifyModal.points}
-                onChange={(e) => setVerifyModal({ ...verifyModal, points: e.target.value })}
-                className={inputCls}
-              />
-            </div>
-            {actionError && <p className="text-xs text-rose-500">{actionError}</p>}
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => { setVerifyModal(null); setActionError(''); }}
-                className="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer"
-              >
-                Huỷ
-              </button>
-              <button
-                onClick={handleVerify}
-                disabled={verifyMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl cursor-pointer disabled:bg-slate-300"
-              >
-                {verifyMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                Xác nhận & Cấp điểm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Reject Modal */}
-      {rejectModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4">
-            <h4 className="text-base font-bold text-slate-900">Từ chối giao dịch</h4>
-            <p className="text-sm text-slate-500">
-              Từ chối giao dịch của <strong>{rejectModal.tx.user?.displayName ?? 'người dùng'}</strong>.
-            </p>
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-600">
-                Lý do từ chối <span className="text-rose-500">*</span>
-              </label>
-              <textarea
-                rows={3}
-                value={rejectModal.reason}
-                onChange={(e) => setRejectModal({ ...rejectModal, reason: e.target.value })}
-                placeholder="Nhập lý do từ chối..."
-                className={`${inputCls} resize-none`}
-              />
-            </div>
-            {actionError && <p className="text-xs text-rose-500">{actionError}</p>}
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => { setRejectModal(null); setActionError(''); }}
-                className="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer"
-              >
-                Huỷ
-              </button>
-              <button
-                onClick={handleReject}
-                disabled={rejectMutation.isPending}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-rose-600 hover:bg-rose-700 text-white rounded-xl cursor-pointer disabled:bg-slate-300"
-              >
-                {rejectMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-                Xác nhận từ chối
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -1252,13 +1072,6 @@ export const Locations: React.FC = () => {
                       >
                         <Pencil className="w-3.5 h-3.5" />
                         Sửa
-                      </button>
-                      <button
-                        onClick={() => setDetailTarget(loc)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 rounded-lg cursor-pointer"
-                      >
-                        <QrCode className="w-3.5 h-3.5" />
-                        QR
                       </button>
                     </div>
                   ),

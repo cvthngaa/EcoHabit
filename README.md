@@ -39,7 +39,7 @@ Backend cung cấp REST API cho mobile app, kết nối PostgreSQL, Redis, Cloud
 - JWT authentication với Passport.
 - OTP đăng ký và khôi phục mật khẩu qua Nodemailer.
 - Redis cho OTP và trạng thái quiz hằng ngày.
-- TypeORM entities cho users, points, rewards, locations, AI classification, forum.
+- TypeORM entities cho users, points, rewards, locations, AI classification, quiz và audit.
 - Upload ảnh lên Cloudinary.
 - Gọi AI service để phân loại rác.
 - Lưu lịch sử phân loại và feedback của người dùng.
@@ -111,7 +111,6 @@ EcoHabit/
       modules/
         ai/
         auth/
-        forum/
         gemini/
         health/
         locations/

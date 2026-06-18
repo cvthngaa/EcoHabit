@@ -28,6 +28,7 @@ export interface Reward {
 export interface RedemptionUser {
   id: string;
   displayName?: string;
+  fullName?: string;
   email?: string;
 }
 

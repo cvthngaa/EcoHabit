@@ -5,17 +5,17 @@ import { UserProfile } from './types';
 export const profileQueryKey = ['auth', 'profile'] as const;
 
 type UseGetProfileOptions = {
-  enabled?: boolean;
+ enabled?: boolean;
 };
 
 export function useGetProfile({ enabled = true }: UseGetProfileOptions = {}) {
-  return useQuery({
-    queryKey: profileQueryKey,
-    queryFn: async (): Promise<UserProfile> => {
-      const response = await api.get<UserProfile>('/auth/me');
+ return useQuery({
+ queryKey: profileQueryKey,
+ queryFn: async (): Promise<UserProfile> => {
+ const response = await api.get<UserProfile>('/auth/me');
 
-      return response.data;
-    },
-    enabled,
-  });
+ return response.data;
+ },
+ enabled,
+ });
 }

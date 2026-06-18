@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   LogOut,
   MapPin,
-  MessageSquareWarning,
   Settings,
   ShieldAlert,
   Store,
@@ -32,7 +31,6 @@ const navigation = [
   { name: 'Gian lận', to: '/admin/fraud', icon: ShieldAlert },
   { name: 'Kiểm duyệt AI', to: '/admin/ai-review', icon: Bot },
   { name: 'Audit logs', to: '/admin/audit-logs', icon: FileClock },
-  { name: 'Forum', to: '/admin/forum', icon: MessageSquareWarning },
   { name: 'Quiz', to: '/admin/quiz', icon: BarChart3 },
 ];
 

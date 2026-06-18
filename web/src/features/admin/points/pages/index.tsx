@@ -12,6 +12,7 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
   DROPOFF_CONFIRMED: 'Xác nhận thu gom',
   REDEMPTION: 'Đổi quà',
   MANUAL_ADJUST: 'Điều chỉnh thủ công',
+  QUIZ_COMPLETED: 'Hoàn thành Quiz',
 };
 
 const SOURCE_TYPE_LABEL: Record<string, string> = {

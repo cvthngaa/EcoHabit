@@ -3,13 +3,13 @@ import api from '../api-client';
 import { RedeemRewardPayload, RedeemRewardResponse } from './types';
 
 export function useRedeemReward() {
-  return useMutation({
-    mutationFn: async ({ rewardId }: RedeemRewardPayload): Promise<RedeemRewardResponse> => {
-      const response = await api.post<RedeemRewardResponse>('/redemptions', {
-        rewardId,
-      });
+ return useMutation({
+ mutationFn: async ({ rewardId }: RedeemRewardPayload): Promise<RedeemRewardResponse> => {
+ const response = await api.post<RedeemRewardResponse>('/redemptions', {
+ rewardId,
+ });
 
-      return response.data;
-    },
-  });
+ return response.data;
+ },
+ });
 }

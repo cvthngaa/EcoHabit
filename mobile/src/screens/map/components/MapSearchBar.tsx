@@ -40,23 +40,23 @@ const MapSearchBar: React.FC<MapSearchBarProps> = ({
 
   return (
     <View
-      className="absolute left-4 right-4"
-      style={{ top: insets.top + 56 }}
+      className="absolute left-6 right-6 z-50"
+      style={{ top: 24 }}
     >
       <View 
-        className="flex-row items-center rounded-[10px] bg-surface px-3 border border-green-300"
-        style={{ height: 42, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 3 }}
+        className="flex-row items-center rounded-2xl bg-white px-4 border border-gray-100"
+        style={{ height: 48, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 8 }}
       >
         <Ionicons
           name="search"
-          size={18}
-          color={Tokens.color.green[300]}
-          style={{ marginRight: 8 }}
+          size={20}
+          color="#9CA3AF"
+          style={{ marginRight: 10 }}
         />
         <TextInput
-          className="flex-1 text-[14px] text-text font-medium"
-          placeholder="Nhập địa chỉ để tìm điểm thu gom..."
-          placeholderTextColor={Colors.textMuted}
+          className="flex-1 text-[15px] text-[#1F2937] font-medium"
+          placeholder="Nhập địa chỉ..."
+          placeholderTextColor="#9CA3AF"
           value={addressQuery}
           onChangeText={text => {
             setAddressQuery(text);
@@ -70,24 +70,28 @@ const MapSearchBar: React.FC<MapSearchBarProps> = ({
           style={{ height: '100%', paddingVertical: 0 }}
         />
         {isAddressSearching || isSubmittingAddress ? (
-          <ActivityIndicator size="small" color={Tokens.color.green[300]} />
-        ) : null}
+          <ActivityIndicator size="small" color="#FF7A45" />
+        ) : (
+          <TouchableOpacity onPress={() => setShowAddressSuggestions(false)} className="ml-2">
+            <Ionicons name="close-circle" size={20} color="#D1D5DB" />
+          </TouchableOpacity>
+        )}
       </View>
 
       {!addressQuery && currentAddress && !showAddressSuggestions ? (
-        <Text className="mt-1.5 ml-2 text-[12px] text-text-muted font-medium" numberOfLines={1}>
+        <Text className="mt-2 ml-2 text-[12px] text-gray-500 font-medium" numberOfLines={1}>
           {currentAddress}
         </Text>
       ) : null}
 
       {addressError ? (
-        <Text className="mt-1.5 ml-2 text-[12px] text-status-error">{addressError}</Text>
+        <Text className="mt-2 ml-2 text-[12px] text-red-500">{addressError}</Text>
       ) : null}
 
       {showAddressSuggestions && addressSuggestions.length ? (
         <View 
-          className="mt-2 overflow-hidden rounded-[14px] bg-surface p-3" 
-          style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 10, elevation: 6 }}
+          className="mt-3 overflow-hidden rounded-[20px] bg-white p-3 border border-gray-100" 
+          style={{ shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 16, elevation: 8 }}
         >
           <FlatList
             data={addressSuggestions}
@@ -96,18 +100,18 @@ const MapSearchBar: React.FC<MapSearchBarProps> = ({
             scrollEnabled={false}
             renderItem={({ item }) => (
               <TouchableOpacity
-                className="mb-2.5 flex-row items-center rounded-[10px] p-2.5 bg-green-300"
+                className="mb-2 flex-row items-center rounded-[16px] p-3 bg-gray-50 border border-gray-100"
                 onPress={() => handleSelectSuggestion(item)}
                 activeOpacity={0.8}
               >
-                <View className="mr-3 h-8 w-8 items-center justify-center rounded-lg bg-white/20">
-                  <Ionicons name="location" size={16} color={Colors.white} />
+                <View className="mr-3 h-10 w-10 items-center justify-center rounded-[12px] bg-white shadow-sm" style={{ elevation: 1 }}>
+                  <Ionicons name="location" size={18} color="#FF7A45" />
                 </View>
                 <View className="flex-1 justify-center">
-                  <Text className="text-[14px] font-bold text-white">
+                  <Text className="text-[14px] font-bold text-[#1F2937]">
                     {item.title}
                   </Text>
-                  <Text className="mt-0.5 text-[11px] text-white/80" numberOfLines={1}>
+                  <Text className="mt-0.5 text-[11px] text-gray-500" numberOfLines={1}>
                     {item.subtitle}
                   </Text>
                 </View>

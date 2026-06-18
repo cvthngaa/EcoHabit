@@ -7,21 +7,21 @@ export const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash-lite';
 
 export const DAILY_TIP_FALLBACKS: Omit<GeminiDailyTip, 'source'>[] = [
   {
-    title: 'Rua nhanh truoc khi tai che',
+    title: 'Rửa nhanh trước khi tái chế',
     content:
-      'Trang so chai, lon va hop nhua sau khi dung de vat lieu sach hon, de duoc thu gom va tai che hon.',
-    emoji: 'recycle',
+      'Tráng sơ chai, lon và hộp nhựa sau khi dùng để vật liệu sạch hơn, dễ được thu gom và tái chế hơn.',
+    emoji: '♻️',
   },
   {
-    title: 'Ep gon chai nhua',
+    title: 'Ép gọn chai nhựa',
     content:
-      'Bop dep chai nhua sau khi lam sach de tiet kiem cho trong thung rac tai che va khi mang di doi.',
-    emoji: 'bottle',
+      'Bóp dẹp chai nhựa sau khi làm sạch để tiết kiệm chỗ trong thùng rác tái chế và khi mang đi đổi.',
+    emoji: '🧴',
   },
   {
-    title: 'Tach pin ra rieng',
+    title: 'Tách pin ra riêng',
     content:
-      'Pin cu khong nen bo chung voi rac sinh hoat. Hay cat rieng trong hop nho va mang den diem thu gom phu hop.',
-    emoji: 'battery',
+      'Pin cũ không nên bỏ chung với rác sinh hoạt. Hãy cất riêng trong hộp nhỏ và mang đến điểm thu gom phù hợp.',
+    emoji: '🔋',
   },
 ];

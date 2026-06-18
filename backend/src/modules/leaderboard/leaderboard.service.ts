@@ -78,7 +78,7 @@ export class LeaderboardService {
       return this.userRepo.query(
         `SELECT u.id AS user_id, u.full_name, u.avatar_url, u.points_balance AS points
          FROM users u
-         WHERE u.status = 'ACTIVE'
+         WHERE u.status = 'ACTIVE' AND u.role = 'USER'
          ORDER BY u.points_balance DESC
          LIMIT $1`,
         [limit],
@@ -97,6 +97,7 @@ export class LeaderboardService {
        WHERE pt.type = $1
          AND pt.created_at >= ${dateFilter}
          AND u.status = 'ACTIVE'
+         AND u.role = 'USER'
        GROUP BY u.id, u.full_name, u.avatar_url
        ORDER BY points DESC
        LIMIT $2`,

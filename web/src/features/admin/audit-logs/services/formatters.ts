@@ -16,9 +16,6 @@ export const formatAuditAction = (action: string): { label: string; color: strin
     case 'COLLECTION_POINT_UPDATE': return { label: 'Sửa điểm thu gom', color: 'bg-blue-100 text-blue-700' };
     case 'COLLECTION_POINT_DELETE': return { label: 'Xóa điểm thu gom', color: 'bg-red-100 text-red-700' };
     
-    case 'FORUM_POST_DELETE': return { label: 'Xóa bài viết', color: 'bg-red-100 text-red-700' };
-    case 'FORUM_COMMENT_DELETE': return { label: 'Xóa bình luận', color: 'bg-red-100 text-red-700' };
-    
     default: return { label: action, color: 'bg-slate-100 text-slate-700' };
   }
 };

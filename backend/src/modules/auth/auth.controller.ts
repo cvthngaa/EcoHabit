@@ -5,6 +5,7 @@ import {
   UseGuards,
   Request,
   Get,
+  Patch,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
@@ -16,10 +17,12 @@ import { ApiBody, ApiOperation } from '@nestjs/swagger';
 import { RegisterDto } from './dto/register.dto';
 import { RegisterPartnerDto } from './dto/register-partner.dto';
 import { SendOtpDto } from './dto/send-otp.dto';
+import { UpdateUserProfileDto } from '../users/dto/update-user-profile.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { SendChangePasswordOtpDto } from './dto/send-change-password-otp.dto';
 import type { AuthenticatedRequest } from '../../common/types/authenticated-request.type';
 
 @Controller('auth')
@@ -89,6 +92,18 @@ export class AuthController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Post('change-password/send-otp')
+  @ApiOperation({ summary: 'Gửi mã OTP đổi mật khẩu' })
+  @ApiBody({ type: SendChangePasswordOtpDto })
+  sendChangePasswordOtp(
+    @Request() req: AuthenticatedRequest,
+    @Body() body: SendChangePasswordOtpDto,
+  ) {
+    console.log('RECEIVED oldPassword:', body.oldPassword);
+    return this.authService.sendChangePasswordOtp(req.user.userId, body.oldPassword);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Post('change-password')
   @ApiOperation({ summary: 'Đổi mật khẩu cho user đã đăng nhập' })
   @ApiBody({ type: ChangePasswordDto })
@@ -107,6 +122,17 @@ export class AuthController {
   @Get('me')
   async me(@Request() req: AuthenticatedRequest) {
     return this.authService.getProfile(req.user.userId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('me')
+  @ApiOperation({ summary: 'Cập nhật thông tin cá nhân' })
+  @ApiBody({ type: UpdateUserProfileDto })
+  async updateProfile(
+    @Request() req: AuthenticatedRequest,
+    @Body() body: UpdateUserProfileDto,
+  ) {
+    return this.authService.updateProfile(req.user.userId, body);
   }
 
   @UseGuards(AuthGuard('jwt'))

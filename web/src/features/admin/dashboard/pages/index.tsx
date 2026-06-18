@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   AlertTriangle,
   Bot,
@@ -45,6 +45,15 @@ const wasteKeys = [
 ] as const;
 
 const format = (value: number) => value.toLocaleString('vi-VN');
+
+type FilterKey = 'today' | 'week' | 'month' | 'year';
+
+const FILTER_LABELS: Record<FilterKey, string> = {
+  today: 'Hôm nay',
+  week: '7 ngày',
+  month: 'Tháng này',
+  year: 'Năm nay',
+};
 
 const SparkLine = ({
   data,
@@ -294,7 +303,8 @@ const GaugeCard = ({ label, value, helper }: { label: string; value: number; hel
 );
 
 export const AdminDashboard: React.FC = () => {
-  const { data, isLoading, isError } = useAdminDashboardStats();
+  const [filter, setFilter] = useState<FilterKey>('month');
+  const { data, isLoading, isError } = useAdminDashboardStats(filter);
 
   const displayKpis = data?.kpi ? [
     { label: 'Tổng người dùng', value: format(data.kpi.totalUsers || 0), change: 'hệ thống', tone: 'blue' },
@@ -327,14 +337,16 @@ export const AdminDashboard: React.FC = () => {
     { label: 'Tỷ lệ đúng theo feedback', value: `${data.aiFraud.accuracyRate || 0}%`, helper: 'feedback người dùng', icon: CheckCircle2 },
     { label: 'Ảnh confidence thấp', value: format(data.aiFraud.lowConfidence || 0), helper: 'cần kiểm duyệt', icon: AlertTriangle },
     { label: 'QR bị dùng lặp', value: format(data.aiFraud.duplicateQr || 0), helper: 'rủi ro cao', icon: QrCode },
-    { label: 'Check-in sai GPS', value: format(data.aiFraud.wrongGps || 0), helper: '>150m', icon: MapPin },
+    { label: 'Check-in sai GPS', value: format(data.aiFraud.wrongGps || 0), helper: '>500m', icon: MapPin },
     { label: 'Khối lượng bất thường', value: format(data.aiFraud.abnormalVolume || 0), helper: 'vượt ngưỡng', icon: ShieldAlert },
+  ] : [];
+  const displayAbnormalSignals = data?.aiFraud ? [
+    { label: 'QR dùng lặp', value: data.aiFraud.duplicateQr || 0 },
+    { label: 'Sai GPS', value: data.aiFraud.wrongGps || 0 },
+    { label: 'Khối lượng bất thường', value: data.aiFraud.abnormalVolume || 0 },
   ] : [];
 
   const displayPointSources = data?.pointSources || [];
-  const displayProgressGoals = data?.progressGoals || [];
-  const displayHeatmap = data?.heatmap || [];
-  const displayCumulativeGrowth = data?.cumulativeGrowth || [];
   const displayVoucherStats = data?.voucherStats || [];
 
   return (
@@ -359,6 +371,23 @@ export const AdminDashboard: React.FC = () => {
         description="Theo dõi toàn bộ EcoHabit: người dùng, đối tác, điểm thu gom, giao dịch, điểm thưởng, voucher, AI và chống gian lận."
         action={isLoading && <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />}
       />
+
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
+        {(Object.keys(FILTER_LABELS) as FilterKey[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setFilter(key)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+              filter === key
+                ? 'bg-emerald-600 text-white'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+            }`}
+          >
+            {FILTER_LABELS[key]}
+          </button>
+        ))}
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {displayKpis.map((metric) => (
@@ -390,60 +419,63 @@ export const AdminDashboard: React.FC = () => {
           )}
         </AdminSection>
 
-        <AdminSection title="Gauge / Progress mục tiêu">
-          {displayProgressGoals.length > 0 ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1">
-              {displayProgressGoals.map((goal) => (
-                <GaugeCard key={goal.label} {...goal} />
+        <AdminSection title="Nguồn phát sinh điểm">
+          {displayPointSources.length > 0 ? (
+            <div className="space-y-4">
+              {displayPointSources.map((source) => (
+                <div key={source.label}>
+                  <div className="mb-1.5 flex justify-between text-sm">
+                    <span className="font-semibold text-slate-700">{source.label}</span>
+                    <span className="font-bold text-slate-900">{source.value}%</span>
+                  </div>
+                  <ProgressBar value={source.value} color={source.color} />
+                </div>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-slate-500">Chưa thiết lập mục tiêu.</p>
+            <p className="text-sm text-slate-500">Chưa có giao dịch điểm.</p>
           )}
         </AdminSection>
 
-        <AdminSection title="Heatmap hoạt động">
-          {displayHeatmap.length > 0 ? (
-            <div className="space-y-3">
-              <div className="grid grid-cols-7 gap-1.5">
-                {displayHeatmap.flatMap((row, rowIndex) =>
-                  row.map((value, colIndex) => (
-                    <div
-                      key={`${rowIndex}-${colIndex}`}
-                      className="aspect-square rounded-md"
-                      title={`${value} hoạt động`}
-                      style={{ backgroundColor: `rgba(15, 23, 42, ${0.12 + value / 90})` }}
-                    />
-                  ))
-                )}
-              </div>
-              <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
-                <span>Thấp</span>
-                <span>Cao</span>
-              </div>
-              <p className="text-sm text-slate-500">Mật độ hoạt động theo giờ/ngày trong tuần.</p>
+        <AdminSection title="AI & gian lận cần chú ý">
+          {displayAiFraudSignals.length > 0 ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              {displayAiFraudSignals.slice(2).map((signal) => (
+                <div key={signal.label} className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-slate-700 ring-1 ring-slate-200">
+                      <signal.icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-slate-800">{signal.label}</p>
+                      <p className="text-xs text-slate-500">{signal.helper}</p>
+                    </div>
+                    <p className="ml-auto text-lg font-extrabold text-slate-900">{signal.value}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <p className="text-sm text-slate-500">Chưa có dữ liệu phân bổ theo giờ.</p>
+            <p className="text-sm text-slate-500">Chưa có tín hiệu cần chú ý.</p>
           )}
         </AdminSection>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+      {/* <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
         <div className="xl:col-span-3">
-          <AdminSection title="Stacked Bar Chart - Kg rác theo ngày và loại rác">
+          <AdminSection title="Khối lượng rác thu gom theo ngày">
             <StackedWasteChart data={displayDailyWaste} />
           </AdminSection>
         </div>
         <div className="xl:col-span-2">
-          <AdminSection title="Donut Chart - Tỷ lệ loại rác">
+          <AdminSection title="Tỷ lệ loại rác đã thu gom">
             <DonutChart data={displayWasteShare} />
           </AdminSection>
         </div>
-      </div>
+      </div> */}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <AdminSection title="Line Chart - Người dùng, scan AI, giao dịch">
+        <AdminSection title="Xu hướng user, scan AI và giao dịch">
           <SparkLine
             data={displaySystemTrend}
             lines={[
@@ -454,67 +486,22 @@ export const AdminDashboard: React.FC = () => {
           />
         </AdminSection>
 
-        <AdminSection title="Area Chart - Tăng trưởng tích lũy">
-          {displayCumulativeGrowth.length > 0 ? (
-            <>
-              <AreaChart data={displayCumulativeGrowth} />
-              <div className="mt-3 grid grid-cols-3 gap-3 text-center">
-                <div className="rounded-xl bg-emerald-50 p-3">
-                  <p className="text-xs font-semibold text-emerald-700">Rác tích lũy</p>
-                  <p className="mt-1 text-lg font-extrabold text-emerald-900">{data?.kpi?.totalKg || 0} tấn</p>
-                </div>
-                <div className="rounded-xl bg-blue-50 p-3">
-                  <p className="text-xs font-semibold text-blue-700">Điểm đã cấp</p>
-                  <p className="mt-1 text-lg font-extrabold text-blue-900">{data?.kpi?.totalPoints || 0}</p>
-                </div>
-                <div className="rounded-xl bg-slate-100 p-3">
-                  <p className="text-xs font-semibold text-slate-600">Người dùng</p>
-                  <p className="mt-1 text-lg font-extrabold text-slate-900">{data?.kpi?.totalUsers || 0}</p>
-                </div>
-              </div>
-            </>
-          ) : (
-            <p className="text-sm text-slate-500">Chưa có dữ liệu tăng trưởng dài hạn.</p>
-          )}
+        <AdminSection title="Phần thưởng được đổi nhiều nhất">
+          <HorizontalRanking title="Top voucher / quà tặng" data={displayRankingVouchers} suffix="lượt" />
         </AdminSection>
       </div>
 
-      <AdminSection title="Horizontal Bar Chart - Bảng xếp hạng">
+      <AdminSection title="Bảng xếp hạng theo dữ liệu giao dịch">
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           <HorizontalRanking title="Top 5 điểm thu gom (theo kg rác)" data={displayRankingLocations} suffix="kg" />
           <HorizontalRanking title="Top 5 đối tác" data={displayRankingPartners} suffix="GD" />
-          <HorizontalRanking title="Top 5 voucher (lượt đổi)" data={displayRankingVouchers} suffix="lượt" />
           <HorizontalRanking title="Top user tích cực" data={displayRankingUsers} suffix="giao dịch" />
         </div>
       </AdminSection>
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <AdminSection title="Người dùng & điểm thưởng">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold text-slate-800">Nguồn phát sinh điểm</h3>
-              {displayPointSources.length > 0 ? displayPointSources.map((source) => (
-                <div key={source.label}>
-                  <div className="mb-1 flex justify-between text-sm">
-                    <span className="font-semibold text-slate-700">{source.label}</span>
-                    <span className="font-bold text-slate-900">{source.value}%</span>
-                  </div>
-                  <ProgressBar value={source.value} color={source.color} />
-                </div>
-              )) : (
-                <p className="text-sm text-slate-500">Chưa có thống kê điểm.</p>
-              )}
-            </div>
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold text-slate-800">Hành vi bất thường</h3>
-              <p className="text-sm text-slate-500">Đang theo dõi tự động từ hệ thống Fraud Detection.</p>
-            </div>
-          </div>
-        </AdminSection>
-
-        <AdminSection title="Quà tặng / Voucher">
+      <AdminSection title="Tình trạng quà tặng / voucher">
           {displayVoucherStats.length > 0 ? (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
               {displayVoucherStats.map((item) => {
                 const Icon = IconMap[item.id] || Ticket;
                 return (
@@ -533,8 +520,7 @@ export const AdminDashboard: React.FC = () => {
           ) : (
             <p className="text-sm text-slate-500">Chưa có dữ liệu thống kê quà tặng.</p>
           )}
-        </AdminSection>
-      </div>
+      </AdminSection>
 
       <AdminSection title="AI & Chống gian lận">
         {displayAiFraudSignals.length > 0 ? (

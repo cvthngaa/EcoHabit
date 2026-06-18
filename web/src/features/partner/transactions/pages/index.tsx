@@ -1,140 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
   History, Search, Calendar, User, CheckCircle2,
   XCircle, Clock, ArrowUpRight, BarChart3,
-  RefreshCw, FileText, Loader2
+  RefreshCw, FileText
 } from 'lucide-react';
 import { useGetTransactions } from '../services/use-get-transactions';
-import { useVerifyTransaction } from '../services/use-verify-transaction';
-import { useRejectTransaction } from '../services/use-reject-transaction';
 import {
   WASTE_LABEL,
   TX_STATUS_LABEL,
   TX_STATUS_COLOR,
 } from '../../../../shared/domain';
 import type { WasteType } from '../../../../shared/domain';
-import type { CollectionTransaction } from '../services/types';
 import { Badge } from '../../../../shared/components/Badge';
-import { Modal } from '../../../../shared/components/Modal';
 import { DataTable } from '../../../../shared/components/DataTable';
-
-const VerifyModal: React.FC<{ tx: CollectionTransaction; onClose: () => void; onSuccess: () => void }> = ({ tx, onClose, onSuccess }) => {
-  const [points, setPoints] = useState('');
-  const { mutate, isPending } = useVerifyTransaction();
-
-  const suggested = useMemo(() => {
-    let weight = tx.quantityValue || 0;
-    if (tx.quantityUnit === 'GRAM') weight = weight / 1000;
-    return weight > 0 ? Math.round(weight * 30) : 50;
-  }, [tx]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const pts = parseInt(points, 10);
-    if (!isNaN(pts) && pts >= 0) {
-      mutate({ id: tx.id, pointsAwarded: pts }, { onSuccess });
-    }
-  };
-
-  return (
-    <Modal
-      title="Xác nhận thu gom"
-      icon={<CheckCircle2 className="w-4 h-4 text-emerald-600" />}
-      onClose={onClose}
-      maxWidth="sm"
-    >
-      <form onSubmit={handleSubmit} className="p-6 space-y-4">
-        <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-1.5">
-          <div className="flex justify-between">
-            <span className="text-slate-500">Người gửi</span>
-            <span className="font-semibold text-slate-800">{tx.user?.displayName || 'Ẩn danh'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">Rác thu gom</span>
-            <span className="font-semibold text-slate-800">{tx.wasteType ? WASTE_LABEL[tx.wasteType] : '—'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">Khối lượng</span>
-            <span className="font-semibold text-slate-800">{tx.quantityValue} {tx.quantityUnit}</span>
-          </div>
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Cấp điểm xanh *</label>
-          <div className="relative">
-            <input
-              required type="number" min={0}
-              value={points} onChange={e => setPoints(e.target.value)}
-              placeholder={`Gợi ý: ${suggested} điểm`}
-              className="w-full pl-3 pr-16 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-emerald-500 transition-all"
-            />
-            <button
-              type="button"
-              onClick={() => setPoints(String(suggested))}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg cursor-pointer hover:bg-emerald-100"
-            >
-              Gợi ý
-            </button>
-          </div>
-        </div>
-        <div className="flex gap-2 pt-2">
-          <button type="button" onClick={onClose} className="flex-1 py-2 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer">Huỷ</button>
-          <button type="submit" disabled={isPending || !points} className="flex-1 py-2 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 rounded-xl cursor-pointer flex items-center justify-center gap-2">
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Xác nhận'}
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-};
-
-const RejectModal: React.FC<{ tx: CollectionTransaction; onClose: () => void; onSuccess: () => void }> = ({ tx, onClose, onSuccess }) => {
-  const [reason, setReason] = useState('');
-  const { mutate, isPending } = useRejectTransaction();
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (reason.trim()) {
-      mutate({ id: tx.id, rejectionReason: reason.trim() }, { onSuccess });
-    }
-  };
-
-  return (
-    <Modal
-      title="Từ chối thu gom"
-      icon={<XCircle className="w-4 h-4 text-rose-600" />}
-      onClose={onClose}
-      maxWidth="sm"
-    >
-      <form onSubmit={handleSubmit} className="p-6 space-y-4">
-        <div className="bg-slate-50 p-3 rounded-lg text-xs space-y-1.5">
-          <div className="flex justify-between">
-            <span className="text-slate-500">Người gửi</span>
-            <span className="font-semibold text-slate-800">{tx.user?.displayName || 'Ẩn danh'}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">Rác thu gom</span>
-            <span className="font-semibold text-slate-800">{tx.wasteType ? WASTE_LABEL[tx.wasteType] : '—'}</span>
-          </div>
-        </div>
-        <div>
-          <label className="text-xs font-semibold text-slate-700 mb-1.5 block">Lý do từ chối *</label>
-          <textarea
-            required rows={3}
-            value={reason} onChange={e => setReason(e.target.value)}
-            placeholder="VD: Rác không đúng phân loại..."
-            className="w-full px-3 py-2.5 text-sm border border-slate-300 rounded-xl focus:outline-none focus:border-rose-400 resize-none transition-all"
-          />
-        </div>
-        <div className="flex gap-2 pt-2">
-          <button type="button" onClick={onClose} className="flex-1 py-2 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer">Huỷ</button>
-          <button type="submit" disabled={isPending || !reason.trim()} className="flex-1 py-2 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-60 rounded-xl cursor-pointer flex items-center justify-center gap-2">
-            {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Từ chối'}
-          </button>
-        </div>
-      </form>
-    </Modal>
-  );
-};
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -143,9 +21,6 @@ export const TransactionsHistory: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'ALL' | 'PENDING' | 'VERIFIED' | 'REJECTED'>('ALL');
-
-  const [verifyTx, setVerifyTx] = useState<CollectionTransaction | null>(null);
-  const [rejectTx, setRejectTx] = useState<CollectionTransaction | null>(null);
 
   // Statistics calculation
   const totalCount = transactions.length;
@@ -180,7 +55,7 @@ export const TransactionsHistory: React.FC = () => {
     .filter((tx) => {
       // Search term filter
       const searchLower = searchTerm.toLowerCase();
-      const userName = tx.user?.displayName || '';
+      const userName = tx.user?.fullName || tx.user?.displayName || '';
       const userEmail = tx.user?.email || '';
       const locationName = tx.location?.name || '';
       const wasteLabel = tx.acceptedWasteType?.wasteType ? WASTE_LABEL[tx.acceptedWasteType.wasteType as WasteType] : '';
@@ -218,7 +93,7 @@ export const TransactionsHistory: React.FC = () => {
 
       {/* Stats Board */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+        {/* <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center">
             <BarChart3 className="w-6 h-6" />
           </div>
@@ -226,7 +101,7 @@ export const TransactionsHistory: React.FC = () => {
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tổng rác đã thu gom</p>
             <h3 className="text-xl font-extrabold text-slate-950 mt-0.5">{totalWeight.toFixed(1)} KG</h3>
           </div>
-        </div>
+        </div> */}
 
         <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center">
@@ -263,7 +138,7 @@ export const TransactionsHistory: React.FC = () => {
 
       {/* Filter and search menu */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-3">
-        <div className="flex gap-1.5 bg-slate-100 p-1.5 rounded-2xl w-fit">
+        {/* <div className="flex gap-1.5 bg-slate-100 p-1.5 rounded-2xl w-fit">
           <button
             onClick={() => setActiveTab('ALL')}
             className={`px-4 py-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-all ${activeTab === 'ALL' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
@@ -295,7 +170,7 @@ export const TransactionsHistory: React.FC = () => {
             <XCircle className="w-3.5 h-3.5" />
             Từ chối ({rejectedCount})
           </button>
-        </div>
+        </div> */}
 
         <div className="relative w-full max-w-xs">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -325,7 +200,7 @@ export const TransactionsHistory: React.FC = () => {
               <>
                 <div className="font-semibold text-slate-900 flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-slate-400" />
-                  {tx.user?.displayName || 'Ẩn danh'}
+                  {tx.user?.fullName || tx.user?.displayName || 'Ẩn danh'}
                 </div>
                 <div className="text-xs text-slate-400 mt-0.5">{tx.user?.email || 'N/A'}</div>
               </>
@@ -340,20 +215,20 @@ export const TransactionsHistory: React.FC = () => {
               </>
             ),
           },
-          {
-            header: 'Rác tiếp nhận',
-            render: (tx) => (
-              <>
-                <div className="font-semibold text-slate-950 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  {tx.acceptedWasteType?.wasteType ? WASTE_LABEL[tx.acceptedWasteType.wasteType as WasteType] : 'Chưa phân loại'}
-                </div>
-                <div className="text-xs text-slate-500 mt-0.5">
-                  Lượng: <span className="font-semibold text-slate-700">{tx.quantityValue} {tx.quantityUnit}</span>
-                </div>
-              </>
-            ),
-          },
+          // {
+          //   header: 'Rác tiếp nhận',
+          //   render: (tx) => (
+          //     <>
+          //       <div className="font-semibold text-slate-950 flex items-center gap-1.5">
+          //         <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+          //         {tx.acceptedWasteType?.wasteType ? WASTE_LABEL[tx.acceptedWasteType.wasteType as WasteType] : 'Chưa phân loại'}
+          //       </div>
+          //       <div className="text-xs text-slate-500 mt-0.5">
+          //         Lượng: <span className="font-semibold text-slate-700">{tx.quantityValue} {tx.quantityUnit}</span>
+          //       </div>
+          //     </>
+          //   ),
+          // },
           {
             header: 'Trạng thái',
             render: (tx) => (
@@ -386,45 +261,8 @@ export const TransactionsHistory: React.FC = () => {
               </div>
             ),
           },
-          {
-            header: 'Thao tác',
-            className: 'text-right',
-            render: (tx) => tx.status === 'PENDING' ? (
-              <div className="flex justify-end gap-2">
-                <button
-                  onClick={() => setRejectTx(tx)}
-                  className="px-3 py-1.5 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 hover:bg-rose-100 rounded-lg cursor-pointer transition-colors"
-                >
-                  Từ chối
-                </button>
-                <button
-                  onClick={() => setVerifyTx(tx)}
-                  className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg cursor-pointer transition-colors"
-                >
-                  Xác nhận
-                </button>
-              </div>
-            ) : null,
-          },
         ]}
       />
-
-      {verifyTx && (
-        <VerifyModal
-          tx={verifyTx}
-          onClose={() => setVerifyTx(null)}
-          onSuccess={() => { setVerifyTx(null); refetch(); }}
-        />
-      )}
-
-      {rejectTx && (
-        <RejectModal
-          tx={rejectTx}
-          onClose={() => setRejectTx(null)}
-          onSuccess={() => { setRejectTx(null); refetch(); }}
-        />
-      )}
-
     </div>
   );
 };

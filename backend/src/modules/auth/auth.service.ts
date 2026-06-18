@@ -14,6 +14,7 @@ import { UserStatus } from '../users/enums/user-status.enum';
 import { UserRole } from '../users/enums/user-role.enum';
 import { PartnersService } from '../partner/partners.service';
 import { RegisterPartnerDto } from './dto/register-partner.dto';
+import { UpdateUserProfileDto } from '../users/dto/update-user-profile.dto';
 
 @Injectable()
 export class AuthService implements OnModuleDestroy {
@@ -277,6 +278,7 @@ export class AuthService implements OnModuleDestroy {
         fullName: user.fullName,
         pointsBalance: user.pointsBalance,
         avatarUrl: user.avatarUrl,
+        dateOfBirth: user.dateOfBirth,
         role: user.role,
         status: user.status,
       },
@@ -339,6 +341,69 @@ export class AuthService implements OnModuleDestroy {
     };
   }
 
+  // ✅ SEND OTP FOR CHANGE PASSWORD
+  async sendChangePasswordOtp(userId: string, oldPassword?: string) {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw new BadRequestException('Không tìm thấy người dùng.');
+    }
+
+    if (oldPassword) {
+      if (!user.passwordHash) {
+        throw new BadRequestException('Tài khoản này chưa thiết lập mật khẩu (đăng nhập qua mạng xã hội).');
+      }
+      const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
+      if (!isMatch) {
+        throw new BadRequestException('Mật khẩu hiện tại không chính xác.');
+      }
+    }
+
+    const email = user.email;
+    await this.checkOtpRateLimit(email);
+
+    // Sinh 6 số ngẫu nhiên
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Hash OTP
+    const hashedOtp = await bcrypt.hash(otp, 10);
+
+    // Lưu vào Redis (dùng chung prefix để có thể dùng chung hàm verifyOtp)
+    const key = `otp:email:${email}`;
+    await this.redisClient.set(key, hashedOtp, 'EX', 300); // 300 giây = 5 phút
+
+    console.log(
+      `[DEBUG OTP] Gửi mã OTP đổi mật khẩu ${otp} đến email ${email}`,
+    );
+
+    this.transporter
+      .sendMail({
+        from: `"EcoHabit" <${process.env.MAIL_USER}>`,
+        to: email,
+        subject: 'Đổi mật khẩu - EcoHabit',
+        text: `Mã OTP xác thực đổi mật khẩu của bạn là: ${otp}. Mã có hiệu lực trong 5 phút.`,
+        html: `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2 style="color: #2E5D3A;">Xác thực đổi mật khẩu</h2>
+                    <p>Bạn đang yêu cầu đổi mật khẩu cho tài khoản EcoHabit.</p>
+                    <h3 style="background: #F3F8F4; padding: 10px; text-align: center; color: #1B3A1E; border-radius: 8px;">
+                        Mã OTP của bạn là: <strong style="font-size: 24px;">${otp}</strong>
+                    </h3>
+                    <p style="color: #8FA892; font-size: 12px;">Mã này có hiệu lực trong vòng 5 phút. Vui lòng không chia sẻ mã này với bất kỳ ai.</p>
+                </div>
+            `,
+      })
+      .catch((error) => {
+        console.error(
+          '[EMAIL ERROR] Failed to send change password OTP email:',
+          error,
+        );
+      });
+
+    return {
+      message: 'Mã OTP xác nhận đổi mật khẩu đã được gửi đến email của bạn',
+    };
+  }
+
   // ✅ RESET PASSWORD
   async resetPassword(email: string, newPassword: string) {
     // Kiểm tra xem email đã được xác minh chưa
@@ -375,6 +440,21 @@ export class AuthService implements OnModuleDestroy {
       fullName: user.fullName,
       pointsBalance: user.pointsBalance,
       avatarUrl: user.avatarUrl,
+      dateOfBirth: user.dateOfBirth,
+      role: user.role,
+      status: user.status,
+    };
+  }
+
+  async updateProfile(userId: string, dto: UpdateUserProfileDto) {
+    const user = await this.usersService.updateProfile(userId, dto);
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      pointsBalance: user.pointsBalance,
+      avatarUrl: user.avatarUrl,
+      dateOfBirth: user.dateOfBirth,
       role: user.role,
       status: user.status,
     };
@@ -389,6 +469,13 @@ export class AuthService implements OnModuleDestroy {
     const user = await this.usersService.findById(userId);
     if (!user) throw new UnauthorizedException('User not found');
 
+    const verifiedKey = `verified:email:${user.email}`;
+    const isVerified = await this.redisClient.get(verifiedKey);
+
+    if (!isVerified) {
+      throw new BadRequestException('Vui lòng xác minh OTP trước khi đổi mật khẩu.');
+    }
+
     const isMatch = await bcrypt.compare(oldPassword, user.passwordHash);
     if (!isMatch) {
       throw new BadRequestException('Mật khẩu hiện tại không chính xác.');
@@ -396,6 +483,9 @@ export class AuthService implements OnModuleDestroy {
 
     const hashed = await bcrypt.hash(newPassword, 10);
     await this.usersService.updatePassword(user.id, hashed);
+
+    // Xoá giấy phép sau khi đổi mật khẩu thành công
+    await this.redisClient.del(verifiedKey);
 
     return { message: 'Đổi mật khẩu thành công.' };
   }

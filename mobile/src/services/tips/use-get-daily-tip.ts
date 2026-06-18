@@ -5,17 +5,22 @@ import { DailyTipResponse } from './types';
 export const dailyTipQueryKey = ['tips', 'daily'] as const;
 
 type UseGetDailyTipOptions = {
-  enabled?: boolean;
+ enabled?: boolean;
 };
 
 export function useGetDailyTip({ enabled = true }: UseGetDailyTipOptions = {}) {
-  return useQuery({
-    queryKey: dailyTipQueryKey,
-    queryFn: async (): Promise<DailyTipResponse> => {
-      const response = await api.get<DailyTipResponse>('/gemini/daily-tip');
+ return useQuery({
+ queryKey: dailyTipQueryKey,
+ queryFn: async (): Promise<DailyTipResponse> => {
+ const response = await api.get<DailyTipResponse>('/gemini/daily-tip', {
+ params: { _t: Date.now() },
+ });
 
-      return response.data;
-    },
-    enabled,
-  });
+ return response.data;
+ },
+ enabled,
+ staleTime: 0,
+ gcTime: 0,
+ refetchOnMount: 'always',
+ });
 }

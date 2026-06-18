@@ -107,6 +107,7 @@ export async function getNearbyCollectionPoints(
           types: mapTypeToLabel(point.collectionProfile?.siteType),
           hours: 'Lien he diem thu gom',
           phone: '1900 000 000',
+          avatarUrl: point.avatarUrl || point.avatar_url || '',
         };
       })
       .sort((a, b) => a.distanceKm - b.distanceKm);

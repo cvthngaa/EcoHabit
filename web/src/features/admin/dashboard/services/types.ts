@@ -12,7 +12,6 @@ export interface AdminDashboardKpi {
   pendingPartners: number;
   lowConfidenceAiCount: number;
   fraudWarningCount: number;
-  openForumReports: number;
   lowStockVoucherCount: number;
   expiringVoucherCount: number;
   pendingTransactionsList: any[];

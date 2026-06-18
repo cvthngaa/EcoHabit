@@ -2,14 +2,12 @@ import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Switch,
   ActivityIndicator,
   RefreshControl,
+  Image,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -17,15 +15,14 @@ import Colors from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { useGetProfile } from '../../services/auth';
 import { useGetMyBadges } from '../../services/badges';
-import { rankConfig } from '../../services/mockData';
-import { BackgroundTrees } from '../../components/NatureBackground';
-import FallingLeaves from '../../components/FallingLeaves';
+import Svg, { Path, Polygon } from 'react-native-svg';
+import SharedHeaderBackground from '../../components/SharedHeaderBackground';
+import { useSettings } from '../../context/SettingsContext';
 
 type ProfileMenuRoute =
   | 'PersonalInfo'
   | 'Wallet'
   | 'Leaderboard'
-  | 'NotificationsSettings'
   | 'PrivacySecurity'
   | 'LanguageSettings'
   | 'AppearanceSettings'
@@ -35,8 +32,6 @@ type ProfileMenuRoute =
   | 'ShareEcoHabit'
   | 'Badges';
 
-// Remove mock badges
-
 const menuItems: Array<{
   route: ProfileMenuRoute;
   icon: string;
@@ -44,108 +39,52 @@ const menuItems: Array<{
   color: string;
   group: 'account' | 'app' | 'support';
 }> = [
-    {
-      route: 'PersonalInfo',
-      icon: 'person-outline',
-      label: 'Thông tin cá nhân',
-      color: Colors.primary,
-      group: 'account',
-    },
-    {
-      route: 'Wallet',
-      icon: 'wallet-outline',
-      label: 'Lịch sử điểm',
-      color: '#6A1B9A',
-      group: 'account',
-    },
-    {
-      route: 'Leaderboard',
-      icon: 'podium-outline',
-      label: 'Bảng xếp hạng',
-      color: '#FF8F00',
-      group: 'app',
-    },
-    {
-      route: 'NotificationsSettings',
-      icon: 'notifications-outline',
-      label: 'Thông báo',
-      color: '#1565C0',
-      group: 'account',
-    },
-    {
-      route: 'PrivacySecurity',
-      icon: 'shield-checkmark-outline',
-      label: 'Bảo mật & quyền riêng tư',
-      color: '#6A1B9A',
-      group: 'account',
-    },
-    {
-      route: 'LanguageSettings',
-      icon: 'language-outline',
-      label: 'Ngôn ngữ',
-      color: '#00838F',
-      group: 'app',
-    },
-    {
-      route: 'AppearanceSettings',
-      icon: 'color-palette-outline',
-      label: 'Giao diện',
-      color: '#F57F17',
-      group: 'app',
-    },
-    {
-      route: 'LocationSettings',
-      icon: 'location-outline',
-      label: 'Vị trí & bản đồ',
-      color: '#E65100',
-      group: 'app',
-    },
-    {
-      route: 'HelpFaq',
-      icon: 'help-circle-outline',
-      label: 'Trợ giúp & FAQ',
-      color: '#546E7A',
-      group: 'support',
-    },
-    {
-      route: 'RateApp',
-      icon: 'star-outline',
-      label: 'Đánh giá ứng dụng',
-      color: '#F57F17',
-      group: 'support',
-    },
-    {
-      route: 'ShareEcoHabit',
-      icon: 'share-social-outline',
-      label: 'Chia sẻ EcoHabit',
-      color: Colors.primary,
-      group: 'support',
-    },
+    { route: 'PersonalInfo', icon: 'person-outline', label: 'Thông tin cá nhân', color: Colors.primary, group: 'account' },
+    { route: 'Wallet', icon: 'wallet-outline', label: 'Lịch sử điểm', color: '#6A1B9A', group: 'account' },
+    { route: 'Leaderboard', icon: 'podium-outline', label: 'Bảng xếp hạng', color: '#FF8F00', group: 'app' },
+    { route: 'PrivacySecurity', icon: 'key-outline', label: 'Đổi mật khẩu', color: '#6A1B9A', group: 'account' },
+    { route: 'LanguageSettings', icon: 'language-outline', label: 'Ngôn ngữ', color: '#00838F', group: 'app' },
+    { route: 'AppearanceSettings', icon: 'color-palette-outline', label: 'Giao diện', color: '#F57F17', group: 'app' },
+    { route: 'LocationSettings', icon: 'location-outline', label: 'Vị trí & bản đồ', color: '#E65100', group: 'app' },
+    { route: 'HelpFaq', icon: 'help-circle-outline', label: 'Trợ giúp & FAQ', color: '#546E7A', group: 'support' },
+    { route: 'RateApp', icon: 'star-outline', label: 'Đánh giá ứng dụng', color: '#F57F17', group: 'support' },
+    { route: 'ShareEcoHabit', icon: 'share-social-outline', label: 'Chia sẻ EcoHabit', color: Colors.primary, group: 'support' },
   ];
+
+
+
+const HexagonBadge = ({ level }: { level: string | number }) => (
+  <View style={{ alignItems: 'center', justifyContent: 'center', width: 90, height: 90 }}>
+    <Svg height="40" width="100" style={{ position: 'absolute' }}>
+      <Path d="M 20 5 Q 0 20 20 35 Q 35 20 20 5" fill="#E4C89D" />
+      <Path d="M 80 5 Q 100 20 80 35 Q 65 20 80 5" fill="#E4C89D" />
+    </Svg>
+    <Svg height="76" width="76" viewBox="0 0 100 100">
+      <Polygon points="50,5 95,27.5 95,72.5 50,95 5,72.5 5,27.5" fill="#ED9B33" stroke="white" strokeWidth="6" strokeLinejoin="round" />
+    </Svg>
+    <Text style={{ position: 'absolute', color: 'white', fontSize: 32, fontWeight: 'bold' }}>{level}</Text>
+  </View>
+);
 
 const ProfileScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const { logout } = useAuth();
-  const [notif, setNotif] = useState(true);
-  const [dark, setDark] = useState(false);
+  const { appearance } = useSettings();
 
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { refetch: refetchProfile } = useGetProfile({ enabled: false });
-  const { data: myBadges = [], refetch: refetchBadges, isRefetching: isRefetchingBadges } = useGetMyBadges();
+  const { data: myBadges = [], refetch: refetchBadges } = useGetMyBadges();
 
   const loadData = useCallback(async () => {
     try {
       const profileResult = await refetchProfile({ throwOnError: true });
-      const data = profileResult.data;
-
-      if (!data) {
+      if (!profileResult.data) {
         throw new Error('Profile data unavailable');
       }
-
-      setUserProfile(data);
+      setUserProfile(profileResult.data);
       await refetchBadges();
     } catch (error) {
       console.log('Lỗi tải dữ liệu người dùng:', error);
@@ -166,8 +105,12 @@ const ProfileScreen: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  const openProfileDetail = (route: ProfileMenuRoute) => {
-    navigation.navigate(route);
+  const openProfileDetail = (route: ProfileMenuRoute | 'Logout') => {
+    if (route === 'Logout') {
+      logout();
+    } else {
+      navigation.navigate(route);
+    }
   };
 
   const grouped = {
@@ -178,8 +121,8 @@ const ProfileScreen: React.FC = () => {
 
   if (loading && !refreshing) {
     return (
-      <View style={[styles.root, styles.loadingWrap]}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#CDE1B9' }}>
+        <ActivityIndicator size="large" color="#ED9B33" />
       </View>
     );
   }
@@ -187,118 +130,83 @@ const ProfileScreen: React.FC = () => {
   const name = userProfile?.fullName || 'Người dùng';
   const email = userProfile?.email || '';
   const initial = name.charAt(0).toUpperCase();
+  const avatarUrl = userProfile?.avatarUrl;
   const points = userProfile?.pointsBalance || 0;
 
-  const currentRank =
-    points >= 5000
-      ? rankConfig.diamond
-      : points >= 2500
-        ? rankConfig.gold
-        : points >= 1000
-          ? rankConfig.silver
-          : rankConfig.bronze;
+  const currentRank = points >= 10000 ? { label: 5 } :
+    points >= 5000 ? { label: 4 } : points >= 2500 ? { label: 3 } : points >= 1000 ? { label: 2 } : { label: 1 };
 
   return (
-    <View style={styles.root}>
-      <BackgroundTrees />
+    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+      <SharedHeaderBackground className="absolute top-0 left-0 right-0 h-[500px]" />
 
       <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 20 }]}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 20, flexGrow: 1 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={[Colors.primary]}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#ED9B33']} tintColor="#ED9B33" />
         }
       >
-        <LinearGradient
-          colors={[Colors.primaryGradientStart, Colors.primaryLight]}
-          style={[styles.header, { paddingTop: insets.top + 16 }]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <TouchableOpacity
-            style={styles.settingsBtn}
-            onPress={() => openProfileDetail('AppearanceSettings')}
-          >
-            <Ionicons name="settings-outline" size={22} color={Colors.white} />
+        {/* Header */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: insets.top + 10, paddingHorizontal: 20 }}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 5 }}>
+            <Ionicons name="chevron-back" size={24} color="#3A3A3A" />
           </TouchableOpacity>
+          <Text style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: '#3A3A3A', marginRight: 34 }}>Hồ sơ</Text>
+        </View>
 
-          <View style={styles.avatarWrap}>
-            <LinearGradient
-              colors={['rgba(255,255,255,0.3)', 'rgba(255,255,255,0.1)']}
-              style={styles.avatar}
-            >
-              <Text style={styles.avatarInitial}>{initial}</Text>
-            </LinearGradient>
+        {/* Avatar Area */}
+        <View style={{ alignItems: 'center', marginTop: 30 }}>
+          <View style={{ width: 140, height: 140, justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{ position: 'absolute', width: 150, height: 150, borderRadius: 75, borderWidth: 5, borderColor: '#485444', borderTopColor: 'transparent', borderRightColor: 'transparent', transform: [{ rotate: '-15deg' }] }} />
+            <View style={{ position: 'absolute', width: 130, height: 130, borderRadius: 65, borderWidth: 3, borderColor: '#485444', borderBottomColor: 'transparent', borderLeftColor: 'transparent', transform: [{ rotate: '45deg' }] }} />
+
+            {avatarUrl ? (
+              <Image source={{ uri: avatarUrl }} style={{ width: 110, height: 110, borderRadius: 55, backgroundColor: '#485444', borderWidth: 2, borderColor: '#485444' }} />
+            ) : (
+              <View style={{ width: 110, height: 110, borderRadius: 55, backgroundColor: '#485444', justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#485444' }}>
+                <Text style={{ fontSize: 44, fontWeight: 'bold', color: 'white' }}>{initial}</Text>
+              </View>
+            )}
+
             <TouchableOpacity
-              style={styles.editAvatar}
+              className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-[#ED9B33] items-center justify-center border-[3px] border-white"
               onPress={() => openProfileDetail('PersonalInfo')}
             >
-              <Ionicons name="camera" size={14} color={Colors.white} />
+              <Ionicons name="pencil" size={14} color="white" />
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.name}>{name}</Text>
-          <Text style={styles.email}>{email}</Text>
+          <Text className="text-xl font-extrabold text-[#3A3A3A] mt-4 mb-0.5">{name}</Text>
+          <Text className="text-sm text-[#5D734B]">{email}</Text>
+        </View>
 
-          <View style={styles.rankBadge}>
-            <Text style={styles.rankTxt}>{currentRank.emoji} Hạng {currentRank.label}</Text>
-          </View>
 
-          <View style={styles.statsBar}>
-            {[
-              { value: '14', label: 'Ngày liên tiếp' },
-              { value: points.toString(), label: 'Điểm xanh' },
-              { value: '7', label: 'Thành tích' },
-            ].map((stat, index) => (
-              <React.Fragment key={index}>
-                {index > 0 && <View style={styles.statDivider} />}
-                <View style={styles.statItem}>
-                  <Text style={styles.statVal}>{stat.value}</Text>
-                  <Text style={styles.statLbl}>{stat.label}</Text>
-                </View>
-              </React.Fragment>
-            ))}
-          </View>
-        </LinearGradient>
-
-        <View style={styles.section}>
-          <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>🏅 Huy hiệu của bạn</Text>
+        {/* Badges Section */}
+        <View className="px-5 mt-8 mb-2">
+          <View className="flex-row justify-between items-center mb-3">
+            <Text className="text-[15px] font-bold text-[#3A3A3A]">🏅 Huy hiệu của bạn</Text>
             <TouchableOpacity onPress={() => openProfileDetail('Badges')}>
-              <Text style={styles.seeAll}>Xem tất cả</Text>
+              <Text className="text-[13px] text-[#7CA854] font-semibold">Xem tất cả</Text>
             </TouchableOpacity>
           </View>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.badges}
+            contentContainerStyle={{ gap: 10, paddingRight: 4 }}
           >
             {myBadges.map((badge, index) => (
               <View
                 key={index}
-                style={[styles.badgeItem, !badge.isEarned && styles.badgeLocked]}
+                className={`items-center bg-white/90 rounded-2xl p-3 w-[75px] relative border border-[#E1EED3] ${!badge.isEarned ? 'opacity-50' : ''}`}
               >
-                <Text style={styles.badgeEmoji}>{badge.icon || '🏅'}</Text>
-                <Text
-                  style={[
-                    styles.badgeLabel,
-                    !badge.isEarned && styles.badgeLabelLocked,
-                  ]}
-                  numberOfLines={1}
-                >
+                <Text className="text-[28px] mb-1">{badge.icon || '🏅'}</Text>
+                <Text className="text-[10px] font-semibold text-center text-[#5D734B]" numberOfLines={1}>
                   {badge.name}
                 </Text>
                 {!badge.isEarned && (
-                  <View style={styles.lockIcon}>
-                    <Ionicons
-                      name="lock-closed"
-                      size={10}
-                      color={Colors.textMuted}
-                    />
+                  <View className="absolute top-1.5 right-1.5">
+                    <Ionicons name="lock-closed" size={10} color="#A3C385" />
                   </View>
                 )}
               </View>
@@ -306,288 +214,58 @@ const ProfileScreen: React.FC = () => {
           </ScrollView>
         </View>
 
-        <LinearGradient
-          colors={['#E8F5E9', '#C8E6C9']}
-          style={styles.impactCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Text style={styles.impactTitle}>🌍 TÃ¡c Ä‘á»™ng mÃ´i trÆ°á»ng cá»§a báº¡n</Text>
-          <View style={styles.impactRow}>
-            {[
-              { emoji: '🌳', value: '3', label: 'Cây đã trồng' },
-              { emoji: '💧', value: '240L', label: 'Nước tiết kiệm' },
-              { emoji: '🌫️', value: '18kg', label: 'CO₂ giảm' },
-            ].map((item, index) => (
-              <View key={index} style={styles.impactItem}>
-                <Text style={styles.impactEmoji}>{item.emoji}</Text>
-                <Text style={styles.impactValue}>{item.value}</Text>
-                <Text style={styles.impactLabel}>{item.label}</Text>
-              </View>
-            ))}
-          </View>
-        </LinearGradient>
+        {/* Menu Card */}
+        <View style={{
+          flex: 1,
+          backgroundColor: appearance === 'nature' ? 'rgba(255, 255, 255, 0.9)' : 'white',
+          marginTop: 20,
+          borderTopLeftRadius: 40,
+          borderTopRightRadius: 40,
+          paddingTop: 30,
+          paddingHorizontal: 25,
+          minHeight: 400
+        }}>
+          {[
+            { title: '👤 Tài khoản', items: grouped.account },
+            { title: '⚙️ Cài đặt ứng dụng', items: grouped.app },
+            { title: '💬 Hỗ trợ', items: grouped.support },
+          ].map((group) => (
+            <View key={group.title} className="mb-6">
+              <Text className="text-xs font-bold text-[#A3C385] mb-2 uppercase tracking-wide">{group.title}</Text>
 
-        <View style={styles.toggleCard}>
-          <View style={styles.toggleRow}>
-            <View style={styles.toggleLeft}>
-              <View style={[styles.toggleIcon, { backgroundColor: '#E3F2FD' }]}>
-                <Ionicons name="notifications-outline" size={18} color="#1565C0" />
-              </View>
-              <Text style={styles.toggleLabel}>Thông báo</Text>
-            </View>
-            <Switch
-              value={notif}
-              onValueChange={setNotif}
-              trackColor={{ false: Colors.border, true: Colors.primaryLight }}
-              thumbColor={Colors.white}
-            />
-          </View>
-
-          <View style={[styles.toggleRow, styles.toggleDivider]}>
-            <View style={styles.toggleLeft}>
-              <View style={[styles.toggleIcon, { backgroundColor: '#F3E5F5' }]}>
-                <Ionicons name="moon-outline" size={18} color="#6A1B9A" />
-              </View>
-              <Text style={styles.toggleLabel}>Giao diện tối</Text>
-            </View>
-            <Switch
-              value={dark}
-              onValueChange={setDark}
-              trackColor={{ false: Colors.border, true: Colors.primaryLight }}
-              thumbColor={Colors.white}
-            />
-          </View>
-        </View>
-
-        {[
-          { title: '👤 Tài khoản', items: grouped.account },
-          { title: '⚙️ Cài đặt ứng dụng', items: grouped.app },
-          { title: '💬 Hỗ trợ', items: grouped.support },
-        ].map((group) => (
-          <View key={group.title} style={styles.menuGroup}>
-            <Text style={styles.menuGroupTitle}>{group.title}</Text>
-            <View style={styles.menuCard}>
               {group.items.map((item, index) => (
-                <TouchableOpacity
-                  key={item.route}
-                  style={[
-                    styles.menuItem,
-                    index > 0 && styles.menuDivider,
-                  ]}
-                  activeOpacity={0.7}
-                  onPress={() => openProfileDetail(item.route)}
-                >
-                  <View
-                    style={[styles.menuIcon, { backgroundColor: `${item.color}18` }]}
+                <View key={item.route}>
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 14 }}
+                    activeOpacity={0.7}
+                    onPress={() => openProfileDetail(item.route)}
                   >
-                    <Ionicons name={item.icon as any} size={18} color={item.color} />
-                  </View>
-                  <Text style={styles.menuLabel}>{item.label}</Text>
-                  <Ionicons
-                    name="chevron-forward"
-                    size={16}
-                    color={Colors.textMuted}
-                  />
-                </TouchableOpacity>
+                    <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: `${item.color}15`, justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
+                      <Ionicons name={item.icon as any} size={20} color={item.color} />
+                    </View>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#3A3A3A', flex: 1 }}>{item.label}</Text>
+                    <Ionicons name="chevron-forward" size={16} color="#C5D9AE" />
+                  </TouchableOpacity>
+                  {index < group.items.length - 1 && <View style={{ height: 1, backgroundColor: '#F5F9F0', marginLeft: 60 }} />}
+                </View>
               ))}
             </View>
-          </View>
-        ))}
+          ))}
 
-        <TouchableOpacity style={styles.signOutBtn} activeOpacity={0.8} onPress={logout}>
-          <Ionicons name="log-out-outline" size={20} color={Colors.error} />
-          <Text style={styles.signOutTxt}>Đăng xuất</Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            className="flex-row items-center justify-center gap-2 mt-2 py-4 bg-[#FFF5F5] rounded-[20px]"
+            activeOpacity={0.8}
+            onPress={() => openProfileDetail('Logout')}
+          >
+            <Ionicons name="log-out-outline" size={20} color={Colors.error} />
+            <Text className="text-[15px] font-bold text-[#D32F2F]">Đăng xuất</Text>
+          </TouchableOpacity>
 
-        <Text style={styles.version}>EcoHabit v1.0.0 · Made with 💚</Text>
+          <Text className="text-center mt-6 mb-4 text-[11px] text-[#A3C385]">EcoHabit v1.0.0 · Made with 💚</Text>
+        </View>
       </ScrollView>
-      <FallingLeaves />
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F5F9F5' },
-  loadingWrap: { justifyContent: 'center', alignItems: 'center' },
-  scroll: {},
-
-  header: { paddingHorizontal: 20, paddingBottom: 24, alignItems: 'center' },
-  settingsBtn: { position: 'absolute', top: 56, right: 20 },
-
-  avatarWrap: { position: 'relative', marginBottom: 12 },
-  avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.4)',
-  },
-  avatarInitial: { fontSize: 38, fontWeight: '800', color: Colors.white },
-  editAvatar: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: Colors.white,
-  },
-
-  name: { fontSize: 22, fontWeight: '800', color: Colors.white, marginBottom: 2 },
-  email: { fontSize: 13, color: 'rgba(255,255,255,0.8)', marginBottom: 10 },
-
-  rankBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    marginBottom: 16,
-  },
-  rankTxt: { fontSize: 12, fontWeight: '700', color: Colors.white },
-
-  statsBar: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 18,
-    overflow: 'hidden',
-    width: '100%',
-  },
-  statItem: { flex: 1, alignItems: 'center', paddingVertical: 12 },
-  statVal: { fontSize: 20, fontWeight: '800', color: Colors.white },
-  statLbl: { fontSize: 10, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  statDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.25)' },
-
-  section: { paddingHorizontal: 16, marginTop: 20 },
-  sectionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
-  seeAll: { fontSize: 13, color: Colors.primaryLight, fontWeight: '600' },
-
-  badges: { gap: 10, paddingRight: 4 },
-  badgeItem: {
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 12,
-    width: 75,
-    position: 'relative',
-    elevation: 2,
-  },
-  badgeLocked: { opacity: 0.45 },
-  badgeEmoji: { fontSize: 28, marginBottom: 4 },
-  badgeLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  badgeLabelLocked: { color: Colors.textMuted },
-  lockIcon: { position: 'absolute', top: 6, right: 6 },
-
-  impactCard: { marginHorizontal: 16, marginTop: 16, borderRadius: 20, padding: 18 },
-  impactTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 14,
-  },
-  impactRow: { flexDirection: 'row', justifyContent: 'space-around' },
-  impactItem: { alignItems: 'center' },
-  impactEmoji: { fontSize: 28, marginBottom: 6 },
-  impactValue: { fontSize: 18, fontWeight: '800', color: Colors.primary },
-  impactLabel: {
-    fontSize: 10,
-    color: Colors.textSecondary,
-    marginTop: 2,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-
-  toggleCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 18,
-    marginHorizontal: 16,
-    marginTop: 16,
-    overflow: 'hidden',
-    elevation: 2,
-  },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  toggleDivider: { borderTopWidth: 1, borderTopColor: '#F0F0F0' },
-  toggleLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  toggleIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  toggleLabel: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-
-  menuGroup: { marginHorizontal: 16, marginTop: 16 },
-  menuGroupTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.textMuted,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  menuCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 18,
-    overflow: 'hidden',
-    elevation: 2,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    gap: 12,
-  },
-  menuDivider: { borderTopWidth: 1, borderTopColor: '#F5F5F5' },
-  menuIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuLabel: { flex: 1, fontSize: 14, fontWeight: '500', color: Colors.textPrimary },
-
-  signOutBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginHorizontal: 16,
-    marginTop: 20,
-    paddingVertical: 14,
-    backgroundColor: Colors.white,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: Colors.errorBorder,
-  },
-  signOutTxt: { fontSize: 15, fontWeight: '700', color: Colors.error },
-
-  version: { textAlign: 'center', marginTop: 16, fontSize: 11, color: Colors.textMuted },
-});
 
 export default ProfileScreen;

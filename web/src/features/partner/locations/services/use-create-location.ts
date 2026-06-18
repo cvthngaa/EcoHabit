@@ -6,7 +6,7 @@ export function useCreateLocation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (dto: CreateCollectionPointDto): Promise<Location> => {
-      const res = await apiClient.post<Location>('/collection-points', dto);
+      const res = await apiClient.post<Location>('/partner/collection-points', dto);
       return res.data;
     },
     onSuccess: () => {

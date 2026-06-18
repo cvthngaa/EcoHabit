@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { FraudFlag } from './entities/fraud-flag.entity';
 import { FraudSourceType } from './enums/fraud-source-type.enum';
 import { FraudSeverity } from './enums/fraud-severity.enum';
@@ -8,14 +8,18 @@ import { FraudStatus } from './enums/fraud-status.enum';
 import { CreateFraudFlagDto } from './dto/create-fraud-flag.dto';
 import { ListFraudFlagsQueryDto } from './dto/list-fraud-flags-query.dto';
 import { UpdateFraudFlagStatusDto } from './dto/update-fraud-flag-status.dto';
+
 import { AuditService } from '../audit/audit.service';
 import { AdminAuditAction } from '../audit/enums/admin-audit-action.enum';
 
 // ─── Ngưỡng cảnh báo (có thể điều chỉnh sau) ────────────────────────────────
 const MAX_DAILY_POINTS = 500;
 const MAX_DAILY_AI_CLASSIFICATIONS = 20;
-const MAX_DAILY_COLLECTION_CHECKINS = 5;
 const MAX_DAILY_REDEMPTIONS = 5;
+const MAX_COLLECTION_KG = 50;
+const MAX_COLLECTION_LITERS = 100;
+const MAX_COLLECTION_PIECES = 100;
+const MAX_COLLECTION_POINTS = 500;
 
 @Injectable()
 export class FraudService {
@@ -45,7 +49,7 @@ export class FraudService {
             sourceType: input.sourceType,
             ...(input.sourceId ? { sourceId: input.sourceId } : {}),
             flagCode: input.flagCode,
-            status: FraudStatus.OPEN,
+            status: In([FraudStatus.OPEN, FraudStatus.REVIEWING]),
           },
         });
 
@@ -273,68 +277,84 @@ export class FraudService {
 
   // ─── Rule checks ──────────────────────────────────────────────────────────
 
-  /**
-   * Kiểm tra và tạo flag nếu user check-in collection quá nhiều lần trong ngày.
-   * Trả true nếu vượt ngưỡng (caller có thể dùng để quyết định chặn/cảnh báo).
-   */
-  async checkDailyCollectionCheckins(
-    userId: string,
-    locationId?: string,
-  ): Promise<boolean> {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const countToday = await this.fraudFlagRepo.manager
-        .getRepository('dropoff_transactions' as any)
-        .createQueryBuilder('dt')
-        .where('dt.user_id = :userId', { userId })
-        .andWhere('dt.created_at >= :today', { today })
-        .getCount()
-        .catch(() => 0);
-
-      if (countToday >= MAX_DAILY_COLLECTION_CHECKINS) {
-        await this.createFlag({
-          userId,
-          sourceType: FraudSourceType.COLLECTION,
-          sourceId: locationId,
-          flagCode: 'COLLECTION_FREQUENCY_HIGH',
-          description: `User checked in ${countToday} times today (limit: ${MAX_DAILY_COLLECTION_CHECKINS})`,
-          severity: FraudSeverity.MEDIUM,
-          metadata: { countToday, locationId, threshold: MAX_DAILY_COLLECTION_CHECKINS },
-        });
-        return true;
-      }
-    } catch (err) {
-      this.logger.warn(`checkDailyCollectionCheckins error: ${(err as Error).message}`);
-    }
-    return false;
-  }
-
-  /**
-   * Tạo flag GPS quá xa khi check-in. Gọi trước khi throw BadRequestException ở service chính.
-   */
-  async flagCheckinTooFar(input: {
+  async flagDuplicateQr(input: {
     userId: string;
     locationId: string;
-    distanceKm: number;
-    userLatitude: number;
-    userLongitude: number;
+    tokenHash: string;
   }): Promise<void> {
     await this.createFlag({
       userId: input.userId,
       sourceType: FraudSourceType.COLLECTION,
-      sourceId: input.locationId,
-      flagCode: 'CHECKIN_TOO_FAR',
-      description: `User attempted check-in ${input.distanceKm.toFixed(2)} km away from location`,
+      sourceId: input.tokenHash,
+      flagCode: 'DUPLICATE_QR',
+      description: 'User QR token was submitted more than once',
       severity: FraudSeverity.HIGH,
       metadata: {
         locationId: input.locationId,
-        distanceKm: input.distanceKm,
-        userLatitude: input.userLatitude,
-        userLongitude: input.userLongitude,
+        tokenHash: input.tokenHash,
       },
     });
+  }
+
+  async checkAbnormalCollectionVolume(input: {
+    userId: string;
+    locationId: string;
+    quantityValue?: number | null;
+    quantityUnit?: string | null;
+    pointsAwarded?: number | null;
+  }): Promise<boolean> {
+    const quantityValue = input.quantityValue ?? 0;
+    const quantityUnit = input.quantityUnit?.toUpperCase() ?? '';
+    const pointsAwarded = input.pointsAwarded ?? 0;
+
+    let threshold: number | null = null;
+    let normalizedValue = quantityValue;
+    let normalizedUnit = quantityUnit || 'UNKNOWN';
+
+    if (quantityUnit === 'GRAM') {
+      threshold = MAX_COLLECTION_KG;
+      normalizedValue = quantityValue / 1000;
+      normalizedUnit = 'KG';
+    } else if (quantityUnit === 'KG' || quantityUnit === 'KILOGRAM') {
+      threshold = MAX_COLLECTION_KG;
+      normalizedUnit = 'KG';
+    } else if (quantityUnit === 'LITER' || quantityUnit === 'LITRE') {
+      threshold = MAX_COLLECTION_LITERS;
+      normalizedUnit = 'LITER';
+    } else if (quantityUnit === 'PIECE') {
+      threshold = MAX_COLLECTION_PIECES;
+      normalizedUnit = 'PIECE';
+    }
+
+    const quantityExceeded = threshold !== null && normalizedValue > threshold;
+    const pointsExceeded = pointsAwarded > MAX_COLLECTION_POINTS;
+
+    if (!quantityExceeded && !pointsExceeded) {
+      return false;
+    }
+
+    await this.createFlag({
+      userId: input.userId,
+      sourceType: FraudSourceType.COLLECTION,
+      sourceId: input.locationId,
+      flagCode: 'ABNORMAL_VOLUME',
+      description: `Collection volume or points exceeded expected threshold`,
+      severity: pointsExceeded || normalizedUnit === 'KG' ? FraudSeverity.HIGH : FraudSeverity.MEDIUM,
+      metadata: {
+        locationId: input.locationId,
+        quantityValue: input.quantityValue ?? null,
+        quantityUnit: input.quantityUnit ?? null,
+        normalizedValue,
+        normalizedUnit,
+        threshold,
+        pointsAwarded,
+        pointsThreshold: MAX_COLLECTION_POINTS,
+        quantityExceeded,
+        pointsExceeded,
+      },
+    });
+
+    return true;
   }
 
   /**
@@ -461,19 +481,5 @@ export class FraudService {
     } catch (err) {
       this.logger.warn(`checkAiClassificationAbuse error: ${(err as Error).message}`);
     }
-  }
-
-  /** Tính risk level cho collection check-in (dùng nội bộ) */
-  calculateCollectionRisk(input: {
-    distanceKm: number;
-    dailyCheckins: number;
-  }): FraudSeverity {
-    if (input.distanceKm > 1 || input.dailyCheckins >= MAX_DAILY_COLLECTION_CHECKINS) {
-      return FraudSeverity.HIGH;
-    }
-    if (input.distanceKm > 0.5 || input.dailyCheckins >= 3) {
-      return FraudSeverity.MEDIUM;
-    }
-    return FraudSeverity.LOW;
   }
 }
