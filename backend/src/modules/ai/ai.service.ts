@@ -124,93 +124,14 @@ export class AiService {
 
     if (!aiResponse || !aiResponse.success || !aiResponse.detections || aiResponse.detections.length === 0) {
       return {
-        classificationId: null,
         isOverloaded: false,
         message: 'Không nhận diện được rác thải rõ ràng nào trong ảnh. Vui lòng thử lại.',
+        results: [],
       };
     }
 
-    // Tạm thời lấy vật thể đầu tiên (có độ tự tin cao nhất) để lưu DB
-    aiResult = aiResponse.detections[0];
-
-    const confidence = Number(aiResult.confidence);
-    const isHighConfidence = confidence >= this.classificationAwardThreshold;
-    const initialStatus = isHighConfidence
-      ? ClassificationStatus.SUCCESS
-      : ClassificationStatus.PENDING;
-
-    const classification = this.classificationRepo.create({
-      user: { id: userId } as any,
-      imageUrl,
-      predictedLabel: aiResult.label,
-      predictedWasteType: aiResult.wasteType as WasteType,
-      confidence: aiResult.confidence,
-      suggestedBin: aiResult.suggestedBin as BinType,
-      status: initialStatus,
-      modelName: aiResult.modelName ?? null,
-      modelVersion: aiResult.modelVersion ?? null,
-      resultJson: aiResult as any,
-    });
-
-    const saved = await this.classificationRepo.save(classification);
-    
-    let pointsEarned = 0;
-    let awarded = false;
-    let dailyLimitReached = false;
+    const results: any[] = [];
     let balanceAfter = await this.pointsService.getBalanceByUserId(userId);
-
-    if (isHighConfidence) {
-      await this.dataSource.transaction(async (manager) => {
-        // Lock user first
-        await manager.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
-
-        // Kiểm tra Daily Quota (Tối đa 3 lần cộng điểm / ngày từ AI)
-        const startOfDay = new Date();
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const result = await manager.query(
-          `SELECT COUNT(*) AS count
-           FROM point_transactions
-           WHERE user_id = $1
-             AND type = 'EARN'
-             AND source_type = $2
-             AND created_at >= $3`,
-          [userId, PointSourceType.TRASH_CLASSIFICATION, startOfDay],
-        );
-
-        const countToday = parseInt(result[0]?.count ?? '0', 10);
-
-        if (countToday >= 3) {
-          dailyLimitReached = true;
-        } else {
-          pointsEarned = await this.calculateClassificationPoints(
-            saved.predictedWasteType ?? null,
-            confidence,
-          );
-          if (pointsEarned > 0) {
-            const alreadyAwardedResult = await manager.query(
-              `SELECT 1 FROM point_transactions WHERE user_id = $1 AND source_type = $2 AND source_id = $3 AND type = $4 LIMIT 1`,
-              [userId, PointSourceType.TRASH_CLASSIFICATION, saved.id, PointTransactionType.EARN]
-            );
-
-            if (alreadyAwardedResult.length === 0) {
-              const transaction = await this.pointsService.addPoint(
-                userId,
-                pointsEarned,
-                PointTransactionType.EARN,
-                PointSourceType.TRASH_CLASSIFICATION,
-                saved.id,
-                'CLASSIFICATION_CORRECT',
-                `Awarded for trash classification ${saved.id}`,
-                manager
-              );
-              balanceAfter = transaction.balanceAfter;
-              awarded = true;
-            }
-          }
-        }
-      });
-    }
 
     // Kiểm tra AI classification abuse — fire-and-forget
     void this.fraudService.checkAiClassificationAbuse(userId);
@@ -220,32 +141,118 @@ export class AiService {
       void this.badgesService.evaluateUserBadges(userId);
     }
 
-    let nearestLocation: any = null;
-    if (latitude !== undefined && longitude !== undefined && aiResult.wasteType) {
-      nearestLocation = await this.locationsService.getNearestCollectionPointByWasteType(
-        aiResult.wasteType as WasteType,
-        latitude,
-        longitude
-      );
+    for (const aiResult of aiResponse.detections) {
+      const confidence = Number(aiResult.confidence);
+      const isHighConfidence = confidence >= this.classificationAwardThreshold;
+      const initialStatus = isHighConfidence
+        ? ClassificationStatus.SUCCESS
+        : ClassificationStatus.PENDING;
+
+      const classification = this.classificationRepo.create({
+        user: { id: userId } as any,
+        imageUrl,
+        predictedLabel: aiResult.label,
+        predictedWasteType: aiResult.wasteType as WasteType,
+        confidence: aiResult.confidence,
+        suggestedBin: aiResult.suggestedBin as BinType,
+        status: initialStatus,
+        modelName: aiResult.modelName ?? null,
+        modelVersion: aiResult.modelVersion ?? null,
+        resultJson: aiResult as any,
+      });
+
+      const saved = await this.classificationRepo.save(classification);
+      
+      let pointsEarned = 0;
+      let awarded = false;
+      let dailyLimitReached = false;
+
+      if (isHighConfidence) {
+        await this.dataSource.transaction(async (manager) => {
+          // Lock user first
+          await manager.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
+
+          // Kiểm tra Daily Quota (Tối đa 3 lần cộng điểm / ngày từ AI)
+          const startOfDay = new Date();
+          startOfDay.setHours(0, 0, 0, 0);
+
+          const pointCountResult = await manager.query(
+            `SELECT COUNT(*) AS count
+             FROM point_transactions
+             WHERE user_id = $1
+               AND type = 'EARN'
+               AND source_type = $2
+               AND created_at >= $3`,
+            [userId, PointSourceType.TRASH_CLASSIFICATION, startOfDay],
+          );
+
+          const countToday = parseInt(pointCountResult[0]?.count ?? '0', 10);
+
+          if (countToday >= 3) {
+            dailyLimitReached = true;
+          } else {
+            pointsEarned = await this.calculateClassificationPoints(
+              saved.predictedWasteType ?? null,
+              confidence,
+            );
+            if (pointsEarned > 0) {
+              const alreadyAwardedResult = await manager.query(
+                `SELECT 1 FROM point_transactions WHERE user_id = $1 AND source_type = $2 AND source_id = $3 AND type = $4 LIMIT 1`,
+                [userId, PointSourceType.TRASH_CLASSIFICATION, saved.id, PointTransactionType.EARN]
+              );
+
+              if (alreadyAwardedResult.length === 0) {
+                const transaction = await this.pointsService.addPoint(
+                  userId,
+                  pointsEarned,
+                  PointTransactionType.EARN,
+                  PointSourceType.TRASH_CLASSIFICATION,
+                  saved.id,
+                  'CLASSIFICATION_CORRECT',
+                  `Awarded for trash classification ${saved.id}`,
+                  manager
+                );
+                balanceAfter = transaction.balanceAfter;
+                awarded = true;
+              }
+            }
+          }
+        });
+      }
+
+      let nearestLocation: any = null;
+      if (latitude !== undefined && longitude !== undefined && aiResult.wasteType) {
+        nearestLocation = await this.locationsService.getNearestCollectionPointByWasteType(
+          aiResult.wasteType as WasteType,
+          latitude,
+          longitude
+        );
+      }
+
+      results.push({
+        classificationId: saved.id,
+        imageUrl,
+        label: aiResult.label,
+        displayLabel: aiResult.displayLabel,
+        confidence: aiResult.confidence,
+        wasteType: aiResult.wasteType,
+        suggestedBin: aiResult.suggestedBin,
+        instruction: aiResult.instruction,
+        modelName: aiResult.modelName,
+        modelVersion: aiResult.modelVersion,
+        boundingBox: aiResult.boundingBox,
+        pointsEarned,
+        awarded,
+        balanceAfter,
+        requiresReview: !isHighConfidence,
+        dailyLimitReached,
+        nearestLocation,
+      });
     }
 
     return {
-      classificationId: saved.id,
-      imageUrl,
-      label: aiResult.label,
-      displayLabel: aiResult.displayLabel,
-      confidence: aiResult.confidence,
-      wasteType: aiResult.wasteType,
-      suggestedBin: aiResult.suggestedBin,
-      instruction: aiResult.instruction,
-      modelName: aiResult.modelName,
-      modelVersion: aiResult.modelVersion,
-      pointsEarned,
-      awarded,
-      balanceAfter,
-      requiresReview: !isHighConfidence,
-      dailyLimitReached,
-      nearestLocation,
+      isOverloaded: false,
+      results,
     };
   }
 

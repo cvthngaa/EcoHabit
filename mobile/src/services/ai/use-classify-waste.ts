@@ -10,12 +10,8 @@ function logClassificationResult(data: BackendClassificationResponse): void {
  if (!__DEV__) return;
 
  console.log('[AI Service] Classification result', {
- classificationId: data.classificationId,
- label: data.label,
- wasteType: data.wasteType,
- pointsEarned: data.pointsEarned,
- awarded: data.awarded,
- balanceAfter: data.balanceAfter,
+ isOverloaded: data.isOverloaded,
+ resultsCount: data.results?.length,
  });
 }
 
@@ -35,8 +31,8 @@ export function useClassifyWaste() {
 
  logClassificationResult(response.data);
 
- if (!response.data.classificationId && response.data.message) {
- throw new Error(response.data.message);
+ if (!response.data.results || response.data.results.length === 0) {
+ throw new Error(response.data.message || 'Không tìm thấy rác thải nào trong ảnh.');
  }
 
  return mapClassificationResponse(response.data);

@@ -1,5 +1,5 @@
 import { wasteCategories, WasteCategory } from '../mockData';
-import { AIClassificationResult, BackendClassificationResponse, WasteType } from './types';
+import { AIClassificationResult, BackendClassificationResponse, BackendClassificationResultItem, WasteType } from './types';
 import { isKnownClassificationLabel, normalizeConfidence } from './ai.utils';
 
 const DEFAULT_CATEGORY = wasteCategories[6];
@@ -19,20 +19,30 @@ function getCategoryForWasteType(wasteType: WasteType): WasteCategory {
  return WASTE_TYPE_TO_CATEGORY[wasteType] ?? DEFAULT_CATEGORY;
 }
 
-export function mapClassificationResponse(
- data: BackendClassificationResponse,
+export function mapClassificationItem(
+ item: BackendClassificationResultItem,
 ): AIClassificationResult {
- const category = getCategoryForWasteType(data.wasteType);
+ const category = getCategoryForWasteType(item.wasteType);
 
  return {
- success: isKnownClassificationLabel(data.label),
- label: data.displayLabel || data.label,
+ success: isKnownClassificationLabel(item.label),
+ label: item.displayLabel || item.label,
  category,
- confidence: normalizeConfidence(data.confidence),
- disposalTip: data.instruction || category.disposalTip,
- pointsEarned: data.pointsEarned ?? 0,
- classificationId: data.classificationId,
- awarded: data.awarded ?? false,
- nearestLocation: data.nearestLocation,
+ confidence: normalizeConfidence(item.confidence),
+ disposalTip: item.instruction || category.disposalTip,
+ boundingBox: item.boundingBox,
+ pointsEarned: item.pointsEarned ?? 0,
+ classificationId: item.classificationId,
+ awarded: item.awarded ?? false,
+ nearestLocation: item.nearestLocation,
  };
+}
+
+export function mapClassificationResponse(
+ data: BackendClassificationResponse,
+): AIClassificationResult[] {
+ if (!data.results || data.results.length === 0) {
+ return [];
+ }
+ return data.results.map(mapClassificationItem);
 }

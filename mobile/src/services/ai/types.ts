@@ -18,6 +18,7 @@ export type AIClassificationResult = {
  category: WasteCategory;
  confidence: number;
  disposalTip: string;
+ boundingBox?: number[];
  pointsEarned: number;
  classificationId?: string;
  awarded?: boolean;
@@ -31,10 +32,8 @@ export type AIClassificationResult = {
  } | null;
 };
 
-export type BackendClassificationResponse = {
+export type BackendClassificationResultItem = {
  classificationId?: string;
- isOverloaded?: boolean;
- message?: string;
  imageUrl?: string;
  label: string;
  displayLabel?: string;
@@ -44,9 +43,12 @@ export type BackendClassificationResponse = {
  instruction?: string;
  modelName?: string;
  modelVersion?: string;
+ boundingBox?: number[];
  pointsEarned?: number;
  awarded?: boolean;
  balanceAfter?: number;
+ requiresReview?: boolean;
+ dailyLimitReached?: boolean;
  nearestLocation?: {
  id: string;
  name: string;
@@ -55,6 +57,12 @@ export type BackendClassificationResponse = {
  latitude?: number;
  longitude?: number;
  } | null;
+};
+
+export type BackendClassificationResponse = {
+ isOverloaded?: boolean;
+ message?: string;
+ results?: BackendClassificationResultItem[];
 };
 
 export type ClassificationHistoryParams = {
