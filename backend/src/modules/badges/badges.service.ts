@@ -28,7 +28,7 @@ export class BadgesService {
     private readonly dropoffRepo: Repository<DropoffTransaction>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
-  ) {}
+  ) { }
 
   // ─── Public API ────────────────────────────────────────────────────────────
 
@@ -40,8 +40,6 @@ export class BadgesService {
       this.buildProgressMap(userId),
     ]);
 
-    // Asynchronously trigger an evaluation just in case the user met conditions
-    // from past activities before the badge system was introduced.
     void this.evaluateUserBadges(userId);
 
     return badges.map((badge) => {
@@ -106,9 +104,7 @@ export class BadgesService {
     }
   }
 
-  // ─── Private helpers ────────────────────────────────────────────────────────
 
-  /** Map badgeId → UserBadge for earned badges of a user */
   private async getEarnedMap(userId: string): Promise<Map<string, UserBadge>> {
     const earned = await this.userBadgeRepo.find({
       where: { userId },
@@ -117,10 +113,7 @@ export class BadgesService {
     return new Map(earned.map((ub) => [ub.badgeId, ub]));
   }
 
-  /**
-   * Build a map of conditionType → current progress value for the given user.
-   * Each condition type is computed once and shared across all badges of that type.
-   */
+
   private async buildProgressMap(userId: string): Promise<Map<BadgeConditionType, number>> {
     const map = new Map<BadgeConditionType, number>();
 

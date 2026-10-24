@@ -1,0 +1,25 @@
+export type RootStackParamList = {
+  MainTabs: undefined;
+  Welcome: undefined;
+  Login: undefined;
+  Register: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: { email: string };
+  QuizIntro: undefined;
+  QuizPlay: undefined;
+  QuizResult: undefined;
+  ScanAnalysis: undefined;
+  RewardDetail: undefined;
+  Wallet: undefined;
+  MapAddressInput: undefined;
+  PersonalInfo: undefined;
+  PrivacySecurity: undefined;
+  LanguageSettings: undefined;
+  AppearanceSettings: undefined;
+  LocationSettings: undefined;
+  HelpFaq: undefined;
+  RateApp: undefined;
+  ShareEcoHabit: undefined;
+  Badges: undefined;
+  Leaderboard: undefined;
+};

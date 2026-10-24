@@ -26,7 +26,6 @@ export class AuthService implements OnModuleDestroy {
     private jwtService: JwtService,
     private partnersService: PartnersService,
   ) {
-    // Fix EPERM error by trimming the URL and checking if it starts with rediss://
     const redisUrl = process.env.REDIS_URL?.trim();
     if (redisUrl && redisUrl.startsWith('redis')) {
       this.redisClient = new Redis(redisUrl);
@@ -74,7 +73,7 @@ export class AuthService implements OnModuleDestroy {
     await this.redisClient.set(cooldownKey, '1', 'EX', 60);
   }
 
-  // ✅ SEND OTP
+  // SEND OTP
   async sendOtp(email: string) {
     await this.checkOtpRateLimit(email);
 
@@ -122,7 +121,7 @@ export class AuthService implements OnModuleDestroy {
     return { message: 'Mã OTP đã được gửi đến email của bạn' };
   }
 
-  // ✅ VERIFY OTP
+  //VERIFY OTP
   async verifyOtp(email: string, otp: string) {
     const attemptKey = `otp:attempts:${email}`;
     const attemptsStr = await this.redisClient.get(attemptKey);
@@ -162,7 +161,7 @@ export class AuthService implements OnModuleDestroy {
     return { message: 'Xác thực OTP thành công.' };
   }
 
-  // ✅ REGISTER
+  // REGISTER
   async register(email: string, password: string, fullName: string) {
     // Kiểm tra xem email đã được xác minh chưa
     const verifiedKey = `verified:email:${email}`;
@@ -188,9 +187,9 @@ export class AuthService implements OnModuleDestroy {
     return user;
   }
 
-  // ✅ REGISTER PARTNER
+  //REGISTER PARTNER
   async registerPartner(dto: RegisterPartnerDto) {
-    // 1. Kiểm tra OTP
+    // Kiểm tra OTP
     const verifiedKey = `verified:email:${dto.email}`;
     const isVerified = await this.redisClient.get(verifiedKey);
 
@@ -200,7 +199,7 @@ export class AuthService implements OnModuleDestroy {
       );
     }
 
-    // 2. Tạo User với role PARTNER
+    // Tạo User với role PARTNER
     const hashed = await bcrypt.hash(dto.password, 10);
     const user = await this.usersService.create({
       email: dto.email,
@@ -209,7 +208,7 @@ export class AuthService implements OnModuleDestroy {
       role: UserRole.PARTNER,
     });
 
-    // 3. Tạo PartnerProfile
+    // Tạo PartnerProfile
     await this.partnersService.createPartnerProfile(user, {
       organizationName: dto.organizationName,
       contactName: dto.contactPerson,
@@ -217,13 +216,13 @@ export class AuthService implements OnModuleDestroy {
       contactEmail: dto.email,
     });
 
-    // 4. Xoá OTP
+    // Xoá OTP
     await this.redisClient.del(verifiedKey);
 
     return { message: 'Đăng ký đối tác thành công. Vui lòng chờ phê duyệt.' };
   }
 
-  // ✅ LOGIN
+  // LOGIN
   async login(email: string, password: string) {
     const user = await this.usersService.findByEmail(email);
 
@@ -286,7 +285,7 @@ export class AuthService implements OnModuleDestroy {
     };
   }
 
-  // ✅ SEND OTP FOR PASSWORD RESET
+  //  SEND OTP FOR PASSWORD RESET
   async sendPasswordResetOtp(email: string) {
     await this.checkOtpRateLimit(email);
 
@@ -341,7 +340,7 @@ export class AuthService implements OnModuleDestroy {
     };
   }
 
-  // ✅ SEND OTP FOR CHANGE PASSWORD
+  // SEND OTP FOR CHANGE PASSWORD
   async sendChangePasswordOtp(userId: string, oldPassword?: string) {
     const user = await this.usersService.findById(userId);
     if (!user) {
@@ -404,7 +403,7 @@ export class AuthService implements OnModuleDestroy {
     };
   }
 
-  // ✅ RESET PASSWORD
+  // RESET PASSWORD
   async resetPassword(email: string, newPassword: string) {
     // Kiểm tra xem email đã được xác minh chưa
     const verifiedKey = `verified:email:${email}`;
@@ -430,7 +429,7 @@ export class AuthService implements OnModuleDestroy {
     return { message: 'Mật khẩu đã được đặt lại thành công.' };
   }
 
-  // ✅ GET PROFILE
+  //  GET PROFILE
   async getProfile(userId: string) {
     const user = await this.usersService.findById(userId);
     if (!user) throw new UnauthorizedException('User not found');
@@ -460,7 +459,7 @@ export class AuthService implements OnModuleDestroy {
     };
   }
 
-  // ✅ CHANGE PASSWORD (Logged-in User)
+  // CHANGE PASSWORD (Logged-in User)
   async changePassword(
     userId: string,
     oldPassword: string,
@@ -490,7 +489,7 @@ export class AuthService implements OnModuleDestroy {
     return { message: 'Đổi mật khẩu thành công.' };
   }
 
-  // ✅ GENERATE PERSONAL QR
+  //  GENERATE PERSONAL QR
   async generatePersonalQr(userId: string) {
     const payload = {
       sub: userId,
@@ -501,7 +500,7 @@ export class AuthService implements OnModuleDestroy {
     };
   }
 
-  // ✅ REFRESH TOKEN
+  //  REFRESH TOKEN
   async refreshToken(refreshToken: string) {
     const userId = await this.redisClient.get(`refresh_token:${refreshToken}`);
     if (!userId) {
@@ -536,7 +535,7 @@ export class AuthService implements OnModuleDestroy {
     };
   }
 
-  // ✅ LOGOUT
+  // LOGOUT
   async logout(refreshToken: string) {
     if (refreshToken) {
       await this.redisClient.del(`refresh_token:${refreshToken}`);

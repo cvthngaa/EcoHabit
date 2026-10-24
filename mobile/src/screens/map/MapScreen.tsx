@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -12,30 +18,34 @@ import {
   View,
   Image,
   Dimensions,
-} from 'react-native';
-import MapView, { Marker, Polyline, Region } from 'react-native-maps';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Location from 'expo-location';
-import { Colors, Tokens } from '../../theme';
-import { useToast } from '../../context/ToastContext';
-import ConfirmAlert from '../../components/ConfirmAlert';
-import DraggableBottomSheet from '../../components/DraggableBottomSheet';
-import SelectableChipTabs from '../../components/SelectableChipTabs';
-import MapSearchBar from './components/MapSearchBar';
-import MapLocationCard from './components/MapLocationCard';
-import CollectionPointMarker from './components/CollectionPointMarker';
-import MapControls from './components/MapControls';
-import MapHeader from './components/MapHeader';
+} from "react-native";
+import MapView, { Marker, Polyline, Region } from "react-native-maps";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import * as Location from "expo-location";
+import { Colors, Tokens } from "../../theme";
+import { useToast } from "../../context/ToastContext";
+import ConfirmAlert from "../../components/ConfirmAlert";
+import DraggableBottomSheet from "../../components/DraggableBottomSheet";
+import SelectableChipTabs from "../../components/SelectableChipTabs";
+import MapSearchBar from "./components/MapSearchBar";
+import MapLocationCard from "./components/MapLocationCard";
+import CollectionPointMarker from "./components/CollectionPointMarker";
+import MapControls from "./components/MapControls";
+import MapHeader from "./components/MapHeader";
 import {
   CollectionPointItem,
   getNearbyCollectionPoints,
   NominatimSuggestion,
   searchPlaces,
-} from '../../services/map';
-import { customMapStyle } from './mapStyle';
+} from "../../services/map";
+import { customMapStyle } from "./mapStyle";
 
 const DEFAULT_REGION: Region = {
   latitude: 10.7769,
@@ -44,22 +54,22 @@ const DEFAULT_REGION: Region = {
   longitudeDelta: 0.06,
 };
 
-const { width: windowWidth } = Dimensions.get('window');
+const { width: windowWidth } = Dimensions.get("window");
 const CARD_WIDTH = windowWidth * 0.85;
 const SPACING = 16;
 
-const filters = ['Tất cả', 'Tổng hợp', 'Trung tâm tái chế'];
-const filterChipItems = filters.map(item => ({
+const filters = ["Tất cả", "Tổng hợp", "Trung tâm tái chế"];
+const filterChipItems = filters.map((item) => ({
   key: item,
   label: item,
   activeColor: Colors.primaryLight,
 }));
 
 const typeColors: Record<string, string> = {
-  'Tong hop': Colors.primary,
-  'Trung tam tai che': '#1565C0',
-  'Tổng hợp': Colors.primary,
-  'Trung tâm tái chế': '#1565C0',
+  "Tong hop": Colors.primary,
+  "Trung tam tai che": "#1565C0",
+  "Tổng hợp": Colors.primary,
+  "Trung tâm tái chế": "#1565C0",
 };
 
 const markerWrapSelectedStyle = {
@@ -67,14 +77,14 @@ const markerWrapSelectedStyle = {
 };
 
 const titleShadowStyle = {
-  textShadowColor: 'rgba(0,0,0,0.35)',
+  textShadowColor: "rgba(0,0,0,0.35)",
   textShadowOffset: { width: 0, height: 1 },
   textShadowRadius: 4,
 };
 
 const searchShadowStyle = {
   elevation: 8,
-  shadowColor: '#000',
+  shadowColor: "#000",
   shadowOffset: { width: 0, height: 3 },
   shadowOpacity: 0.12,
   shadowRadius: 10,
@@ -82,7 +92,7 @@ const searchShadowStyle = {
 
 const controlShadowStyle = {
   elevation: 4,
-  shadowColor: '#000',
+  shadowColor: "#000",
   shadowOffset: { width: 0, height: 2 },
   shadowOpacity: 0.12,
   shadowRadius: 6,
@@ -112,24 +122,28 @@ const MapScreen: React.FC = () => {
   const route = useRoute<any>();
   const { showToast } = useToast();
   const mapRef = useRef<MapView | null>(null);
-  const manualLocationVersion = route.params?.manualLocationVersion as number | undefined;
+  const manualLocationVersion = route.params?.manualLocationVersion as
+    | number
+    | undefined;
 
-  const [filter, setFilter] = useState('Tất cả');
+  const [filter, setFilter] = useState("Tất cả");
   const [selected, setSelected] = useState<CollectionPointItem | null>(null);
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [points, setPoints] = useState<CollectionPointItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentAddress, setCurrentAddress] = useState('');
+  const [currentAddress, setCurrentAddress] = useState("");
   const [resolvedCoordinate, setResolvedCoordinate] = useState<{
     latitude: number;
     longitude: number;
   } | null>(null);
   const [showAddressAlert, setShowAddressAlert] = useState(false);
-  const [addressQuery, setAddressQuery] = useState('');
+  const [addressQuery, setAddressQuery] = useState("");
   const [isAddressSearching, setIsAddressSearching] = useState(false);
   const [isSubmittingAddress, setIsSubmittingAddress] = useState(false);
-  const [addressSuggestions, setAddressSuggestions] = useState<NominatimSuggestion[]>([]);
-  const [addressError, setAddressError] = useState('');
+  const [addressSuggestions, setAddressSuggestions] = useState<
+    NominatimSuggestion[]
+  >([]);
+  const [addressError, setAddressError] = useState("");
   const [showAddressSuggestions, setShowAddressSuggestions] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
@@ -137,60 +151,82 @@ const MapScreen: React.FC = () => {
     if (viewableItems.length > 0) {
       const item = viewableItems[0].item;
       setSelected(item);
-      mapRef.current?.animateToRegion({
-        latitude: item.lat,
-        longitude: item.lng,
-        latitudeDelta: DEFAULT_REGION.latitudeDelta,
-        longitudeDelta: DEFAULT_REGION.longitudeDelta,
-      }, 450);
+      mapRef.current?.animateToRegion(
+        {
+          latitude: item.lat,
+          longitude: item.lng,
+          latitudeDelta: DEFAULT_REGION.latitudeDelta,
+          longitudeDelta: DEFAULT_REGION.longitudeDelta,
+        },
+        450,
+      );
     }
   }).current;
   const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 50 }).current;
 
   const filtered = useMemo(() => {
-    if (filter === 'Tất cả') {
+    if (filter === "Tất cả") {
       return points;
     }
 
-    return points.filter(item => item.types === filter);
+    return points.filter((item) => item.types === filter);
   }, [filter, points]);
 
-  const canSubmitAddress = useMemo(() => addressQuery.trim().length >= 6, [addressQuery]);
+  const canSubmitAddress = useMemo(
+    () => addressQuery.trim().length >= 6,
+    [addressQuery],
+  );
 
   const animateToRegion = useCallback((nextRegion: Region) => {
     setRegion(nextRegion);
     mapRef.current?.animateToRegion(nextRegion, 450);
   }, []);
 
-  const loadCollectionPoints = useCallback(async (coordinate: { latitude: number; longitude: number }) => {
-    const results = await getNearbyCollectionPoints(coordinate);
-    setPoints(results);
-    setSelected(current =>
-      current ? results.find(item => item.id === current.id) ?? results[0] ?? null : results[0] ?? null,
-    );
-  }, []);
+  const loadCollectionPoints = useCallback(
+    async (coordinate: { latitude: number; longitude: number }) => {
+      const results = await getNearbyCollectionPoints(coordinate);
+      setPoints(results);
+      setSelected((current) =>
+        current
+          ? (results.find((item) => item.id === current.id) ??
+            results[0] ??
+            null)
+          : (results[0] ?? null),
+      );
+    },
+    [],
+  );
 
-  const resolveCurrentAddress = useCallback(async (latitude: number, longitude: number) => {
-    try {
-      const [geo] = await Location.reverseGeocodeAsync({ latitude, longitude });
+  const resolveCurrentAddress = useCallback(
+    async (latitude: number, longitude: number) => {
+      try {
+        const [geo] = await Location.reverseGeocodeAsync({
+          latitude,
+          longitude,
+        });
 
-      if (!geo) {
-        setCurrentAddress('');
-        return;
+        if (!geo) {
+          setCurrentAddress("");
+          return;
+        }
+
+        const parts = [geo.name, geo.street, geo.district, geo.city, geo.region]
+          .filter(Boolean)
+          .slice(0, 4);
+
+        setCurrentAddress(parts.join(", "));
+      } catch (error) {
+        setCurrentAddress("");
       }
-
-      const parts = [geo.name, geo.street, geo.district, geo.city, geo.region]
-        .filter(Boolean)
-        .slice(0, 4);
-
-      setCurrentAddress(parts.join(', '));
-    } catch (error) {
-      setCurrentAddress('');
-    }
-  }, []);
+    },
+    [],
+  );
 
   const applyCoordinate = useCallback(
-    async (coordinate: { latitude: number; longitude: number }, address?: string) => {
+    async (
+      coordinate: { latitude: number; longitude: number },
+      address?: string,
+    ) => {
       const nextRegion: Region = {
         latitude: coordinate.latitude,
         longitude: coordinate.longitude,
@@ -208,12 +244,14 @@ const MapScreen: React.FC = () => {
       const tasks: Promise<unknown>[] = [loadCollectionPoints(coordinate)];
 
       if (!address) {
-        tasks.push(resolveCurrentAddress(coordinate.latitude, coordinate.longitude));
+        tasks.push(
+          resolveCurrentAddress(coordinate.latitude, coordinate.longitude),
+        );
       }
 
       const [collectionPointsResult] = await Promise.allSettled(tasks);
 
-      if (collectionPointsResult.status === 'rejected') {
+      if (collectionPointsResult.status === "rejected") {
         throw collectionPointsResult.reason;
       }
     },
@@ -226,7 +264,7 @@ const MapScreen: React.FC = () => {
       const supported = await Linking.canOpenURL(url);
 
       if (!supported) {
-        showToast('Không thể mở chỉ đường trên thiết bị này.', 'error');
+        showToast("Không thể mở chỉ đường trên thiết bị này.", "error");
         return;
       }
 
@@ -237,11 +275,11 @@ const MapScreen: React.FC = () => {
 
   const handleCall = useCallback(
     async (phone: string) => {
-      const url = `tel:${phone.replace(/\s+/g, '')}`;
+      const url = `tel:${phone.replace(/\s+/g, "")}`;
       const supported = await Linking.canOpenURL(url);
 
       if (!supported) {
-        showToast('Không thể gọi điện trên thiết bị này.', 'error');
+        showToast("Không thể gọi điện trên thiết bị này.", "error");
         return;
       }
 
@@ -258,7 +296,7 @@ const MapScreen: React.FC = () => {
       const providerStatus = await Location.getProviderStatusAsync();
 
       if (!servicesEnabled) {
-        showToast('Hãy bật dịch vụ vị trí trên thiết bị rồi thử lại.', 'error');
+        showToast("Hãy bật dịch vụ vị trí trên thiết bị rồi thử lại.", "error");
         if (!route.params?.manualLocation) {
           setShowAddressAlert(true);
         }
@@ -277,10 +315,10 @@ const MapScreen: React.FC = () => {
         return;
       }
 
-      if (Platform.OS === 'android' && !providerStatus.networkAvailable) {
+      if (Platform.OS === "android" && !providerStatus.networkAvailable) {
         try {
           await Location.enableNetworkProviderAsync();
-        } catch (providerError) { }
+        } catch (providerError) {}
       }
 
       let current = await Location.getLastKnownPositionAsync();
@@ -288,13 +326,15 @@ const MapScreen: React.FC = () => {
       if (!current) {
         current = await Location.getCurrentPositionAsync({
           accuracy:
-            Platform.OS === 'android' ? Location.Accuracy.High : Location.Accuracy.Balanced,
+            Platform.OS === "android"
+              ? Location.Accuracy.High
+              : Location.Accuracy.Balanced,
           mayShowUserSettingsDialog: true,
         });
       }
 
       if (!current) {
-        throw new Error('LOCATION_UNAVAILABLE');
+        throw new Error("LOCATION_UNAVAILABLE");
       }
 
       await applyCoordinate({
@@ -302,7 +342,10 @@ const MapScreen: React.FC = () => {
         longitude: current.coords.longitude,
       });
     } catch (error) {
-      showToast('Không thể lấy vị trí hiện tại. Hãy kiểm tra GPS hoặc nhập địa chỉ thủ công.', 'error');
+      showToast(
+        "Không thể lấy vị trí hiện tại. Hãy kiểm tra GPS hoặc nhập địa chỉ thủ công.",
+        "error",
+      );
       if (!route.params?.manualLocation) {
         setShowAddressAlert(true);
       }
@@ -331,7 +374,7 @@ const MapScreen: React.FC = () => {
             setAddressQuery(manualAddress);
           }
         } catch (error) {
-          showToast('Không thể tải điểm thu gom từ vị trí này.', 'error');
+          showToast("Không thể tải điểm thu gom từ vị trí này.", "error");
         } finally {
           if (active) {
             setIsLoading(false);
@@ -350,7 +393,13 @@ const MapScreen: React.FC = () => {
     return () => {
       active = false;
     };
-  }, [applyCoordinate, manualLocationVersion, requestGpsLocation, route.params, showToast]);
+  }, [
+    applyCoordinate,
+    manualLocationVersion,
+    requestGpsLocation,
+    route.params,
+    showToast,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -381,7 +430,7 @@ const MapScreen: React.FC = () => {
       } catch (error) {
         if (active) {
           setAddressSuggestions([]);
-          showToast('Không tải được gợi ý địa điểm lúc này.', 'error');
+          showToast("Không tải được gợi ý địa điểm lúc này.", "error");
         }
       } finally {
         if (active) {
@@ -416,7 +465,7 @@ const MapScreen: React.FC = () => {
       setCurrentAddress(resolvedAddress);
       setAddressSuggestions([]);
       setShowAddressSuggestions(false);
-      setAddressError('');
+      setAddressError("");
       setShowAddressAlert(false);
       setIsLoading(true);
 
@@ -429,7 +478,7 @@ const MapScreen: React.FC = () => {
           resolvedAddress,
         );
       } catch (error) {
-        showToast('Không thể tải điểm thu gom từ địa chỉ này.', 'error');
+        showToast("Không thể tải điểm thu gom từ địa chỉ này.", "error");
       } finally {
         setIsLoading(false);
       }
@@ -441,13 +490,13 @@ const MapScreen: React.FC = () => {
     const trimmed = addressQuery.trim();
 
     if (trimmed.length < 6) {
-      setAddressError('Vui lòng nhập địa chỉ cụ thể hơn.');
+      setAddressError("Vui lòng nhập địa chỉ cụ thể hơn.");
       return;
     }
 
     Keyboard.dismiss();
     setShowAddressSuggestions(false);
-    setAddressError('');
+    setAddressError("");
     setIsSubmittingAddress(true);
     setIsLoading(true);
 
@@ -455,7 +504,7 @@ const MapScreen: React.FC = () => {
       const geocoded = await Location.geocodeAsync(trimmed);
 
       if (!geocoded.length) {
-        setAddressError('Không tìm thấy địa chỉ này. Thử nhập chi tiết hơn.');
+        setAddressError("Không tìm thấy địa chỉ này. Thử nhập chi tiết hơn.");
         return;
       }
 
@@ -471,7 +520,7 @@ const MapScreen: React.FC = () => {
         trimmed,
       );
     } catch (error) {
-      showToast('Không thể xử lý địa chỉ. Vui lòng thử lại.', 'error');
+      showToast("Không thể xử lý địa chỉ. Vui lòng thử lại.", "error");
     } finally {
       setIsSubmittingAddress(false);
       setIsLoading(false);
@@ -481,11 +530,11 @@ const MapScreen: React.FC = () => {
   const handleCancelAddressAlert = useCallback(() => {
     setShowAddressAlert(false);
     animateToRegion(DEFAULT_REGION);
-    setCurrentAddress('');
-    setAddressQuery('');
+    setCurrentAddress("");
+    setAddressQuery("");
     setAddressSuggestions([]);
     setShowAddressSuggestions(false);
-    setAddressError('');
+    setAddressError("");
   }, [animateToRegion]);
 
   const handleConfirmAddressAlert = useCallback(() => {
@@ -504,10 +553,21 @@ const MapScreen: React.FC = () => {
       />
 
       {/* Map Container */}
-      <View className="flex-1 overflow-hidden bg-white" style={{ borderTopLeftRadius: 36, borderTopRightRadius: 36, elevation: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: -4 } }}>
+      <View
+        className="flex-1 overflow-hidden bg-white"
+        style={{
+          borderTopLeftRadius: 36,
+          borderTopRightRadius: 36,
+          elevation: 12,
+          shadowColor: "#000",
+          shadowOpacity: 0.05,
+          shadowRadius: 10,
+          shadowOffset: { width: 0, height: -4 },
+        }}
+      >
         <MapView
           ref={mapRef}
-          style={{ width: '100%', height: '100%' }}
+          style={{ width: "100%", height: "100%" }}
           initialRegion={DEFAULT_REGION}
           region={region}
           onRegionChangeComplete={setRegion}
@@ -528,8 +588,6 @@ const MapScreen: React.FC = () => {
             />
           )}
 
-
-
           {filtered.map((point, index) => (
             <CollectionPointMarker
               key={point.id}
@@ -537,12 +595,15 @@ const MapScreen: React.FC = () => {
               isSelected={selected?.id === point.id}
               onPress={() => {
                 setSelected(point);
-                mapRef.current?.animateToRegion({
-                  latitude: point.lat,
-                  longitude: point.lng,
-                  latitudeDelta: DEFAULT_REGION.latitudeDelta,
-                  longitudeDelta: DEFAULT_REGION.longitudeDelta,
-                }, 450);
+                mapRef.current?.animateToRegion(
+                  {
+                    latitude: point.lat,
+                    longitude: point.lng,
+                    latitudeDelta: DEFAULT_REGION.latitudeDelta,
+                    longitudeDelta: DEFAULT_REGION.longitudeDelta,
+                  },
+                  450,
+                );
                 flatListRef.current?.scrollToIndex({ index, animated: true });
               }}
             />
@@ -568,8 +629,20 @@ const MapScreen: React.FC = () => {
         )}
 
         <MapControls
-          onZoomIn={() => animateToRegion({ ...region, latitudeDelta: region.latitudeDelta / 2, longitudeDelta: region.longitudeDelta / 2 })}
-          onZoomOut={() => animateToRegion({ ...region, latitudeDelta: region.latitudeDelta * 2, longitudeDelta: region.longitudeDelta * 2 })}
+          onZoomIn={() =>
+            animateToRegion({
+              ...region,
+              latitudeDelta: region.latitudeDelta / 2,
+              longitudeDelta: region.longitudeDelta / 2,
+            })
+          }
+          onZoomOut={() =>
+            animateToRegion({
+              ...region,
+              latitudeDelta: region.latitudeDelta * 2,
+              longitudeDelta: region.longitudeDelta * 2,
+            })
+          }
           onLocateMe={handleLocateMe}
         />
 
@@ -585,13 +658,15 @@ const MapScreen: React.FC = () => {
             <FlatList
               ref={flatListRef}
               data={filtered}
-              keyExtractor={item => item.id}
+              keyExtractor={(item) => item.id}
               horizontal
               showsHorizontalScrollIndicator={false}
               snapToInterval={CARD_WIDTH + SPACING}
               snapToAlignment="center"
               decelerationRate="fast"
-              contentContainerStyle={{ paddingHorizontal: (windowWidth - CARD_WIDTH) / 2 }}
+              contentContainerStyle={{
+                paddingHorizontal: (windowWidth - CARD_WIDTH) / 2,
+              }}
               onViewableItemsChanged={onViewableItemsChanged}
               viewabilityConfig={viewabilityConfig}
               renderItem={({ item }) => (

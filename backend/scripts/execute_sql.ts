@@ -1,4 +1,4 @@
-import { AppDataSource } from './src/data-source';
+import { AppDataSource } from '../src/data-source';
 import * as fs from 'fs';
 
 async function run() {

@@ -3,7 +3,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const FormData = require('form-data') as typeof import('form-data');
 import { v2 as cloudinary } from 'cloudinary';
 import { TrashClassification } from './entities/trash-classification.entity';
@@ -162,7 +161,7 @@ export class AiService {
       });
 
       const saved = await this.classificationRepo.save(classification);
-      
+
       let pointsEarned = 0;
       let awarded = false;
       let dailyLimitReached = false;
@@ -172,49 +171,29 @@ export class AiService {
           // Lock user first
           await manager.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId]);
 
-          // Kiểm tra Daily Quota (Tối đa 3 lần cộng điểm / ngày từ AI)
-          const startOfDay = new Date();
-          startOfDay.setHours(0, 0, 0, 0);
-
-          const pointCountResult = await manager.query(
-            `SELECT COUNT(*) AS count
-             FROM point_transactions
-             WHERE user_id = $1
-               AND type = 'EARN'
-               AND source_type = $2
-               AND created_at >= $3`,
-            [userId, PointSourceType.TRASH_CLASSIFICATION, startOfDay],
+          pointsEarned = await this.calculateClassificationPoints(
+            saved.predictedWasteType ?? null,
+            confidence,
           );
-
-          const countToday = parseInt(pointCountResult[0]?.count ?? '0', 10);
-
-          if (countToday >= 3) {
-            dailyLimitReached = true;
-          } else {
-            pointsEarned = await this.calculateClassificationPoints(
-              saved.predictedWasteType ?? null,
-              confidence,
+          if (pointsEarned > 0) {
+            const alreadyAwardedResult = await manager.query(
+              `SELECT 1 FROM point_transactions WHERE user_id = $1 AND source_type = $2 AND source_id = $3 AND type = $4 LIMIT 1`,
+              [userId, PointSourceType.TRASH_CLASSIFICATION, saved.id, PointTransactionType.EARN]
             );
-            if (pointsEarned > 0) {
-              const alreadyAwardedResult = await manager.query(
-                `SELECT 1 FROM point_transactions WHERE user_id = $1 AND source_type = $2 AND source_id = $3 AND type = $4 LIMIT 1`,
-                [userId, PointSourceType.TRASH_CLASSIFICATION, saved.id, PointTransactionType.EARN]
-              );
 
-              if (alreadyAwardedResult.length === 0) {
-                const transaction = await this.pointsService.addPoint(
-                  userId,
-                  pointsEarned,
-                  PointTransactionType.EARN,
-                  PointSourceType.TRASH_CLASSIFICATION,
-                  saved.id,
-                  'CLASSIFICATION_CORRECT',
-                  `Awarded for trash classification ${saved.id}`,
-                  manager
-                );
-                balanceAfter = transaction.balanceAfter;
-                awarded = true;
-              }
+            if (alreadyAwardedResult.length === 0) {
+              const transaction = await this.pointsService.addPoint(
+                userId,
+                pointsEarned,
+                PointTransactionType.EARN,
+                PointSourceType.TRASH_CLASSIFICATION,
+                saved.id,
+                'CLASSIFICATION_CORRECT',
+                `Awarded for trash classification ${saved.id}`,
+                manager
+              );
+              balanceAfter = transaction.balanceAfter;
+              awarded = true;
             }
           }
         });
@@ -265,7 +244,7 @@ export class AiService {
       where: { id: classificationId },
     });
     if (!classification) {
-      throw new NotFoundException('Khong tim thay ket qua phan loai');
+      throw new NotFoundException('Không tìm thấy kết quả phân loại');
     }
 
     const feedback = this.feedbackRepo.create({
@@ -284,7 +263,7 @@ export class AiService {
       status: dto.isCorrect ? ClassificationStatus.REVIEWED : ClassificationStatus.PENDING,
     });
 
-    return { message: 'Cam on ban da phan hoi!' };
+    return { message: 'Cảm ơn bạn đã phản hồi!' };
   }
 
   async getHistory(userId: string, limit = 20, page = 1) {
@@ -356,7 +335,7 @@ export class AiService {
       newStatus = ClassificationStatus.SUCCESS;
       pointsToAward = await this.calculateClassificationPoints(
         classification.predictedWasteType,
-        1, // Bypass confidence check
+        1,
       );
     } else if (dto.action === ReviewAction.REJECT) {
       newStatus = ClassificationStatus.FAILED;
@@ -366,7 +345,7 @@ export class AiService {
       if (dto.correctedWasteType) classification.correctedWasteType = dto.correctedWasteType;
       if (dto.correctedBin) classification.correctedBin = dto.correctedBin;
       if (dto.correctedBoundingBox) classification.correctedBoundingBox = dto.correctedBoundingBox;
-      
+
       pointsToAward = await this.calculateClassificationPoints(
         dto.correctedWasteType ?? classification.predictedWasteType,
         1,

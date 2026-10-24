@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import MainNavigator from './MainNavigator';
@@ -64,11 +64,11 @@ const screenTransition = {
 };
 
 const RootNavigator: React.FC = () => {
-    const { isLoggedIn, isHydrating, login } = useAuth();
+    const { isLoggedIn, isHydrating } = useAuth();
 
     if (isHydrating) {
         return (
-            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' }}>
+            <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#2E7D32" />
             </View>
         );
@@ -113,49 +113,11 @@ const RootNavigator: React.FC = () => {
                         ...screenTransition,
                     }}
                 >
-                    <Stack.Screen name="Welcome">
-                        {({ navigation }) => (
-                            <WelcomeScreen
-                                onGoLogin={() => navigation.navigate('Login' as never)}
-                                onGoRegister={() => navigation.navigate('Register' as never)}
-                            />
-                        )}
-                    </Stack.Screen>
-                    <Stack.Screen name="Login">
-                        {({ navigation }) => (
-                            <LoginScreen
-                                onLogin={() => login()}
-                                onGoRegister={() => navigation.navigate('Register' as never)}
-                                onGoForgotPassword={() => navigation.navigate('ForgotPassword' as never)}
-                                onGoBack={() => navigation.goBack()}
-                            />
-                        )}
-                    </Stack.Screen>
-                    <Stack.Screen name="Register">
-                        {({ navigation }) => (
-                            <RegisterScreen
-                                onGoLogin={() => navigation.navigate('Login' as never)}
-                                onGoBack={() => navigation.goBack()}
-                            />
-                        )}
-                    </Stack.Screen>
-                    <Stack.Screen name="ForgotPassword">
-                        {({ navigation }) => (
-                            <ForgotPasswordScreen
-                                onGoBack={() => navigation.goBack()}
-                                onVerified={(email) => navigation.navigate('ResetPassword' as never, { email } as never)}
-                            />
-                        )}
-                    </Stack.Screen>
-                    <Stack.Screen name="ResetPassword">
-                        {({ navigation, route }: any) => (
-                            <ResetPasswordScreen
-                                email={route.params?.email}
-                                onGoBack={() => navigation.goBack()}
-                                onSuccess={() => navigation.navigate('Login' as never)}
-                            />
-                        )}
-                    </Stack.Screen>
+                    <Stack.Screen name="Welcome" component={WelcomeScreen} />
+                    <Stack.Screen name="Login" component={LoginScreen} />
+                    <Stack.Screen name="Register" component={RegisterScreen} />
+                    <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+                    <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
                 </Stack.Navigator>
             )}
         </NavigationContainer>
@@ -163,3 +125,12 @@ const RootNavigator: React.FC = () => {
 };
 
 export default RootNavigator;
+
+const styles = StyleSheet.create({
+    loadingContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FFFFFF',
+    },
+});

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   ScrollView,
@@ -8,44 +8,51 @@ import {
   TextInput,
   TouchableOpacity,
   Dimensions,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
-import Colors from '../../theme/colors';
-import EmptyState from '../../components/EmptyState';
-import SharedHeaderBackground from '../../components/SharedHeaderBackground';
-import { useToast } from '../../context/ToastContext';
-import { useSettings } from '../../context/SettingsContext';
-import { useGetProfile } from '../../services/auth';
-import { useGetAllRewards, useGetMyRedemptions, useRedeemReward } from '../../services/rewards';
-import RewardCard from './components/RewardCard';
-import RewardHistoryCard from './components/RewardHistoryCard';
-import RedeemRewardModal from './components/RedeemRewardModal';
-import { RewardHistoryItem, RewardShopItem } from './components/types';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
+import Colors from "../../theme/colors";
+import EmptyState from "../../components/EmptyState";
+import SharedHeaderBackground from "../../components/SharedHeaderBackground";
+import { useToast } from "../../context/ToastContext";
+import { useSettings } from "../../context/SettingsContext";
+import { useGetProfile } from "../../services/auth";
+import {
+  useGetAllRewards,
+  useGetMyRedemptions,
+  useRedeemReward,
+} from "../../services/rewards";
+import RewardCard from "./components/RewardCard";
+import RewardHistoryCard from "./components/RewardHistoryCard";
+import RedeemRewardModal from "./components/RedeemRewardModal";
+import { RewardHistoryItem, RewardShopItem } from "./components/types";
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const categories = [
-  { id: 1, label: 'Tất cả', icon: 'sparkles-outline', color: Colors.primary },
-  { id: 2, label: 'Mua sắm', icon: 'bag-handle-outline', color: Colors.info },
-  { id: 3, label: 'Ăn uống', icon: 'cafe-outline', color: Colors.warning },
-  { id: 4, label: 'Cây trồng', icon: 'leaf-outline', color: Colors.primary },
-  { id: 5, label: 'Học tập', icon: 'book-outline', color: Colors.facebook },
+  { id: 1, label: "Tất cả", icon: "sparkles-outline", color: Colors.primary },
+  { id: 2, label: "Mua sắm", icon: "bag-handle-outline", color: Colors.info },
+  { id: 3, label: "Ăn uống", icon: "cafe-outline", color: Colors.warning },
+  { id: 4, label: "Cây trồng", icon: "leaf-outline", color: Colors.primary },
+  { id: 5, label: "Học tập", icon: "book-outline", color: Colors.facebook },
 ];
 
 const rewardThemes = [
-  { color: Colors.info, bg: Colors.infoLight, iconName: 'bag-handle-outline' },
-  { color: Colors.warning, bg: Colors.warningLight, iconName: 'cafe-outline' },
-  { color: Colors.primary, bg: Colors.successLight, iconName: 'leaf-outline' },
-  { color: Colors.facebook, bg: Colors.infoLight, iconName: 'book-outline' },
-  { color: Colors.hazardous, bg: Colors.hazardousBg, iconName: 'gift-outline' },
+  { color: Colors.info, bg: Colors.infoLight, iconName: "bag-handle-outline" },
+  { color: Colors.warning, bg: Colors.warningLight, iconName: "cafe-outline" },
+  { color: Colors.primary, bg: Colors.successLight, iconName: "leaf-outline" },
+  { color: Colors.facebook, bg: Colors.infoLight, iconName: "book-outline" },
+  { color: Colors.hazardous, bg: Colors.hazardousBg, iconName: "gift-outline" },
 ];
 
-const getRewardTheme = (index: number) => rewardThemes[index % rewardThemes.length];
+const getRewardTheme = (index: number) =>
+  rewardThemes[index % rewardThemes.length];
 
 const normalizeSearchText = (value?: string | number | null) =>
-  String(value ?? '').trim().toLowerCase();
+  String(value ?? "")
+    .trim()
+    .toLowerCase();
 
 const RewardsScreen: React.FC<any> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -53,7 +60,7 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
   const { appearance } = useSettings();
 
   const [activeCat, setActiveCat] = useState(1);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState("");
   const [modalItem, setModalItem] = useState<RewardShopItem | null>(null);
   const [redeeming, setRedeeming] = useState(false);
 
@@ -65,74 +72,78 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
 
   const { refetch: refetchProfile } = useGetProfile({ enabled: false });
   const { refetch: refetchAllRewards } = useGetAllRewards({ enabled: false });
-  const { refetch: refetchMyRedemptions } = useGetMyRedemptions({ enabled: false });
+  const { refetch: refetchMyRedemptions } = useGetMyRedemptions({
+    enabled: false,
+  });
   const { mutateAsync: redeemRewardAsync } = useRedeemReward();
 
   const loadData = useCallback(async () => {
     try {
-      const [profileResult, rewardsResult, redemptionsResult] = await Promise.all([
-        refetchProfile({ throwOnError: true }),
-        refetchAllRewards({ throwOnError: true }),
-        refetchMyRedemptions({ throwOnError: true }),
-      ]);
+      const [profileResult, rewardsResult, redemptionsResult] =
+        await Promise.all([
+          refetchProfile({ throwOnError: true }),
+          refetchAllRewards({ throwOnError: true }),
+          refetchMyRedemptions({ throwOnError: true }),
+        ]);
       const profileData = profileResult.data;
       const rewardsData = rewardsResult.data;
       const redemptionsData = redemptionsResult.data;
 
       if (!profileData) {
-        throw new Error('Profile data unavailable');
+        throw new Error("Profile data unavailable");
       }
 
       setUserProfile(profileData);
 
       const mappedRewards: RewardShopItem[] = Array.isArray(rewardsData)
         ? rewardsData.map((reward: any, index: number) => {
-          const theme = getRewardTheme(index);
-          const category = categories[(index % 4) + 1].label;
+            const theme = getRewardTheme(index);
+            const category = categories[(index % 4) + 1].label;
 
-          return {
-            ...reward,
-            id: String(reward.id),
-            points: reward.pointsCost || 0,
-            color: theme.color,
-            bg: theme.bg,
-            iconName: theme.iconName,
-            category,
-            tag: reward.stock > 0 && reward.stock < 10 ? 'Sắp hết' : null,
-          };
-        })
+            return {
+              ...reward,
+              id: String(reward.id),
+              points: reward.pointsCost || 0,
+              color: theme.color,
+              bg: theme.bg,
+              iconName: theme.iconName,
+              category,
+              tag: reward.stock > 0 && reward.stock < 10 ? "Sắp hết" : null,
+            };
+          })
         : [];
       setRewards(mappedRewards);
 
       const statusLabels: Record<string, string> = {
-        PENDING: 'Chờ xử lý',
-        APPROVED: 'Đã duyệt',
-        FULFILLED: 'Đã nhận',
-        REJECTED: 'Đã hủy',
-        CANCELED: 'Đã hủy',
+        PENDING: "Chờ xử lý",
+        APPROVED: "Đã duyệt",
+        FULFILLED: "Đã nhận",
+        REJECTED: "Đã hủy",
+        CANCELED: "Đã hủy",
       };
 
       const redemptions: RewardHistoryItem[] = Array.isArray(redemptionsData)
-        ? redemptionsData
-          .map((item: any, index: number) => {
+        ? redemptionsData.map((item: any, index: number) => {
             const theme = getRewardTheme(index);
             const reward = item.reward;
-            const createdAt = new Date(item.createdAt || item.updatedAt || Date.now());
+            const createdAt = new Date(
+              item.createdAt || item.updatedAt || Date.now(),
+            );
             const fallbackCategory = categories[(index % 4) + 1].label;
-            const itemName = reward?.name || 'Quà đã đổi';
+            const itemName = reward?.name || "Quà đã đổi";
 
             return {
               id: item.id || `${item.createdAt}-${index}`,
               name: itemName,
               pts: item.pointsSpent || reward?.pointsCost || 0,
               pointsUsed: Math.abs(item.pointsSpent || reward?.pointsCost || 0),
-              date: createdAt.toLocaleDateString('vi-VN'),
-              time: createdAt.toLocaleTimeString('vi-VN', {
-                hour: '2-digit',
-                minute: '2-digit',
+              date: createdAt.toLocaleDateString("vi-VN"),
+              time: createdAt.toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
               }),
               category: fallbackCategory,
-              status: statusLabels[item.status] || 'Đã đổi',
+              status: statusLabels[item.status] || "Đã đổi",
               color: theme.color,
               bg: theme.bg,
               iconName: theme.iconName,
@@ -143,7 +154,7 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
 
       setHistory(redemptions);
     } catch (error) {
-      console.log('Error loading rewards data:', error);
+      console.log("Error loading rewards data:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -162,14 +173,17 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
   }, [loadData]);
 
   const userPoints = userProfile?.pointsBalance || 0;
-  const name = userProfile?.fullName || 'Người dùng';
+  const name = userProfile?.fullName || "Người dùng";
   const initial = name.charAt(0).toUpperCase();
-  const selectedCategory = categories.find((category) => category.id === activeCat)?.label;
+  const selectedCategory = categories.find(
+    (category) => category.id === activeCat,
+  )?.label;
   const searchValue = normalizeSearchText(search);
 
   const filteredRewards = useMemo(() => {
     return rewards.filter((reward) => {
-      const matchesCategory = activeCat === 1 || reward.category === selectedCategory;
+      const matchesCategory =
+        activeCat === 1 || reward.category === selectedCategory;
       const matchesSearch =
         !searchValue ||
         normalizeSearchText(reward.name).includes(searchValue) ||
@@ -182,7 +196,8 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
 
   const filteredHistory = useMemo(() => {
     return history.filter((item) => {
-      const matchesCategory = activeCat === 1 || item.category === selectedCategory;
+      const matchesCategory =
+        activeCat === 1 || item.category === selectedCategory;
       const matchesSearch =
         !searchValue ||
         normalizeSearchText(item.name).includes(searchValue) ||
@@ -194,7 +209,7 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
 
   const handleRedeem = async (item: RewardShopItem) => {
     if (userPoints < item.points) {
-      showToast('Bạn chưa đủ điểm để đổi món quà này', 'error');
+      showToast("Bạn chưa đủ điểm để đổi món quà này", "error");
       return;
     }
 
@@ -202,11 +217,11 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
 
     try {
       await redeemRewardAsync({ rewardId: item.id });
-      showToast(`Đã đổi "${item.name}" thành công!`, 'success');
+      showToast(`Đã đổi "${item.name}" thành công!`, "success");
       await loadData();
     } catch (error: any) {
-      console.log('Lỗi đổi quà:', error.response?.data || error);
-      showToast('Đổi thưởng thất bại, vui lòng thử lại', 'error');
+      console.log("Lỗi đổi quà:", error.response?.data || error);
+      showToast("Đổi thưởng thất bại, vui lòng thử lại", "error");
     } finally {
       setRedeeming(false);
       setModalItem(null);
@@ -215,21 +230,30 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
 
   if (loading && !refreshing) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center' }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "transparent",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
         <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
 
   return (
-    <View className={`flex-1 ${appearance === 'nature' ? 'bg-transparent' : 'bg-[#F9FAFB]'}`}>
+    <View
+      className={`flex-1 ${appearance === "nature" ? "bg-transparent" : "bg-[#F9FAFB]"}`}
+    >
       <SharedHeaderBackground className="absolute top-0 left-0 right-0 h-[320px]" />
 
       <View style={{ paddingTop: insets.top + 16 }} className="px-5 z-30 pb-6">
         {/* Banner Text & Search */}
         <View className="mt-4 flex-row items-center justify-between mb-6">
           <Text className="text-[#3A3A3A] text-[24px] font-black leading-[32px] max-w-[70%]">
-            Tìm móm quà{'\n'}bạn yêu thích!
+            Tìm móm quà{"\n"}bạn yêu thích!
           </Text>
           <View className="w-[56px] h-[56px] rounded-[20px] bg-white/20 flex items-center justify-center">
             <Ionicons name="gift" size={30} color={Colors.white} />
@@ -243,11 +267,22 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
             onChangeText={setSearch}
             placeholder="Tìm quà, voucher, cây xanh..."
             placeholderTextColor={Colors.textMuted}
-            style={{ flex: 1, color: Colors.textPrimary, fontSize: 15, fontWeight: '600', padding: 0, margin: 0 }}
+            style={{
+              flex: 1,
+              color: Colors.textPrimary,
+              fontSize: 15,
+              fontWeight: "600",
+              padding: 0,
+              margin: 0,
+            }}
           />
           {search.length > 0 ? (
-            <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={20} color={Colors.textMuted} />
+            <TouchableOpacity onPress={() => setSearch("")}>
+              <Ionicons
+                name="close-circle"
+                size={20}
+                color={Colors.textMuted}
+              />
             </TouchableOpacity>
           ) : (
             <Ionicons name="options" size={20} color={Colors.primary} />
@@ -257,10 +292,14 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
 
       {/* Content Container Overlapping the Header */}
       <View
-        className={`flex-1 ${appearance === 'nature' ? 'bg-white/90' : 'bg-white'} rounded-t-[36px] z-20 overflow-hidden`}
+        className={`flex-1 ${appearance === "nature" ? "bg-white/90" : "bg-white"} rounded-t-[36px] z-20 overflow-hidden`}
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, paddingTop: 30, paddingBottom: insets.bottom + 20 }}
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingTop: 30,
+            paddingBottom: insets.bottom + 20,
+          }}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -272,8 +311,14 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
           }
         >
           {/* Categories */}
-          <Text className="mx-5 text-[18px] font-black text-textPrimary mb-3">Danh mục</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20 }}>
+          <Text className="mx-5 text-[18px] font-black text-textPrimary mb-3">
+            Danh mục
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 20 }}
+          >
             {categories.map((c) => {
               const isActive = activeCat === c.id;
               return (
@@ -281,9 +326,13 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
                   key={c.id}
                   onPress={() => setActiveCat(c.id)}
                   activeOpacity={0.8}
-                  className={`mr-2.5 px-4 py-2 rounded-full border elevation-sm ${isActive ? 'bg-primary border-primary' : 'bg-white border-borderDefault'}`}
+                  className={`mr-2.5 px-4 py-2 rounded-full border elevation-sm ${isActive ? "bg-primary border-primary" : "bg-white border-borderDefault"}`}
                 >
-                  <Text className={`text-[13px] font-bold ${isActive ? 'text-white' : 'text-textPrimary'}`}>{c.label}</Text>
+                  <Text
+                    className={`text-[13px] font-bold ${isActive ? "text-white" : "text-textPrimary"}`}
+                  >
+                    {c.label}
+                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -291,21 +340,34 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
 
           {/* Popular Rewards */}
           <View className="flex-row items-center justify-between mx-5 mt-8 mb-3">
-            <Text className="text-[18px] font-black text-textPrimary">Cửa hàng quà tặng</Text>
+            <Text className="text-[18px] font-black text-textPrimary">
+              Cửa hàng quà tặng
+            </Text>
             <View className="flex-row items-center gap-1 bg-warningLight px-2 py-0.5 rounded-full border border-warning/20">
               <Ionicons name="star" size={12} color={Colors.warning} />
-              <Text className="text-warning text-[11px] font-bold">{userPoints}</Text>
+              <Text className="text-warning text-[11px] font-bold">
+                {userPoints}
+              </Text>
             </View>
           </View>
 
           {filteredRewards.length > 0 ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 10 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{
+                paddingHorizontal: 20,
+                paddingBottom: 10,
+              }}
+            >
               {filteredRewards.map((reward) => (
                 <RewardCard
                   key={reward.id}
                   reward={reward}
                   canRedeem={userPoints >= reward.points}
-                  onPress={() => navigation.navigate('RewardDetail', { reward })}
+                  onPress={() =>
+                    navigation.navigate("RewardDetail", { reward })
+                  }
                   onRedeem={() => setModalItem(reward)}
                 />
               ))}
@@ -318,7 +380,7 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
                 subtitle="Thử đổi từ khóa hoặc xem tất cả danh mục nhé."
                 actionLabel="Xem tất cả"
                 onAction={() => {
-                  setSearch('');
+                  setSearch("");
                   setActiveCat(1);
                 }}
               />
@@ -326,7 +388,9 @@ const RewardsScreen: React.FC<any> = ({ navigation }) => {
           )}
 
           {/* History */}
-          <Text className="mt-8 mx-5 text-[18px] font-black text-textPrimary mb-3">Lịch sử đổi quà</Text>
+          <Text className="mt-8 mx-5 text-[18px] font-black text-textPrimary mb-3">
+            Lịch sử đổi quà
+          </Text>
           <View className="px-5">
             {filteredHistory.length > 0 ? (
               filteredHistory.map((item) => (

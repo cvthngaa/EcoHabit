@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule } from '../src/app.module';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { DailyQuizSet } from './modules/quiz/entities/daily-quiz-set.entity';
-import { QuizAttempt } from './modules/quiz/entities/quiz-attempt.entity';
+import { DailyQuizSet } from '../src/modules/quiz/entities/daily-quiz-set.entity';
+import { QuizAttempt } from '../src/modules/quiz/entities/quiz-attempt.entity';
 
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);

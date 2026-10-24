@@ -38,7 +38,7 @@ import { UserRole } from '../users/enums/user-role.enum';
 @UseGuards(AuthGuard('jwt'))
 @Controller('ai')
 export class AiController {
-  constructor(private readonly aiService: AiService) {}
+  constructor(private readonly aiService: AiService) { }
 
   @Post('classify')
   @UseInterceptors(
@@ -46,7 +46,7 @@ export class AiController {
       limits: { fileSize: 10 * 1024 * 1024 },
       fileFilter: (_, file, cb) => {
         if (!file.mimetype.startsWith('image/')) {
-          return cb(new BadRequestException('Chi chap nhan file anh'), false);
+          return cb(new BadRequestException('Chỉ chấp nhận file ảnh'), false);
         }
         cb(null, true);
       },
@@ -61,20 +61,20 @@ export class AiController {
         file: {
           type: 'string',
           format: 'binary',
-          description: 'Anh rac can phan loai',
+          description: 'Ảnh rác cần phân loại',
         },
         latitude: {
           type: 'number',
-          description: 'Vi do hien tai cua nguoi dung',
+          description: 'Vĩ độ hiện tại của người dùng',
         },
         longitude: {
           type: 'number',
-          description: 'Kinh do hien tai cua nguoi dung',
+          description: 'Kinh độ hiện tại của người dùng',
         },
       },
     },
   })
-  @ApiOperation({ summary: 'Phan loai rac tu anh' })
+  @ApiOperation({ summary: 'Phân loại rác từ ảnh' })
   async classify(
     @UploadedFile() file: Express.Multer.File,
     @Body('latitude') latitudeStr: string,
@@ -82,9 +82,9 @@ export class AiController {
     @Request() req: AuthenticatedRequest,
   ) {
     if (!file) {
-      throw new BadRequestException('Vui long upload mot file anh');
+      throw new BadRequestException('Vui lòng upload một file ảnh');
     }
-    
+
     const latitude = latitudeStr ? parseFloat(latitudeStr) : undefined;
     const longitude = longitudeStr ? parseFloat(longitudeStr) : undefined;
 
@@ -92,7 +92,7 @@ export class AiController {
   }
 
   @Post('feedback/:classificationId')
-  @ApiOperation({ summary: 'Gui phan hoi ve ket qua phan loai' })
+  @ApiOperation({ summary: 'Gửi phản hồi về kết quả phân loại' })
   async submitFeedback(
     @Param('classificationId') classificationId: string,
     @Body() dto: SubmitFeedbackDto,
@@ -106,7 +106,7 @@ export class AiController {
   }
 
   @Get('history')
-  @ApiOperation({ summary: 'Lich su phan loai rac cua user' })
+  @ApiOperation({ summary: 'Lịch sử phân loại rác của user' })
   @ApiQuery({ name: 'page', required: false, type: Number })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   async getHistory(
@@ -124,22 +124,22 @@ export class AiController {
 @Roles(UserRole.ADMIN)
 @Controller('admin/ai')
 export class AdminAiController {
-  constructor(private readonly aiService: AiService) {}
+  constructor(private readonly aiService: AiService) { }
 
   @Get('feedback')
-  @ApiOperation({ summary: 'Admin xem lich su phan hoi' })
+  @ApiOperation({ summary: 'Admin xem lịch sử phản hồi' })
   async getAdminFeedbacks() {
     return this.aiService.getAdminFeedbacks();
   }
 
   @Get('classifications')
-  @ApiOperation({ summary: 'Admin xem danh sach phan loai AI' })
+  @ApiOperation({ summary: 'Admin xem danh sách phân loại AI' })
   async getAdminClassifications(@Query() query: ListClassificationsQueryDto) {
     return this.aiService.getAdminClassifications(query);
   }
 
   @Patch('classifications/:id/review')
-  @ApiOperation({ summary: 'Admin duyet phan loai AI' })
+  @ApiOperation({ summary: 'Admin duyệt phân loại AI' })
   async reviewClassification(
     @Param('id') id: string,
     @Body() dto: ReviewClassificationDto,

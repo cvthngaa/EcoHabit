@@ -1,22 +1,34 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Image, ActivityIndicator, Dimensions } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useToast } from '../../context/ToastContext';
-import Colors from '../../theme/colors';
-import SharedHeaderBackground from '../../components/SharedHeaderBackground';
-import AuthInput from '../../components/auth/AuthInput';
-import { useChangePassword, useVerifyOtp, useGetProfile } from '../../services/auth';
-import { useSendChangePasswordOtp } from '../../services/auth/use-send-change-password-otp';
-import { useSettings } from '../../context/SettingsContext';
-import DraggableBottomSheet from '../../components/DraggableBottomSheet';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  ActivityIndicator,
+  Dimensions,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useToast } from "../../context/ToastContext";
+import Colors from "../../theme/colors";
+import SharedHeaderBackground from "../../components/SharedHeaderBackground";
+import AuthInput from "../../components/auth/AuthInput";
+import {
+  useChangePassword,
+  useVerifyOtp,
+  useGetProfile,
+} from "../../services/auth";
+import { useSendChangePasswordOtp } from "../../services/auth/use-send-change-password-otp";
+import { useSettings } from "../../context/SettingsContext";
+import DraggableBottomSheet from "../../components/DraggableBottomSheet";
 
-const { height } = Dimensions.get('window');
+const { height } = Dimensions.get("window");
 
 const tips = [
-  'Mật khẩu nên chứa ít nhất 6 ký tự, bao gồm chữ cái và số.',
-  'Không sử dụng mật khẩu dễ đoán như ngày sinh hay tên của bạn.',
-  'Tránh dùng chung một mật khẩu cho nhiều ứng dụng khác nhau.'
+  "Mật khẩu nên chứa ít nhất 6 ký tự, bao gồm chữ cái và số.",
+  "Không sử dụng mật khẩu dễ đoán như ngày sinh hay tên của bạn.",
+  "Tránh dùng chung một mật khẩu cho nhiều ứng dụng khác nhau.",
 ];
 
 const PrivacySecurityScreen: React.FC<any> = ({ navigation }) => {
@@ -29,39 +41,44 @@ const PrivacySecurityScreen: React.FC<any> = ({ navigation }) => {
   const verifyOtp = useVerifyOtp();
 
   const [isOtpSheetVisible, setIsOtpSheetVisible] = useState(false);
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [otp, setOtp] = useState('');
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [otp, setOtp] = useState("");
 
   const handleNextStep = () => {
     if (!oldPassword) {
-      showToast('Vui lòng nhập mật khẩu hiện tại.', 'warning');
+      showToast("Vui lòng nhập mật khẩu hiện tại.", "warning");
       return;
     }
     if (!newPassword || newPassword.length < 6) {
-      showToast('Mật khẩu mới phải có ít nhất 6 ký tự.', 'warning');
+      showToast("Mật khẩu mới phải có ít nhất 6 ký tự.", "warning");
       return;
     }
 
-    sendOtp.mutate({ oldPassword }, {
-      onSuccess: () => {
-        showToast('Mã OTP đã được gửi đến email của bạn.', 'success');
-        setIsOtpSheetVisible(true);
+    sendOtp.mutate(
+      { oldPassword },
+      {
+        onSuccess: () => {
+          showToast("Mã OTP đã được gửi đến email của bạn.", "success");
+          setIsOtpSheetVisible(true);
+        },
+        onError: (error: any) => {
+          const message =
+            error?.response?.data?.message ||
+            "Không thể gửi mã OTP. Vui lòng thử lại sau.";
+          showToast(Array.isArray(message) ? message[0] : message, "error");
+        },
       },
-      onError: (error: any) => {
-        const message = error?.response?.data?.message || 'Không thể gửi mã OTP. Vui lòng thử lại sau.';
-        showToast(Array.isArray(message) ? message[0] : message, 'error');
-      }
-    });
+    );
   };
 
   const handleConfirmOtp = () => {
     if (!otp || otp.length !== 6) {
-      showToast('Vui lòng nhập mã OTP gồm 6 chữ số.', 'warning');
+      showToast("Vui lòng nhập mã OTP gồm 6 chữ số.", "warning");
       return;
     }
     if (!profile?.email) {
-      showToast('Không tìm thấy thông tin email.', 'error');
+      showToast("Không tìm thấy thông tin email.", "error");
       return;
     }
 
@@ -73,35 +90,46 @@ const PrivacySecurityScreen: React.FC<any> = ({ navigation }) => {
             { oldPassword, newPassword },
             {
               onSuccess: () => {
-                showToast('Đổi mật khẩu thành công.', 'success');
-                setOldPassword('');
-                setNewPassword('');
-                setOtp('');
+                showToast("Đổi mật khẩu thành công.", "success");
+                setOldPassword("");
+                setNewPassword("");
+                setOtp("");
                 setIsOtpSheetVisible(false);
                 navigation.goBack();
               },
               onError: (error: any) => {
-                const message = error?.response?.data?.message || 'Đổi mật khẩu thất bại.';
-                showToast(Array.isArray(message) ? message[0] : message, 'error');
-              }
-            }
+                const message =
+                  error?.response?.data?.message || "Đổi mật khẩu thất bại.";
+                showToast(
+                  Array.isArray(message) ? message[0] : message,
+                  "error",
+                );
+              },
+            },
           );
         },
         onError: (error: any) => {
-          const message = error?.response?.data?.message || 'Mã OTP không hợp lệ.';
-          showToast(Array.isArray(message) ? message[0] : message, 'error');
-        }
-      }
+          const message =
+            error?.response?.data?.message || "Mã OTP không hợp lệ.";
+          showToast(Array.isArray(message) ? message[0] : message, "error");
+        },
+      },
     );
   };
 
-  const isPending = sendOtp.isPending || verifyOtp.isPending || changePassword.isPending;
+  const isPending =
+    sendOtp.isPending || verifyOtp.isPending || changePassword.isPending;
 
   return (
-    <View className={`flex-1 ${appearance === 'nature' ? 'bg-transparent' : 'bg-[#F9FAFB]'}`}>
+    <View
+      className={`flex-1 ${appearance === "nature" ? "bg-transparent" : "bg-[#F9FAFB]"}`}
+    >
       <SharedHeaderBackground className="absolute top-0 left-0 right-0 h-[340px]" />
 
-      <View style={{ paddingTop: insets.top + 10 }} className="px-5 pb-4 flex-row items-center justify-between z-10">
+      <View
+        style={{ paddingTop: insets.top + 10 }}
+        className="px-5 pb-4 flex-row items-center justify-between z-10"
+      >
         <TouchableOpacity
           className="w-10 h-10 items-center justify-center bg-white/20 rounded-xl"
           onPress={() => navigation.goBack()}
@@ -116,17 +144,25 @@ const PrivacySecurityScreen: React.FC<any> = ({ navigation }) => {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 30, flexGrow: 1 }}
+        contentContainerStyle={{
+          paddingBottom: insets.bottom + 30,
+          flexGrow: 1,
+        }}
         className="flex-1 z-10"
       >
         <View className="items-center z-20 mt-4 mb-6">
           <View className="relative w-[180px] h-[180px]">
-            <Image source={require('../../../assets/Reset password-amico.png')} className="w-full h-full" resizeMode="contain" />
+            <Image
+              source={require("../../../assets/Reset password-amico.png")}
+              className="w-full h-full"
+              resizeMode="contain"
+            />
           </View>
         </View>
 
-        <View className={`${appearance === 'nature' ? 'bg-white/90' : 'bg-white'} rounded-t-[36px] px-6 pt-12 pb-8 flex-1 min-h-[500px]`}>
-
+        <View
+          className={`${appearance === "nature" ? "bg-white/90" : "bg-white"} rounded-t-[36px] px-6 pt-12 pb-8 flex-1 min-h-[500px]`}
+        >
           <Text className="text-2xl font-black text-[#3A3A3A] mb-2 text-center">
             Thiết lập mật khẩu mới
           </Text>
@@ -175,21 +211,31 @@ const PrivacySecurityScreen: React.FC<any> = ({ navigation }) => {
 
           <View className="bg-[#F9FAFB] rounded-2xl p-5 border border-[#F3F4F6]">
             <View className="flex-row items-center mb-3">
-              <Ionicons name="shield-checkmark" size={18} color={Colors.primary} />
-              <Text className="font-bold text-[#3A3A3A] ml-2">Lưu ý an toàn</Text>
+              <Ionicons
+                name="shield-checkmark"
+                size={18}
+                color={Colors.primary}
+              />
+              <Text className="font-bold text-[#3A3A3A] ml-2">
+                Lưu ý an toàn
+              </Text>
             </View>
             {tips.map((tip, index) => (
               <View key={index} className="flex-row items-start mb-2">
                 <View className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-1.5 mr-2" />
-                <Text className="text-sm text-[#6B7280] flex-1 leading-5">{tip}</Text>
+                <Text className="text-sm text-[#6B7280] flex-1 leading-5">
+                  {tip}
+                </Text>
               </View>
             ))}
           </View>
-
         </View>
       </ScrollView>
 
-      <View className="absolute inset-0 z-50 elevation-5" pointerEvents="box-none">
+      <View
+        className="absolute inset-0 z-50 elevation-5"
+        pointerEvents="box-none"
+      >
         <DraggableBottomSheet
           visible={isOtpSheetVisible}
           collapsedHeight={height * 0.4}
@@ -245,7 +291,6 @@ const PrivacySecurityScreen: React.FC<any> = ({ navigation }) => {
           </View>
         </DraggableBottomSheet>
       </View>
-
     </View>
   );
 };
