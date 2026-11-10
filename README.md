@@ -2,7 +2,7 @@
 
 EcoHabit là hệ thống hỗ trợ phân loại rác bằng AI và khuyến khích người dùng xây dựng thói quen bảo vệ môi trường thông qua điểm thưởng, quiz, bản đồ điểm thu gom và đổi quà.
 
-Dự án hiện có 3 phần chính đang có mã nguồn: `mobile`, `backend` và `ai-service`. Thư mục `web` có tồn tại nhưng hiện chưa có source code.
+Dự án hiện có 4 phần đang có mã nguồn: `mobile`, `backend`, `ai-service` và `web` (admin/partner).
 
 ## Overview
 
@@ -56,7 +56,7 @@ Backend cung cấp REST API cho mobile app, kết nối PostgreSQL, Redis, Cloud
 
 ### Web admin/partner
 
-TODO: Repo có thư mục `web/` nhưng hiện chưa có source code, package scripts hoặc hướng dẫn chạy web admin/partner.
+`web/` là Vite + React 19 + TypeScript (React Router, TanStack Query), gồm các nhóm tính năng `admin` (dashboard, duyệt AI, audit log, địa điểm, fraud, điểm, quiz, phần thưởng, đối tác, giao dịch, người dùng), `auth` và `partner` (dashboard, địa điểm, quét QR, phần thưởng). Web gọi API backend qua `VITE_API_URL` trong `web/.env` (xem `web/.env.example`, mặc định `http://localhost:3000`).
 
 ## Tech Stack
 
@@ -69,10 +69,10 @@ TODO: Repo có thư mục `web/` nhưng hiện chưa có source code, package sc
 | Object storage | Cloudinary |
 | AI service | FastAPI, Uvicorn, Pillow, Ultralytics YOLO |
 | AI content | Google Gemini API |
-| Web admin/partner | TODO: chưa có source trong `web/` |
-| Deployment | TODO: chưa có Dockerfile hoặc docker-compose trong repo |
+| Web admin/partner | Vite, React 19, TypeScript, React Router, TanStack Query |
+| Deployment | `docker-compose.yml` cho PostgreSQL + Redis (local dev); chưa có Dockerfile |
 
-Lưu ý: Prompt ban đầu nhắc Prisma, React/Vite và Docker Compose, nhưng repo hiện tại chưa có `prisma/schema.prisma`, source web React/Vite hoặc file Docker Compose. Backend đang dùng TypeORM.
+Lưu ý: Prompt ban đầu nhắc Prisma, React/Vite và Docker Compose, nhưng repo hiện tại chưa có `prisma/schema.prisma`. Backend đang dùng TypeORM; `web/` đã có source React/Vite và repo đã có `docker-compose.yml` cho PostgreSQL + Redis.
 
 ## System Architecture
 
@@ -102,6 +102,7 @@ Backend dùng global prefix `/api`, riêng Swagger Docs nằm tại `/docs`.
 ```text
 EcoHabit/
   README.md
+  docker-compose.yml  # PostgreSQL + Redis (local dev)
   package.json
 
   backend/
@@ -120,6 +121,8 @@ EcoHabit/
         uploads/
         users/
       main.ts
+      run-seed.ts
+    .env.example
     test/
     uploads/
     package.json
@@ -145,7 +148,14 @@ EcoHabit/
     *.pt
 
   web/
-    TODO: chưa có source code
+    src/
+      app/            # App.tsx, router.tsx
+      features/
+        admin/        # dashboard, duyệt AI, audit log, địa điểm, fraud, ...
+        auth/
+        partner/      # dashboard, địa điểm, quét QR, phần thưởng
+      shared/         # API client (VITE_API_URL)
+    package.json      # dev: vite, build: tsc + vite build
 
   runs/
     Kết quả train/validate YOLO
@@ -167,7 +177,7 @@ EcoHabit/
 Clone repository:
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/cvthngaa/EcoHabit.git
 cd EcoHabit
 ```
 
@@ -195,40 +205,35 @@ pip install -r requirements.txt
 pip install ultralytics
 ```
 
-TODO: Chưa có hướng dẫn cài `web/` vì thư mục này hiện trống.
+Cài web:
+
+```bash
+cd web
+npm install
+```
+
+Web đọc API backend từ `VITE_API_URL` trong `web/.env` (copy từ `web/.env.example`; mặc định `http://localhost:3000`).
 
 ## Environment Variables
 
-Repo hiện chưa có `.env.example`. Các biến dưới đây được tổng hợp từ source code backend.
+Repo đã có `backend/.env.example` — copy thành `backend/.env` rồi điền giá trị thật:
 
-Tạo file `backend/.env`:
-
-```env
-PORT=3000
-
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=your_password
-DB_NAME=ecohabit
-
-REDIS_URL=redis://localhost:6379
-
-JWT_SECRET=change_this_to_a_long_random_secret
-JWT_EXPIRES_IN=1d
-
-MAIL_USER=your_email@gmail.com
-MAIL_PASS=your_gmail_app_password
-
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
-AI_SERVICE_URL=http://localhost:8000
-
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-2.5-flash-lite
+```bash
+cd backend
+cp .env.example .env
 ```
+
+Các biến trong file mẫu:
+
+- `PORT` (mặc định 3000), `DB_HOST`, `DB_PORT`, `DB_USERNAME`, `DB_PASSWORD`, `DB_NAME`
+- `REDIS_URL` (mặc định `redis://localhost:6379`)
+- `JWT_SECRET`, `JWT_EXPIRES_IN` (mặc định `1d`)
+- `MAIL_USER`, `MAIL_PASS` (Gmail app password — bắt buộc nếu dùng OTP email)
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` (bắt buộc nếu upload/phân loại ảnh)
+- `AI_SERVICE_URL` (mặc định `http://localhost:8000`)
+- `GEMINI_API_KEY`, `GEMINI_MODEL` (mặc định `gemini-2.5-flash-lite`)
+
+Lưu ý: `DB_PASSWORD` trong `backend/.env` phải trùng với `POSTGRES_PASSWORD` trong `docker-compose.yml` (mặc định cả hai là `change-me` — chỉ dùng cho dev local, đổi cả hai chỗ giống nhau trước khi dùng chung).
 
 Mobile hiện lấy IP local từ Expo host trong `mobile/src/services/api/api.ts` và gọi:
 
@@ -254,9 +259,13 @@ TODO: Nếu cần dùng Google Routes API thật, bổ sung key và hướng d�
 
 ### 1. Chạy PostgreSQL và Redis
 
-Đảm bảo PostgreSQL và Redis đang chạy trước khi start backend.
+Repo đã có `docker-compose.yml` cho PostgreSQL 16 + Redis 7 (chỉ database/cache, không chạy backend). Từ thư mục gốc:
 
-TODO: Chưa có `docker-compose.yml`, nên hiện README chưa thể cung cấp lệnh `docker compose up` chính thức cho database/cache.
+```bash
+docker compose up -d
+```
+
+Đợi database sẵn sàng rồi mới chạy migration (xem mục Database Migration / Seed bên dưới). Dừng bằng `docker compose down` (thêm `-v` nếu muốn xoá luôn dữ liệu local).
 
 ### 2. Chạy AI service
 
@@ -279,6 +288,8 @@ AI endpoints:
 - `POST /predict-url`
 
 ### 3. Chạy backend
+
+Lần đầu chạy: chạy migration và seed trước theo mục [Database Migration / Seed](#database-migration--seed) bên dưới, rồi:
 
 ```bash
 cd backend
@@ -322,7 +333,13 @@ Sau đó mở app bằng Expo Go hoặc emulator.
 
 ### 5. Chạy web admin/partner
 
-TODO: `web/` hiện chưa có source code hoặc `package.json`, nên chưa có lệnh chạy.
+```bash
+cd web
+npm install
+npm run dev
+```
+
+Mặc định chạy tại `http://localhost:5173` (Vite) và gọi API backend qua `VITE_API_URL`.
 
 ## Database Migration / Seed
 
@@ -332,13 +349,15 @@ Backend hiện dùng TypeORM với:
 synchronize: false
 ```
 
-Hiện repo chưa có thư mục migrations, seed script hoặc Prisma schema. Vì vậy cần chuẩn bị schema PostgreSQL tương ứng với các TypeORM entities trước khi chạy đầy đủ.
+Repo đã có 14 migration TypeORM trong `backend/src/migrations/` (khởi tạo schema + các thay đổi sau đó) và seed script `backend/src/run-seed.ts`. Sau khi PostgreSQL + Redis đã chạy và đã tạo `backend/.env`:
 
-TODO:
+```bash
+cd backend
+npm run migration:run   # chạy toàn bộ migration, tạo schema
+npm run seed            # tạo tài khoản demo (chạy lại nhiều lần vẫn an toàn)
+```
 
-- Bổ sung migration TypeORM hoặc SQL schema.
-- Bổ sung seed data cho user, reward, collection point nếu cần demo.
-- Tạo `.env.example` để người mới clone repo dễ cấu hình.
+Tài khoản demo xem ở mục [Demo Accounts](#demo-accounts).
 
 ## API Documentation
 
@@ -408,6 +427,8 @@ TODO: Chưa có test runner chuẩn như `pytest` trong `requirements.txt`.
 | `npm run start:dev` | Chạy dev mode có watch |
 | `npm run start:debug` | Chạy debug mode |
 | `npm run start:prod` | Chạy `dist/main` |
+| `npm run migration:run` | Chạy toàn bộ migration TypeORM |
+| `npm run seed` | Tạo tài khoản demo |
 | `npm run lint` | ESLint và tự fix |
 | `npm run test` | Unit test |
 | `npm run test:e2e` | E2E test |
@@ -431,23 +452,29 @@ python test_flow.py
 
 ## Deployment Guide
 
-TODO: Repo hiện chưa có Dockerfile, `docker-compose.yml`, CI/CD config hoặc hướng dẫn deploy production.
+Repo hiện đã có `docker-compose.yml` cho PostgreSQL + Redis (local dev), nhưng chưa có Dockerfile, CI/CD config hoặc hướng dẫn deploy production.
 
 Gợi ý các việc cần bổ sung sau:
 
 - Dockerfile cho `backend`.
 - Dockerfile cho `ai-service`.
 - Dockerfile hoặc build guide cho `mobile` nếu cần Expo/EAS.
-- `docker-compose.yml` cho PostgreSQL, Redis, backend và AI service.
+- Mở rộng `docker-compose.yml` để chạy cả backend và AI service.
 - Biến môi trường production.
 - Migration/seed production.
 - Hướng dẫn deploy Cloudinary/Gemini keys an toàn.
 
 ## Demo Accounts
 
-TODO: Chưa tìm thấy seed data hoặc tài khoản demo trong repo.
+Chạy `npm run seed` trong `backend/` để tạo tài khoản demo (chỉ dùng cho dev local, không phải tài khoản thật):
 
-Hiện app hỗ trợ đăng ký người dùng mới qua OTP email nếu backend, Redis, PostgreSQL và cấu hình email hoạt động.
+| | |
+| --- | --- |
+| Email | `demo@ecohabit.local` |
+| Mật khẩu | `Demo1234!` |
+| Vai trò | `USER` (100 điểm ban đầu) |
+
+Đăng nhập bằng tài khoản này qua `POST /api/auth/login`, trên mobile app hoặc trên web. Ngoài ra app vẫn hỗ trợ đăng ký người dùng mới qua OTP email nếu backend, Redis, PostgreSQL và cấu hình email hoạt động.
 
 ## Contributors
 
@@ -461,9 +488,6 @@ TODO: Bổ sung license chính thức nếu dự án được công khai hoặc 
 
 ## Known TODOs
 
-- Tạo `.env.example`.
-- Bổ sung migration/seed database.
-- Bổ sung source và hướng dẫn cho `web/`.
-- Bổ sung Docker/Docker Compose nếu muốn chạy toàn hệ thống bằng container.
 - Đổi JWT fallback dev trong code thành cấu hình bắt buộc khi deploy production.
 - Chuẩn hóa encoding tiếng Việt trong một số file source cũ nếu còn bị lỗi hiển thị.
+- Bổ sung Dockerfile / CI/CD nếu muốn deploy production.

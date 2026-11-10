@@ -1,0 +1,33 @@
+# EcoHabit — docker-compose.yml (PostgreSQL + Redis cho local dev)
+# Chỉ chạy database + cache, KHÔNG chạy backend / ai-service / mobile.
+# Cách dùng (từ thư mục gốc của repo):
+#   docker compose up -d
+# Dừng: docker compose down (thêm -v để xoá luôn dữ liệu local).
+# Sau đó backend/.env dùng DB_HOST=localhost, DB_PORT=5432,
+# DB_NAME=ecohabit, REDIS_URL=redis://localhost:6379
+# (xem backend/.env.example).
+# POSTGRES_PASSWORD phải trùng với DB_PASSWORD trong backend/.env
+# (mặc định cả hai là change-me — chỉ dùng cho dev local).
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: change-me
+      POSTGRES_DB: ecohabit
+    ports:
+      - "5432:5432"
+    volumes:
+      - ecohabit_pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - ecohabit_redisdata:/data
+
+volumes:
+  ecohabit_pgdata:
+  ecohabit_redisdata:
