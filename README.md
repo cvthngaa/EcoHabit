@@ -349,15 +349,17 @@ Backend hiện dùng TypeORM với:
 synchronize: false
 ```
 
-Repo đã có 14 migration TypeORM trong `backend/src/migrations/` (khởi tạo schema + các thay đổi sau đó) và seed script `backend/src/run-seed.ts`. Sau khi PostgreSQL + Redis đã chạy và đã tạo `backend/.env`:
+Repo có 1 migration khởi tạo `backend/src/migrations/1779180880498-Init.ts` (tạo toàn bộ schema) và seed script `backend/src/run-seed.ts`. Sau khi PostgreSQL + Redis đã chạy và đã tạo `backend/.env`:
 
 ```bash
 cd backend
-npm run migration:run   # chạy toàn bộ migration, tạo schema
+npm run migration:run   # chạy migration khởi tạo, tạo schema
 npm run seed            # tạo tài khoản demo (chạy lại nhiều lần vẫn an toàn)
 ```
 
 Tài khoản demo xem ở mục [Demo Accounts](#demo-accounts).
+
+Lưu ý: trước đây repo có 14 migration, nhưng file Init cũ được sinh ra từ một database đã có sẵn schema nên không chạy được trên database trống (lệnh đầu tiên đã đòi DROP constraint của bảng chưa tồn tại). Đã gộp thành 1 migration khởi tạo duy nhất tạo đúng toàn bộ schema hiện tại — kiểm chứng bằng cách chạy migration xong rồi sinh migration mới thì không còn thay đổi nào. Dữ liệu 5 huy hiệu mặc định trong migration cũ đã chuyển sang `npm run seed`. Lịch sử 14 file cũ vẫn còn trong git.
 
 ## API Documentation
 
